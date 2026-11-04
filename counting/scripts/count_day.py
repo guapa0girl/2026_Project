@@ -38,7 +38,7 @@ def main():
     p.add_argument("--videos", required=True, help="folder with the day's .avi clips")
     p.add_argument("--out-dir", required=True)
     p.add_argument("--zones", required=True)
-    p.add_argument("--model", required=True)
+    p.add_argument("--model", default=None, help="RF .joblib (optional)")
     p.add_argument("--fps", type=float, default=200.0)
     p.add_argument("--bin-sec", type=float, default=600.0)
     p.add_argument("--save-dets", action="store_true")
@@ -63,7 +63,9 @@ def main():
         cmd = [sys.executable, str(ROOT / "scripts" / "count_full_video.py"),
                "--config", a.config, "--source", str(clip), "--fps", str(a.fps),
                "--bin-sec", str(a.bin_sec), "--start-time", start.isoformat(),
-               "--zones", a.zones, "--model", a.model, "--out-prefix", str(prefix)]
+               "--zones", a.zones, "--out-prefix", str(prefix)]
+        if a.model:
+            cmd += ["--model", a.model]
         if a.save_dets:
             cmd.append("--save-dets")
         if subprocess.run(cmd).returncode != 0:

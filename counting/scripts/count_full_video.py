@@ -71,7 +71,9 @@ def parse_args():
                          "metric, not directly comparable to other mean-based numbers")
     p.add_argument("--start-time", required=True, help="ISO datetime the recording started, e.g. 2026-06-10T10:09:23")
     p.add_argument("--zones", required=True)
-    p.add_argument("--model", required=True)
+    p.add_argument("--model", default=None,
+                   help="RandomForest .joblib (optional). Omit -> rf column is left empty; "
+                        "RF can be (re)trained later from <out-prefix>_dets.csv")
     p.add_argument("--rf-threshold", type=float, default=0.5, help="RandomForest 'eating' probability cutoff -- lower is more lenient (e.g. 0.4)")
     p.add_argument("--out-prefix", required=True)
     p.add_argument("--save-dets", action="store_true",
@@ -100,7 +102,7 @@ def main():
     args = parse_args()
     config = load_config(args.config)
     zones = load_zones(args.zones)
-    ml_model = MLPostureModel.load(args.model)
+    ml_model = MLPostureModel.load(args.model) if args.model else None
     start_time = datetime.fromisoformat(args.start_time)
 
     cap = cv2.VideoCapture(args.source)
@@ -145,7 +147,10 @@ def main():
         dets = detection_from_result(result, target)
         geo_flags = [classify(d, config.feeder, config.feeding_rule).is_feeding for d in dets]
         geo_count = sum(geo_flags)
-        rf_count = sum(ml_model.predict_batch(dets, zones, threshold=args.rf_threshold)) if dets else 0
+        if ml_model is None:
+            rf_count = float("nan")
+        else:
+            rf_count = sum(ml_model.predict_batch(dets, zones, threshold=args.rf_threshold)) if dets else 0
         wall_time = start_time + timedelta(seconds=sec)
         per_second.append({"sec": sec, "wall_time": wall_time, "geo": geo_count, "rf": rf_count})
         if dets_w is not None:
@@ -230,7 +235,10 @@ def main():
     valid_rf = [v for v in rf_vals if v == v]
     print(f"\n===== 요약 ({len(rows)}개 {args.bin_sec:.0f}초 구간, {total_sec/60:.1f}분) =====")
     print(f"geometric : peak={max(valid_geo):.2f}  mean={sum(valid_geo)/len(valid_geo):.2f}")
-    print(f"randomforest : peak={max(valid_rf):.2f}  mean={sum(valid_rf)/len(valid_rf):.2f}")
+    if valid_rf:
+        print(f"randomforest : peak={max(valid_rf):.2f}  mean={sum(valid_rf)/len(valid_rf):.2f}")
+    else:
+        print("randomforest : (no --model given, skipped)")
     print(f"\n[saved] {csv_1s_path}  (1초 단위 원본)")
     print(f"[saved] {csv_path}  ({args.bin_sec:.0f}초 {args.bin_agg} 집계)")
     print(f"[saved] {png_path}")

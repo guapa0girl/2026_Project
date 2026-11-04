@@ -1,0 +1,9 @@
+# yolov8n-pose 학습 하이퍼파라미터
+# scripts/train.py --size n 실행 시 이 파일 값을 사용합니다.
+weights: yolov8n-pose.pt
+imgsz: 640
+epochs: 200
+batch: 16
+patience: 30
+optimizer: auto
+lr0: 0.01

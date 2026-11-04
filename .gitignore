@@ -1,0 +1,30 @@
+# 루트 공통 규칙 -- training/, counting/ 각자의 .gitignore도 함께 적용된다.
+
+# Python / 환경
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 가중치·모델 파일 (GitHub Release로 배포, 커밋하지 않음)
+*.pt
+*.joblib
+
+# 원본 영상
+*.avi
+*.mp4
+
+# training: 학습 산출물(그림·체크포인트)과 과거 실행은 커밋하지 않고, 지표(reports/)만 남긴다
+training/models/results/
+training/past_train/
+training/train_full*.log
+
+# counting: 실행 결과 (exclusion_events.csv 템플릿만 유지)
+counting/outputs/**
+!counting/outputs/.gitkeep
+!counting/outputs/exclusion_events.csv
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+.vscode/

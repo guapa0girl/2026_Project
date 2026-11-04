@@ -1,0 +1,86 @@
+# ============================================================================
+# Pig Pose Estimation - Ultralytics YOLO-Pose dataset definition
+# ============================================================================
+# 이 파일의 키포인트 이름/순서/스켈레톤은 실제 CVAT 프로젝트의 skeleton 라벨
+# 설정(Raw JSON, configs/cvat_skeleton_raw.json 에 원본 보관)에서 파생되었습니다.
+#
+# ⚠️ 순서 기준: CVAT raw json의 "sublabels" 배열 표시 순서가 아니라,
+# svg 안의 각 포인트(circle 엘리먼트)의 data-node-id 오름차순(=스켈레톤
+# 템플릿을 처음 만들 때의 생성 순서)이 실제 내보낸 라벨 txt 파일의 키포인트
+# 순서와 일치합니다. sublabels 배열은 CVAT UI의 라벨 패널에 보여주는
+# "표시 순서"일 뿐이며 드래그로 재정렬해도(예: nose를 맨 아래로 옮겨도)
+# 이 순서와 무관합니다. 처음에는 sublabels 순서를 그대로 썼다가 실제 데이터와
+# 어긋나는 것을 확인하고(스켈레톤 연결선이 이상하게 그려짐 + flip_idx가
+# 틀려서 좌우 반전 augmentation이 잘못 학습됨) node-id 순서로 다시 맞췄습니다.
+#
+# CVAT에서 키포인트를 추가/삭제하면 반드시 configs/cvat_skeleton_raw.json 을
+# 다시 받아서 이 파일도 함께 갱신하세요 — 이때도 sublabels 순서가 아니라
+# svg의 data-node-id 오름차순을 기준으로 삼아야 합니다. 실제로 내보낸 라벨
+# txt 파일 1개를 열어 키포인트 개수(18*3=54개 값)와 순서가 맞는지 한 번은
+# 직접 확인해보는 것을 권장합니다.
+#
+# 라벨 파일(txt) 한 줄 형식 (YOLO-Pose 표준):
+#   <class_id> <cx> <cy> <w> <h> <x1> <y1> <v1> <x2> <y2> <v2> ... <x18> <y18> <v18>
+#   - cx,cy,w,h,x,y 는 이미지 너비/높이로 정규화된 0~1 값
+#   - v(visibility): 0=라벨없음, 1=라벨있지만 가려짐, 2=라벨있고 보임
+# ============================================================================
+
+# 데이터 루트 (이 파일 기준 상대경로) 및 각 split 경로
+path: ../data/processed
+train: train/images
+val: valid/images       # ultralytics 표준 키는 'val' 이지만 실제 폴더명은 valid 로 통일
+test: test/images
+
+# 클래스: 돼지 1종
+names:
+  0: pig
+
+# 키포인트 개수와 차원 (x, y, visibility)
+kpt_shape: [18, 3]
+
+# CVAT skeleton label(pig)의 svg data-node-id 오름차순(생성 순서)과 동일 (0-indexed)
+keypoint_names:
+  - tail_tip     # 0
+  - tail         # 1
+  - l_hip        # 2
+  - r_hip        # 3
+  - l_foot       # 4
+  - r_foot       # 5
+  - r_flank      # 6
+  - l_flank      # 7
+  - l_shoulder   # 8
+  - r_shoulder   # 9
+  - l_hand       # 10
+  - neck         # 11
+  - nose         # 12
+  - l_ear        # 13
+  - l_ear_tip    # 14
+  - r_ear        # 15
+  - r_ear_tip    # 16
+  - r_hand       # 17
+
+# 좌우 반전(flip) augmentation 시 l_/r_ 키포인트를 서로 바꿔주기 위한 매핑.
+# 좌우 구분이 없는 키포인트(tail_tip, tail, neck, nose)는 자기 자신을 가리킴.
+flip_idx: [0, 1, 3, 2, 5, 4, 7, 6, 9, 8, 17, 11, 12, 15, 16, 13, 14, 10]
+
+# 스켈레톤 연결선 (0-indexed keypoint 쌍). CVAT raw json의 svg 엣지
+# (data-node-from/to)를 파싱해서 그대로 옮긴 것 — 시각화/실시간 추론에서 사용.
+skeleton:
+  - [6, 9]     # r_flank - r_shoulder
+  - [17, 9]    # r_hand - r_shoulder
+  - [1, 3]     # tail - r_hip
+  - [15, 16]   # r_ear - r_ear_tip
+  - [11, 15]   # neck - r_ear
+  - [12, 11]   # nose - neck
+  - [13, 14]   # l_ear - l_ear_tip
+  - [11, 13]   # neck - l_ear
+  - [8, 10]    # l_shoulder - l_hand
+  - [2, 4]     # l_hip - l_foot
+  - [3, 5]     # r_hip - r_foot
+  - [6, 3]     # r_flank - r_hip
+  - [11, 9]    # neck - r_shoulder
+  - [8, 11]    # l_shoulder - neck
+  - [7, 8]     # l_flank - l_shoulder
+  - [2, 7]     # l_hip - l_flank
+  - [1, 2]     # tail - l_hip
+  - [0, 1]     # tail_tip - tail

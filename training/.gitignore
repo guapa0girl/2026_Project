@@ -1,0 +1,57 @@
+# 원본/가공 데이터셋 (용량이 크고, 개인 자산이라 원격 저장소에 올리지 않음)
+data/raw/data/*
+!data/raw/data/.gitkeep
+data/raw/img/*
+!data/raw/img/.gitkeep
+data/raw/label/*
+!data/raw/label/.gitkeep
+data/raw/annotations/*
+!data/raw/annotations/.gitkeep
+data/raw/_ingest_conflicts.log
+data/processed/*/images/*
+data/processed/*/labels/*
+data/processed/*/labels.cache
+!data/processed/*/images/.gitkeep
+!data/processed/*/labels/.gitkeep
+data/past_train/*
+!data/past_train/.gitkeep
+
+# 사전학습/학습된 가중치 (용량 큼 - Git LFS 사용 권장, README 참고)
+models/pretrained/*.pt
+models/results/*/weights/*.pt
+past_train/**/*.pt
+# 아카이브된 과거 학습의 그림 산출물은 용량이 크므로 제외하고, 지표(json/csv)만 git에 남긴다
+past_train/**/*.jpg
+past_train/**/*.jpeg
+past_train/**/*.png
+# ultralytics가 AMP 체크 등으로 CWD에 자동 다운로드하는 보조 체크포인트
+scripts/*.pt
+train_full*.log
+# 세션 재시작에도 살아남도록 Task Scheduler로 띄운 학습의 로그/제어 파일
+run_train_lx.bat
+train_l_x.log
+train_l_x.pid
+train_l_x_detached*.log
+
+# ultralytics 기본 학습 로그/그래프 산출물
+runs/*
+!runs/.gitkeep
+
+# 테스트/추적용 원본 영상과 추적 결과 샘플 영상 (용량 큼)
+*.avi
+video_result/*/*.mp4
+!video_result/*/.gitkeep
+
+# 런타임에 절대경로로 재생성되는 data yaml (머신마다 다름, configs/pig_pose.yaml이 원본)
+configs/_pig_pose.resolved.yaml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+.vscode/

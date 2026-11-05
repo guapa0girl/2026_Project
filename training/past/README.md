@@ -27,3 +27,48 @@
 
 > 이전 RF는 **사람 라벨이 아니라 규칙으로 만든 라벨**로 학습한 것이라, 현재 연구의 RF(사람이 붙인 visiting/other 라벨,
 > 클립 단위 StratifiedGroupKFold)와는 다릅니다.
+
+---
+
+## 다시 사용하려면 — 코드별로 옮길 위치
+
+**규칙**: 경로에서 `past/`만 빼면 원래 위치입니다. 명령은 모두 `training/` 폴더에서 실행합니다.
+
+```
+training/past/scripts/X.py          → training/scripts/X.py
+training/past/scripts/utils/X.py    → training/scripts/utils/X.py
+training/past/configs/X.yaml        → training/configs/X.yaml
+training/past/reports/posture/      → training/reports/posture/
+```
+
+스크립트는 `training/scripts/utils/`의 모듈을 import합니다. `paths.py`, `skeleton.py`, `label_io.py`, `pck.py`는 이미
+현재 폴더에 있고, `viz.py`·`posture.py`는 아래 표대로 같이 옮겨야 합니다.
+일부는 **`training/scripts/utils/paths.py`에 한 줄을 다시 넣어야** 합니다(정리하면서 지운 상수).
+
+### 스크립트별
+
+| 스크립트 → `training/scripts/` | 같이 옮길 파일 | `utils/paths.py`에 다시 넣을 것 | 필요한 데이터 |
+|---|---|---|---|
+| `infer_realtime.py` | `utils/viz.py` → `scripts/utils/` | — | `models/results/<size>/weights/best.pt` |
+| `track_video.py` | `utils/viz.py` → `scripts/utils/` | `VIDEO_RESULT_DIR = ROOT / "video_result"` | 위 가중치, 영상 |
+| `convert_annotations.py` | — | `RAW_ANNOTATIONS_DIR = RAW_DIR / "annotations"` | `data/raw/annotations/*.json` (COCO-Keypoints) |
+| `define_feeder_zone.py` | — | — | 영상 (화면이 있는 환경) → `configs/feeder_zones.yaml` 생성 |
+| `label_posture_rule_based.py` | `utils/posture.py` → `scripts/utils/`, `configs/feeder_zones.yaml` → `configs/` | — | `data/processed/` (split_dataset.py 결과) → `reports/posture/rule_based_dataset.csv` 생성 |
+| `train_posture_classifier.py` | `utils/posture.py` → `scripts/utils/` | — | `reports/posture/rule_based_dataset.csv` (위 스크립트 결과, 또는 `past/reports/posture/`를 `reports/posture/`로 옮김) → `models/posture/random_forest.joblib` 생성 |
+
+### xlarge 학습을 다시 하려면
+
+1. `past/configs/train_xlarge.yaml` → `training/configs/`
+2. `scripts/utils/paths.py`: `SIZES`에 `"x"`, `SIZE_LABELS`에 `"x": "xlarge"`, `PRETRAINED_WEIGHTS`에 `"x": "yolov8x-pose.pt"` 추가
+3. `scripts/train.py`와 `scripts/training_status.py`의 사이즈별 설정 목록에 `"x": CONFIGS_DIR / "train_xlarge.yaml",` 추가
+4. `python scripts\train.py --sizes x` (8GB GPU에서는 매우 오래 걸립니다 — `launch_detached.py`로 띄우기 권장)
+
+### 예시: 추적 샘플 영상 다시 만들기
+
+```powershell
+cd training
+move past\scripts\track_video.py scripts\
+move past\scripts\utils\viz.py scripts\utils\
+# scripts\utils\paths.py 에  VIDEO_RESULT_DIR = ROOT / "video_result"  한 줄 추가
+..\.venv\Scripts\python scripts\track_video.py --source "<영상.avi>" --sizes m
+```

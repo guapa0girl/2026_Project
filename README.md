@@ -59,6 +59,25 @@ cd counting
 
 ---
 
+## 연구 계획 — 섭취(visiting) 판정 방법 비교
+
+같은 포즈 모델 출력(keypoint)을 두고, 돼지 한 마리가 사료통을 **visiting** 중인지 판정하는 세 가지 방법을 비교합니다.
+
+| 방법 | 입력 | 설명 |
+|---|---|---|
+| **Geo 단독 (ROI 규칙)** | 코·목 keypoint + 사료통 원 | 규칙 기반. 코가 사료통 뚜껑 원 안에 있고 목→코 방향이 중심을 향하면 visiting (`feeding_classifier.py`) |
+| **RF 단독** | keypoint 기반 자세 특징 6개 | RandomForest 분류기 (`posture_features.py`, `posture_classifier.py`) |
+| **RF + Geo feature** | RF 특징 + Geo 특징(코-사료통 거리, 방향 각도 등) 추가 | Geo 규칙의 값을 특징으로 넣어 RF가 함께 학습 |
+
+- **정답**: 사람이 CVAT에서 붙인 State 라벨(visiting / other). 평가 50장(`training/eval_frames.txt`)은 pose 학습에서 제외되어 있습니다.
+- **입력 keypoint**: 사람이 고친 keypoint가 아니라 **이 포즈 모델이 실제로 낸 keypoint**로 평가합니다(실제 운용 성능).
+  모델 검출과 사람 라벨은 개체(돼지) 단위로 매칭합니다.
+- **검증**: 같은 클립의 프레임이 train/test에 나뉘어 들어가지 않도록 **클립 단위 StratifiedGroupKFold**.
+- **주 지표**: **visiting F1** (보조: precision, recall).
+- 24시간 영상에는 `count_day.py --save-dets`로 모든 검출의 keypoint를 저장해 두므로, 세 방법 모두 YOLO 재실행 없이 다시 계산할 수 있습니다.
+
+---
+
 ## 현재 결과 — pose 모델 (2026-11-05)
 
 데이터는 CVAT task 4개(000~003)에서 287장이고, 평가용 50장은 제외했습니다.

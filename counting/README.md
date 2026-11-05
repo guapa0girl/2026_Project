@@ -82,6 +82,8 @@ cd counting
 | 3 | 목→코 방향이 사료통 중심을 향함 | `direction_angle_max_deg: 60` |
 | 4 | 옆으로 누운 자세가 아님 | `posture_enabled: false` (CH010 라벨로 확인 전까지 꺼 둠) |
 
+Geo 단독 / RF 단독 / RF + Geo feature 세 방법의 비교 계획은 [루트 README의 연구 계획](../README.md#연구-계획--섭취visiting-판정-방법-비교)을 참고하세요.
+
 사료통 좌표를 다시 잡을 때:
 
 ```powershell

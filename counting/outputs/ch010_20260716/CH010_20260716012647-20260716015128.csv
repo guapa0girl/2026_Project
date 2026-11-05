@@ -1,4 +1,0 @@
-bin_start_sec,wall_time,n_samples_ok,avg_pigs_geometric,avg_pigs_randomforest
-0.0,2026-07-16T10:26:47,600,0.948,nan
-600.0,2026-07-16T10:36:47,600,1.19,nan
-1200.0,2026-07-16T10:46:47,274,1.588,nan

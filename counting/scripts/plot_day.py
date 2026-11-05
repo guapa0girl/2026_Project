@@ -18,6 +18,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
 p = argparse.ArgumentParser()
 p.add_argument("folder")
@@ -66,8 +67,10 @@ fig, ax = plt.subplots(figsize=(14, 4.8))
 ax.plot([t + timedelta(seconds=30) for t in mt], [sum(minute[t]) / len(minute[t]) for t in mt],
         color="#9db8d9", linewidth=1, label="1-min mean")
 ax.bar([k + BIN / 2 for k in keys], [sum(bins[k]) / len(bins[k]) for k in keys], width=BIN * 0.9,
-       color=["#2a78d6" if len(bins[k]) >= 0.9 * full else "#a9c6ec" for k in keys],
-       alpha=0.85, label=f"{a.bin_min}-min mean (light = partial bin)")
+       color=["#2a78d6" if len(bins[k]) >= 0.9 * full else "#a9c6ec" for k in keys], alpha=0.85)
+handles = ax.get_legend_handles_labels()[0] + [
+    Patch(color="#2a78d6", alpha=0.85, label=f"{a.bin_min}-min mean"),
+    Patch(color="#a9c6ec", alpha=0.85, label=f"{a.bin_min}-min mean (partial bin, < 90% covered)")]
 ax.xaxis.set_major_locator(mdates.MinuteLocator(byminute=range(0, 60, a.bin_min)))
 ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
 ax.grid(which="major", axis="y", color="#e1e0d9")
@@ -77,7 +80,7 @@ ax.set_xlabel("time of day (KST)")
 ax.set_ylabel("pigs feeding")
 ax.set_title(f"Feeding count {samples[0][0]:%Y-%m-%d %H:%M}~{samples[-1][0]:%H:%M} KST "
              f"({len(files)} clips, {a.column})")
-ax.legend(loc="upper left")
+ax.legend(handles=handles, loc="upper left")
 fig.tight_layout()
 fig.savefig(str(stem) + ".png", dpi=130)
 print("saved", str(stem) + ".csv", str(stem) + ".png", f"{len(keys)} bins, {len(samples)} samples")

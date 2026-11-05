@@ -1,0 +1,59 @@
+# Real farm footage: data/raw/[CH005] 20260610015924-20260610025848_02.avi (night)
+# Filename decodes as CH005, 2026-06-10 01:59:24 -> 02:58:48 (59min24s span;
+# 712716 frames / 200fps = 3563.6s = 59min23.6s, matching almost exactly --
+# corroborates fps=200 for this file same as the day recording).
+#
+# Same camera/feeder as configs/farm_ch005_20260610.yaml (fixed installation,
+# feeder ROI pixel coords unaffected by IR night lighting -- see that
+# config's README notes), but using the models_v2/results/m checkpoint --
+# see configs/farm_ch005_v2m_day.yaml's header comment for details.
+
+pen_id: farm_ch005
+growth_stage: 육성돈   # TODO confirm actual growth stage for this pen
+expected_pig_count: 8
+
+model:
+  weights: models/pig_pose_v2_m_best.pt
+  imgsz: 640
+  conf: 0.4
+  iou: 0.5
+  tracker: bytetrack.yaml
+  device: null
+  n_keypoints: 18
+
+feeder:
+  cx: 908.9
+  cy: 530.8
+  r: 337.3
+  ring_inner_ratio: 0.20
+  ring_outer_ratio: 0.70
+
+feeding_rule:
+  nose_index: 12
+  neck_index: 11
+  direction_angle_max_deg: 60.0
+  keypoint_conf_min: 0.5
+  min_bout_sec: 0.0
+  posture_enabled: true
+  # Calibrated 2026-08-25 from 34 human-labeled detections (12 eating / 22
+  # lying, scripts/calibrate_posture.py) near this same feeder at night --
+  # small sample, but real. limb_visibility dropped (weight 0): only 65%
+  # single-feature accuracy, saturates ~1.0 for both classes regardless of
+  # true posture. aspect_ratio direction flipped from the original guess --
+  # see posture.py's body_aspect_ratio docstring; eating median=0.326,
+  # lying median=0.156, 91% accuracy. lateral_asymmetry weaker (79%) but
+  # kept as secondary signal.
+  posture_aspect_low: 0.15
+  posture_aspect_high: 0.33
+  posture_asym_low: 0.001
+  posture_asym_high: 0.01
+  posture_weights: [0.0, 0.75, 0.25]   # (limb, aspect, asymmetry)
+  posture_score_max: 0.5
+  posture_min_evidence: 0.5
+
+aggregation:
+  smooth_sec: 1.0
+  bin_size: 1min
+  video_start_time: "2026-06-10T01:59:24"   # from filename
+
+notes: "실제 농장 영상(2026-06-10, 밤/IR). models_v2 m 체크포인트 사용. fps=200 확인됨(파일명 구간 길이와 프레임수 일치)."

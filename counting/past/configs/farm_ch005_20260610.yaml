@@ -1,0 +1,50 @@
+# Real farm footage: data/raw/[CH005] 202606100923_44.avi
+# Filename decodes as CH005, 2026-06-10 09:23 start (the "_44" suffix's
+# meaning is unconfirmed -- possibly a duration/sequence number).
+#
+# KNOWN ISSUE with this file: its AVI header is malformed ("Something went
+# wrong during header parsing" from ffmpeg) --
+#   1) cv2 reports fps=200, which is almost certainly wrong for a barn
+#      camera. Confirm the real fps and pass it via `run_analysis.py --fps`
+#      (do NOT trust aggregation timing/bin_size until this is confirmed).
+#   2) Seeking (cv2 VideoCapture.set(POS_FRAMES) to an arbitrary offset)
+#      fails / returns no frame -- only sequential reads from the start
+#      are reliable. scripts/calibrate_feeder.py's --at-sec seeks, so it
+#      may not work on this file; the feeder ROI below was instead
+#      auto-detected from a frame grabbed by sequential read.
+
+pen_id: farm_ch005
+growth_stage: 육성돈   # TODO confirm actual growth stage for this pen
+expected_pig_count: 8   # counted in a sample frame -- confirm
+
+model:
+  weights: models/pig_pose_m_best.pt
+  imgsz: 640
+  conf: 0.4
+  iou: 0.5
+  tracker: bytetrack.yaml
+  device: null
+  n_keypoints: 18
+
+# Auto-detected via feeder_roi.detect_feeder_circle() on a sequentially-read
+# frame near the start (1920x1080 source, "TopFeeder"-branded red lid).
+feeder:
+  cx: 908.9
+  cy: 530.8
+  r: 337.3
+  ring_inner_ratio: 0.20
+  ring_outer_ratio: 0.70
+
+feeding_rule:
+  nose_index: 12
+  neck_index: 11
+  direction_angle_max_deg: 60.0
+  keypoint_conf_min: 0.5
+  min_bout_sec: 0.0
+
+aggregation:
+  smooth_sec: 1.0
+  bin_size: 1min       # this is a long recording -- 1-minute bins, not 5s
+  video_start_time: "2026-06-10T09:23:00"   # from filename; confirm against actual DVR metadata if available
+
+notes: "실제 농장 영상(2026-06-10). AVI 헤더 손상 -- fps=200 신뢰 불가, seek 불가(순차 읽기만 가능). run_analysis.py --fps로 실제 fps 지정 필요."

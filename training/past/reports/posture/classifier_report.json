@@ -1,0 +1,146 @@
+{
+  "source_csv": "C:\\Users\\user\\Desktop\\auto_labeling_model\\reports\\posture\\rule_based_dataset.csv",
+  "train": {
+    "report": {
+      "not_eating": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 5727.0
+      },
+      "eating": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 486.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 6213.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 6213.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        5727,
+        0
+      ],
+      [
+        0,
+        486
+      ]
+    ]
+  },
+  "valid": {
+    "report": {
+      "not_eating": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 703.0
+      },
+      "eating": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 55.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 758.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 758.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        703,
+        0
+      ],
+      [
+        0,
+        55
+      ]
+    ]
+  },
+  "test": {
+    "report": {
+      "not_eating": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 732.0
+      },
+      "eating": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 52.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 784.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 784.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        732,
+        0
+      ],
+      [
+        0,
+        52
+      ]
+    ]
+  },
+  "feature_importance": [
+    [
+      "nose_in_zone",
+      0.41983217387575245
+    ],
+    [
+      "nose_zone_dist_norm",
+      0.23333377402063954
+    ],
+    [
+      "head_dip_deg",
+      0.21696671346988655
+    ],
+    [
+      "spine_dip_deg",
+      0.07972978007809722
+    ],
+    [
+      "neck_rel_height",
+      0.043811443052912256
+    ],
+    [
+      "key_kpt_conf",
+      0.006326115502711977
+    ]
+  ]
+}

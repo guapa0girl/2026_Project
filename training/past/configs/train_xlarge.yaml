@@ -1,0 +1,16 @@
+# yolov8x-pose 학습 하이퍼파라미터
+# scripts/train.py --size x 실행 시 이 파일 값을 사용합니다.
+# batch: -1 (autobatch) — xlarge는 이 프로젝트에서 가장 큰 모델이라 8GB급
+# GPU에서 고정 배치 크기를 쓰면 OOM 위험이 커서 자동 배치 크기 산정에 맡긴다.
+# workers: 0 — 콘솔 없이 완전히 분리된(detached) 프로세스로 학습을 돌릴 때
+# PyTorch DataLoader의 멀티프로세싱 워커 생성이 멈춰버리는 문제를 겪어서,
+# 워커 없이 메인 프로세스에서 직접 데이터를 읽도록 설정. batch가 1~2로
+# 매우 작아 데이터 로딩이 병목이 되지 않는 상황이라 속도 손해는 미미하다.
+weights: yolov8x-pose.pt
+imgsz: 640
+epochs: 200
+batch: -1
+patience: 30
+optimizer: auto
+lr0: 0.01
+workers: 0

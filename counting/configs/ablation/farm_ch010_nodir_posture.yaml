@@ -1,0 +1,47 @@
+# ablation 'nodir_posture': direction=180deg (off), posture=on
+# CH010 (2026-07-16).
+# DVR filenames are UTC; scripts/count_day.py converts each clip to KST (+9h).
+# fps=200 header: frame index / 200 = seconds (confirmed 2026-11-04 with ffmpeg).
+#
+# Label definition for this project (CVAT State attribute):
+#   visiting = nose inside the red feeder lid, pig not lying down
+#   other    = everything else (incl. lying with head on the lid, wall drinkers)
+# -> ring covers the whole lid (inner 0.0, outer 1.0). Posture (condition 4) is
+#    OFF until its thresholds are checked on CH010 labels.
+#    Every detection's keypoints are saved (--save-dets), so the rule can be
+#    re-run later with other thresholds without re-running YOLO.
+
+pen_id: farm_ch010
+growth_stage: TODO
+expected_pig_count: 10
+
+model:
+  weights: models/pig_pose_ch010_m_best.pt # YOLOv8m-pose, 287 imgs (000~003), 100ep, 2026-11-05; eval_frames.txt 50 excluded
+  imgsz: 640
+  conf: 0.4
+  iou: 0.5
+  tracker: bytetrack.yaml
+  device: null # Windows(CUDA): null -> GPU 자동 선택
+  # device: mps        # Mac에서 돌릴 때는 위 줄을 주석 처리하고 이 줄 주석 해제 (null이면 Mac은 CPU로 떨어져 매우 느림)
+  n_keypoints: 18
+
+feeder:
+  cx: 925.3
+  cy: 535.1
+  r: 337.8
+  ring_inner_ratio: 0.0
+  ring_outer_ratio: 1.0
+
+feeding_rule:
+  nose_index: 12
+  neck_index: 11
+  direction_angle_max_deg: 180.0
+  keypoint_conf_min: 0.5
+  min_bout_sec: 0.0
+  posture_enabled: true
+
+aggregation:
+  smooth_sec: 1.0
+  bin_size: 10min
+
+notes: "CH010 2026-07-16, 낮(KST 10~18시) 라벨 50장 기준. ROI=빨간 사료통 전체."

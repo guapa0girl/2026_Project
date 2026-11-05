@@ -1,0 +1,4 @@
+cameras:
+  CH010:
+    config: configs/ablation/farm_ch010_nodir_posture.yaml
+    zones: configs/zones/feeder_zones_ch010.yaml

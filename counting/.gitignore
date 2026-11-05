@@ -8,6 +8,7 @@ models/**/*.pt
 models/**/*.joblib
 data/raw/*
 data/processed/*
+data/labels/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 

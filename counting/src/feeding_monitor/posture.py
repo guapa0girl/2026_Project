@@ -113,7 +113,7 @@ def body_aspect_ratio(kpts: Keypoints, kpt_conf_min: float) -> Optional[float]:
     체형 자체가 다르므로 임계값은 단계별로 강건성을 확인해야 한다.
 
     애초 가설은 "옆으로 누우면 배가 펴지면서 폭이 넓어진다 -> 클수록 누움"
-    이었는데, 2026-08-25 CH005 야간 영상 34장 사람 라벨(calibrate_posture.py)로
+    이었는데, 야간 영상 34장 사람 라벨로
     검증하니 실제로는 **반대**였다: eating median=0.326, lying median=0.156
     (91% 단일 신호 분리 정확도). 사료통에 코를 박고 몸을 걸쳐 다가서는
     자세에서는 몸통이 카메라를 향해 대각선으로 기울어(foreshorten) neck-tail

@@ -1,10 +1,8 @@
 """YOLO-Pose + ByteTrack wrapper: detect + track pigs and yield per-frame,
 per-pig keypoint records.
 
-Works identically over a recorded video file or a live source (RTSP URL,
-webcam index) because both are just `source=` values Ultralytics' `model.track`
-accepts with `stream=True` -- that's what lets the same pipeline back both
-scripts/run_analysis.py (offline) and scripts/run_realtime.py (live).
+scripts/count_full_video.py uses `PoseTracker.model.predict()` on one seeked
+frame per second; `track()` is kept for continuous tracking over a clip.
 """
 
 from __future__ import annotations
@@ -27,11 +25,9 @@ from .config import ModelConfig
 # exported point order), and this file previously got that wrong once
 # already: assuming sublabels order put "nose" last (kpt17) instead of right
 # after neck (kpt12), which silently used l_ear as "nose" throughout the
-# feeding classifier and drew garbled skeleton lines. This ordering was
-# cross-checked and corrected against auto_labeling_model/configs/
-# pig_pose.yaml (a separate, more mature training pipeline that hit and
-# documented the exact same mistake independently) -- keep both in sync if
-# the CVAT skeleton is ever edited. Also keep in sync with
+# feeding classifier and drew garbled skeleton lines. This ordering matches
+# training/configs/pig_pose.yaml -- keep both in sync if the CVAT skeleton is
+# ever edited. Also keep in sync with
 # FeedingRule.nose_index/neck_index in config.py.
 KEYPOINT_NAMES: list[str] = [
     "tail_tip",     # 0
@@ -167,9 +163,8 @@ class PoseTracker:
         `source` is anything Ultralytics accepts: a video file path, an RTSP
         URL, or a webcam index (int). `start_frame` > 0 seeks a video file to
         that frame first (e.g. to render a clip from the middle of a long
-        recording without paying for full-inference on the skipped prefix --
-        see scripts/render_comparison_video.py's --start-frame) -- this
-        switches to feeding the model one manually-read frame at a time
+        recording without paying for full-inference on the skipped prefix)
+        -- this switches to feeding the model one manually-read frame at a time
         (still with persist=True for continuous ByteTrack IDs) instead of
         Ultralytics' own stream=True file reader, which always starts at 0.
         """

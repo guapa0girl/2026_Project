@@ -23,10 +23,7 @@ this was observed being counted in real geo footage. Posture is the only
 remaining discriminator, and it is precisely the information a rotated
 bounding box cannot represent.
 
-This mirrors ObjectDetectionTracking_GPU/aggregate_feeding.py's logic,
-generalized to run per-detection (so it works frame-by-frame in a live
-stream, not just as a batched CSV pass) and driven by config instead of
-hardcoded constants.
+Runs per detection and is driven entirely by the pen config (configs/*.yaml).
 """
 
 from __future__ import annotations

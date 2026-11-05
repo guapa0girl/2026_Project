@@ -1,4 +1,4 @@
-"""n/s/m/l/x 학습 진행 상황을 막대그래프(%)로 보여준다.
+"""n/s/m/l 학습 진행 상황을 막대그래프(%)로 보여준다.
 백그라운드로 오래 도는 학습(특히 l/x)의 진행률을 아무 때나 빠르게
 확인하고 싶을 때 사용한다.
 
@@ -18,7 +18,6 @@ SIZE_CONFIG_FILE = {
     "s": CONFIGS_DIR / "train_small.yaml",
     "m": CONFIGS_DIR / "train_medium.yaml",
     "l": CONFIGS_DIR / "train_large.yaml",
-    "x": CONFIGS_DIR / "train_xlarge.yaml",
 }
 
 BAR_WIDTH = 40

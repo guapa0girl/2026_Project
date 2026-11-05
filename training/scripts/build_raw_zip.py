@@ -1,15 +1,15 @@
-"""CVAT 'YOLO Pose 1.1' export(라벨만) + 로컬 원본 이미지 → Piggy_Auto_Labeling_ 의
-data/raw/data/ 에 넣을 zip(<task>/img + <task>/label) 으로 묶는다.
+"""CVAT 'YOLO Pose 1.1' export(라벨만) + 로컬 원본 이미지 → training/data/raw/data/ 에
+넣을 zip(<task>/img + <task>/label) 으로 묶는다.
 
 CVAT 무료 플랜은 이미지 포함 export가 막혀 있어서, 라벨 zip과 PC에 있는 원본 이미지를
-짝지어 auto_labeling 이 요구하는 구조를 직접 만든다.
+짝지어 ingest_raw_zips.py 가 요구하는 구조를 직접 만든다.
 평가용 프레임(자세 판정 라벨 50장, eval_frames.txt)은 pose 학습에서 반드시 제외한다.
 
 제외 매칭은 (1) 파일명 완전 일치, 또는 (2) 파일명 속 "[CH010] <영상>_f<프레임>" 부분
 일치로 판단한다. task마다 "frame_0001__" 같은 접두어가 다르게 붙어도 같은 프레임이면
 걸러지도록 하기 위함.
 
-사용법 (Piggy_Auto_Labeling_ 폴더에서):
+사용법 (training 폴더에서):
   python scripts/build_raw_zip.py --labels-zip "CVAT_export.zip" --images "원본이미지폴더" \
       --exclude eval_frames.txt --task CH010_431 --out data/raw/data/CH010_431.zip
 

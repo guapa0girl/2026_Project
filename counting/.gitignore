@@ -3,10 +3,6 @@ __pycache__/
 .venv/
 venv/
 
-# local-only backup of the deleted ObjectDetectionTracking_GPU repo's git history
-# (git clone this file to restore it -- not part of this project's own history)
-ObjectDetectionTracking_GPU_history.bundle
-
 # large/local artifacts -- not source
 models/**/*.pt
 models/**/*.joblib
@@ -15,17 +11,6 @@ data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 
-# future run outputs -- regenerable; keep the pilot record + the exclusion-events template though
+# run outputs -- regenerable
 outputs/**
 !outputs/.gitkeep
-!outputs/exclusion_events.csv
-!outputs/pilot_1m_sample_video/
-!outputs/pilot_1m_sample_video/**
-
-# training/: keep scripts + CVAT label exports (small), drop derived/raw bulk
-training/pig_pose/
-training/dataset/
-training/datasets/*/images/
-training/_cvat_export_raw/
-training/_check_export/
-training/*.mp4

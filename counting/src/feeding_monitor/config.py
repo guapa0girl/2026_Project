@@ -3,9 +3,7 @@
 One config = one pen/camera setup: which model checkpoint to run, where the
 circular feeder is in pixel space, which keypoints count as nose/neck, and
 what time resolution to aggregate feeding counts into. Keeping all of this in
-YAML (instead of constants edited in a script, as in the original
-ObjectDetectionTracking_GPU/aggregate_feeding.py) is what lets the same
-pipeline run unmodified across pens, growth stages, and video lengths.
+YAML lets the same code run unmodified across pens and cameras.
 """
 
 from __future__ import annotations

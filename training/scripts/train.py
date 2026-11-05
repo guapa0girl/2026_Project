@@ -10,10 +10,10 @@
     -> models/results/ 에는 항상 "가장 최근 학습 결과"만 남는다.
 
 사용법:
-    python scripts/train.py                      # n, s, m, l, x 전부 학습 + 평가 + 비교
+    python scripts/train.py                      # n, s, m, l 전부 학습 + 평가 + 비교
     python scripts/train.py --sizes n s           # 일부만
     python scripts/train.py --epochs 100          # configs/train_*.yaml의 epochs를 덮어씀
-    python scripts/train.py --sizes l x --resume  # 중단된 학습을 이어서 진행(가능한 것만), 나머지는 새로 시작
+    python scripts/train.py --sizes l --resume  # 중단된 학습을 이어서 진행(가능한 것만), 나머지는 새로 시작
 """
 import argparse
 import shutil
@@ -42,7 +42,6 @@ SIZE_CONFIG_FILE = {
     "s": CONFIGS_DIR / "train_small.yaml",
     "m": CONFIGS_DIR / "train_medium.yaml",
     "l": CONFIGS_DIR / "train_large.yaml",
-    "x": CONFIGS_DIR / "train_xlarge.yaml",
 }
 
 

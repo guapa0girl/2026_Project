@@ -1,12 +1,12 @@
-# CH010 (2026-07-16) -- 2026-2 Project. Copied from farm_ch005_v2m_day_posture.yaml.
+# CH010 (2026-07-16).
 # DVR filenames are UTC; scripts/count_day.py converts each clip to KST (+9h).
 # fps=200 header: frame index / 200 = seconds (confirmed 2026-11-04 with ffmpeg).
 #
 # Label definition for this project (CVAT State attribute):
 #   visiting = nose inside the red feeder lid, pig not lying down
 #   other    = everything else (incl. lying with head on the lid, wall drinkers)
-# -> ring covers the whole lid (inner 0.0, outer 1.0). Posture (condition 4) was
-#    calibrated on CH005 only, so it is OFF here until checked on CH010 labels.
+# -> ring covers the whole lid (inner 0.0, outer 1.0). Posture (condition 4) is
+#    OFF until its thresholds are checked on CH010 labels.
 #    Every detection's keypoints are saved (--save-dets), so the rule can be
 #    re-run later with other thresholds without re-running YOLO.
 

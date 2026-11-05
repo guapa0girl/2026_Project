@@ -19,10 +19,9 @@ training/models/results/
 training/past_train/
 training/train_full*.log
 
-# counting: 실행 결과 (exclusion_events.csv 템플릿만 유지)
+# counting: 실행 결과
 counting/outputs/**
 !counting/outputs/.gitkeep
-!counting/outputs/exclusion_events.csv
 
 # OS/IDE
 .DS_Store

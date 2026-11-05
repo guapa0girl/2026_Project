@@ -5,8 +5,8 @@ config. Re-run with --cx/--cy/--r to override the auto-detection by hand
 and preview the result before committing it to configs/*.yaml.
 
 Usage:
-    python scripts/calibrate_feeder.py --source data/raw/pen01.mp4 --at-sec 15
-    python scripts/calibrate_feeder.py --source data/raw/pen01.mp4 --at-sec 15 --cx 454 --cy 354 --r 169
+    python scripts/calibrate_feeder.py --source "data/raw/[CH010] ....avi" --at-sec 15
+    python scripts/calibrate_feeder.py --source "data/raw/[CH010] ....avi" --at-sec 15 --cx 925 --cy 535 --r 338
 """
 
 import argparse

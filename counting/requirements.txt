@@ -1,4 +1,4 @@
-# GPU torch build (install this first, separately -- matches ObjectDetectionTracking_GPU):
+# GPU torch build (install this first, separately):
 #   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 ultralytics==8.4.108
 opencv-python==5.0.0.93

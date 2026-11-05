@@ -1,7 +1,7 @@
 """Wraps the pretrained RandomForest posture classifier (see
 posture_features.py's module docstring) behind the same simple interface
-as feeding_classifier.classify(), so scripts/compare_classifiers.py can run
-both over the same detections.
+as feeding_classifier.classify(), so geo and RF can run over the same
+detections (scripts/count_full_video.py --model).
 
 predict_batch() exists because sklearn's per-call Python overhead makes
 predicting one row at a time (naively looping .predict([row])) dominate

@@ -1,2 +1,2 @@
-"""Pose-estimation-based pig feeding time analysis: pen config -> detection/
-tracking -> 3-condition feeding classification -> time-binned aggregation."""
+"""Pig feeding count from YOLO-Pose keypoints: pen config -> pose detection ->
+geometric (and optional RandomForest) feeding classification."""

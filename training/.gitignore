@@ -27,20 +27,13 @@ past_train/**/*.png
 # ultralytics가 AMP 체크 등으로 CWD에 자동 다운로드하는 보조 체크포인트
 scripts/*.pt
 train_full*.log
-# 세션 재시작에도 살아남도록 Task Scheduler로 띄운 학습의 로그/제어 파일
-run_train_lx.bat
-train_l_x.log
-train_l_x.pid
-train_l_x_detached*.log
-
 # ultralytics 기본 학습 로그/그래프 산출물
 runs/*
 !runs/.gitkeep
 
-# 테스트/추적용 원본 영상과 추적 결과 샘플 영상 (용량 큼)
+# 원본 영상, 예전 추적 샘플 영상 폴더 (용량 큼)
 *.avi
-video_result/*/*.mp4
-!video_result/*/.gitkeep
+video_result/
 
 # 런타임에 절대경로로 재생성되는 data yaml (머신마다 다름, configs/pig_pose.yaml이 원본)
 configs/_pig_pose.resolved.yaml

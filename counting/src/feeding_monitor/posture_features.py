@@ -1,22 +1,15 @@
-"""Second feeding-classification approach, ported from the separate
-`auto_labeling_model` project (its scripts/utils/posture.py) for a head-to-
-head comparison against this project's geometric 3-condition rule
-(feeding_classifier.classify).
+"""Second feeding-classification approach (RandomForest features), compared
+against the geometric rule (feeding_classifier.classify).
 
 Where feeding_classifier.classify() only asks "is the nose in the ring,
 pointed at the center, with good confidence", this extracts 6 features
 (zone containment/distance + how far the head and spine are dipped down +
 neck height + keypoint confidence) and either applies a similar rule
-threshold, or feeds them to a pretrained RandomForest
-(models/posture_random_forest.joblib, trained on ~940 hand-labeled frames
-from the same farm camera -- see models/README.md).
+threshold, or feeds them to a RandomForest (.joblib passed via --model).
 
-Uses polygon feeder zones (configs/feeder_zones_ch005.yaml), not this
-project's circular FeederROI -- that's what the RandomForest was trained
-against, and reusing it as-is keeps inference consistent with training
-instead of silently shifting the feature distribution. This project's own
-pipeline (feeding_classifier.py) stays circle-only per the stated ROI
-policy; polygon zones are only used for this comparison.
+Uses polygon feeder zones (configs/zones/feeder_zones_ch010.yaml, a 48-gon of
+the same circle as the geo ROI -- scripts/make_circle_zone.py), so geo and RF
+look at the same feeder area.
 
 Keypoint indices match pose_tracker.KEYPOINT_NAMES (nose=12, neck=11,
 l_hip=2, r_hip=3, l_shoulder=8, r_shoulder=9) -- both projects' CVAT

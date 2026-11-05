@@ -2,37 +2,31 @@
 second via seek + single-frame inference, rather than decoding every frame
 through a continuous tracking stream.
 
-Why not just run run_analysis.py / render_comparison_video.py end to end:
-their frame-by-frame streaming reader (ultralytics model.track(..., stream=
-True)) stops early on this project's problem AVI files (confirmed: it quit
-after ~188s of a requested 300s test, no error, likely a decode hiccup deep
-in the corrupted-header file) even though direct seeks (cv2 VideoCapture.set
-(POS_FRAMES)) reach much further into the same file without trouble (see
-validate_counts.py's sampling, which reached t=1205s/20min fine). So this
-seeks to one frame per second instead of decoding continuously -- robust to
-that failure mode, and fast enough to cover a long file in a few minutes
-instead of well over an hour.
+Why seek instead of streaming: ultralytics' frame-by-frame streaming reader
+(model.track(..., stream=True)) stops early on the DVR AVI files (it quit
+after ~188s of a 300s test, no error, likely a decode hiccup in the
+corrupted-header file), while direct seeks (cv2 VideoCapture.set(POS_FRAMES))
+reach the whole file. So this seeks to one frame per second -- robust to that
+failure mode, and fast enough to cover a 25-min clip in ~12 min.
 
 Trade-off: no ByteTrack track IDs (each sampled frame is independent
 single-frame inference), which is fine here -- a per-second *count* doesn't
 need persistent per-pig identity, only "how many right now".
 
-Two outputs (2026-08-25, requested: 1s-resolution raw data + coarser graph):
+Outputs:
   <out-prefix>_1s.csv   one row per second, geo/rf count at that instant
   <out-prefix>.csv/.png the usual --bin-sec-binned summary + graph, now
                          aggregated FROM the 1s data via --bin-agg
-                         (mean, the project's established "avg pigs
-                         feeding" metric everywhere else -- or max, which
-                         doesn't get diluted by a bin's quiet moments but
-                         changes what the number means; not a drop-in
-                         swap for downstream comparisons that assume mean)
+                         (mean = "avg pigs feeding", the default; max =
+                         a bin's peak, a different metric)
+  <out-prefix>_dets.csv  (--save-dets) every detection's box + keypoints
 
-Usage:
-    python scripts/count_full_video.py --config configs/farm_ch005_20260610.yaml \
-        --source "data/raw/[CH005] 202606100923_44.avi" --fps 200 --bin-sec 10 \
-        --start-time 2026-06-10T10:09:23 \
-        --zones configs/zones/feeder_zones_ch005.yaml --model models/posture_random_forest.joblib \
-        --out-prefix outputs/0824/farm_ch005_full20min
+Usually run through scripts/count_day.py (sets --start-time per clip). Direct use:
+    python scripts/count_full_video.py --config configs/farm_ch010.yaml \
+        --source "data/raw/[CH010] 20260716012647-20260716015128.avi" --fps 200 --bin-sec 600 \
+        --start-time 2026-07-16T10:26:47 \
+        --zones configs/zones/feeder_zones_ch010.yaml --save-dets \
+        --out-prefix outputs/ch010_20260716/CH010_20260716012647-20260716015128
 """
 
 import argparse
@@ -61,14 +55,11 @@ def parse_args():
     p = argparse.ArgumentParser(description="1-second-sampled feeding count over a full long video (geometric + RandomForest)")
     p.add_argument("--config", required=True)
     p.add_argument("--source", required=True)
-    p.add_argument("--fps", type=float, required=True, help="real fps (see run_analysis.py --fps -- some DVR AVI headers lie)")
+    p.add_argument("--fps", type=float, required=True, help="real fps (DVR AVI headers lie; CH010 = 200)")
     p.add_argument("--bin-sec", type=float, default=10.0, help="graph/summary bin size in seconds -- the raw CSV is always 1s regardless")
     p.add_argument("--bin-agg", choices=["mean", "max"], default="mean",
-                    help="how to collapse 1s samples into each --bin-sec bin for the summary/graph -- "
-                         "mean matches the project's 'avg pigs feeding' metric used everywhere else "
-                         "(compare_stages.py's shape normalization, the README's stated deliverable); "
-                         "max keeps a bin's peak instead of averaging it away, but is then a different "
-                         "metric, not directly comparable to other mean-based numbers")
+                    help="how to collapse 1s samples into each --bin-sec bin -- "
+                         "mean = 'avg pigs feeding' (default); max = the bin's peak (a different metric)")
     p.add_argument("--start-time", required=True, help="ISO datetime the recording started, e.g. 2026-06-10T10:09:23")
     p.add_argument("--zones", required=True)
     p.add_argument("--model", default=None,

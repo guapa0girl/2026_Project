@@ -7,7 +7,6 @@ DATA_DIR = ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 RAW_IMAGES_DIR = RAW_DIR / "img"
 RAW_LABELS_DIR = RAW_DIR / "label"
-RAW_ANNOTATIONS_DIR = RAW_DIR / "annotations"
 PROCESSED_DIR = DATA_DIR / "processed"
 DATA_PAST_TRAIN_DIR = DATA_DIR / "past_train"
 
@@ -31,15 +30,12 @@ REPORTS_DIR = ROOT / "reports"
 METRICS_DIR = REPORTS_DIR / "metrics"
 COMPARISON_DIR = REPORTS_DIR / "comparison"
 
-VIDEO_RESULT_DIR = ROOT / "video_result"
-
-SIZES = ("n", "s", "m", "l", "x")
-SIZE_LABELS = {"n": "nano", "s": "small", "m": "medium", "l": "large", "x": "xlarge"}
+SIZES = ("n", "s", "m", "l")
+SIZE_LABELS = {"n": "nano", "s": "small", "m": "medium", "l": "large"}
 PRETRAINED_WEIGHTS = {
     "n": "yolov8n-pose.pt",
     "s": "yolov8s-pose.pt",
     "m": "yolov8m-pose.pt",
     "l": "yolov8l-pose.pt",
-    "x": "yolov8x-pose.pt",
 }
 SPLITS = ("train", "valid", "test")

@@ -5,7 +5,7 @@
 않게 한다.
 
 사용법:
-    python launch_detached.py -- train.py --sizes l x --resume
+    python launch_detached.py -- train.py --sizes l --resume
 """
 import subprocess
 import sys

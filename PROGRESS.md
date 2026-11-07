@@ -168,7 +168,10 @@
 - [x] 새 스크립트 반영: `leg_features.py`(각도 기반 누움 특징 5개), `method_features.py`, `evaluate_methods.py`(rf_geo_leg 추가, `--stage2-exclude-shared-clips`), `apply_methods.py`(주간 `_dets.csv`에 모든 방법 적용)
 - [x] 남은 주간 영상 5개 클립 추론 시작 (백그라운드, 약 1시간 반)
 - [x] 카메라 ROI 설정 — CH005·SAMPLE 추가, CH002 제외 (아래 표)
-- [ ] 수아 라벨 export (000·001·002 task별 CVAT for images 1.1) → `counting/data/labels/state_000.xml`, `state_001.xml`, `state_002.xml`
+- [x] 수아 라벨 **001 (CH005) 90장** 받음 → `counting/data/labels/state_001.xml` (원래 이름 `annotations.xml`)
+  - CVAT 백업 zip은 `counting/data/labels/cvat_backup/001_label_backup.zip`에 보관 (사진은 학습 데이터와 중복)
+- [x] **Stage 1 + Stage 2 1차 (001만)** — 아래 "결과 — 1차"
+- [ ] 수아 라벨 000 (1분 샘플), 002 (CH010 51~100번) → `state_000.xml`, `state_002.xml`
 - [ ] kappa용 10장 겹치기 확인 (수아·서인)
 - [ ] Stage 1 + Stage 2 (Geo / RF / RF+Geo / RF+Geo+Leg) — `--stage2-exclude-shared-clips` 있이/없이 두 번
   - 로그 확인: 카메라 목록에 CH005·SAMPLE·CH010, "평가용 제외" 0개
@@ -192,6 +195,36 @@
   CH005는 첫 클립·마지막 클립 사진에서 1~2px 차이 → 카메라 고정 확인.
 - 002의 50장 중 33장은 평가 50장과 **같은 클립**에서 나온 사진 → Stage 2의 RF 점수가 부풀 수 있어
   `--stage2-exclude-shared-clips`(같은 클립 제외) 버전과 비교.
+
+### 결과 — 1차: CH005 라벨(90장)로 학습 → CH010 평가 50장으로 시험
+
+> ✅ **정답 평가 완료** — Stage 1은 수아 라벨 90장(돼지 899마리), Stage 2는 사람 라벨 평가 50장(돼지 495마리)과 비교.
+
+![판정 방법 비교 (1차)](docs/figures/methods_001.png)
+
+**네 가지 방법**
+- **Geo (규칙)**: 코가 사료통 원 안 + 머리가 사료통 쪽(60°) → 먹는 중. 학습 없음.
+- **RF**: 자세 특징 6개(코-사료통 구역 거리, 머리·척추 기울기 등)로 RandomForest가 학습.
+- **RF+Geo**: RF + Geo 규칙의 값(코-사료통 거리, 머리 각도 등)을 특징으로 추가.
+- **RF+Geo+Leg**: 여기에 **다리 모양으로 본 누움 특징 5개**(다리-척추 각도, 다리 길이, 발이 한쪽에 몰린 정도 등) 추가.
+
+**그래프 읽는 법** (파란 막대 = 그 칸의 1등)
+- **왼쪽 (Stage 1)**: 사람이 찍은 관절 점으로, CH005 클립 4개를 돌아가며 3개로 학습하고 1개로 시험한 F1. 높을수록 좋음.
+- **가운데 (Stage 2)**: 실제 운용처럼 **모델이 찍은 관절 점**으로 CH010 평가 50장을 판정한 F1. 높을수록 좋음.
+- **오른쪽 (Stage 2)**: 사진 한 장마다 먹는 돼지 수를 몇 마리 틀렸나. 낮을수록 좋음. bias +는 과대 집계.
+
+**결론**
+- **RF+Geo+Leg가 세 칸 모두 1등.** 특히 Stage 2에서 F1 0.907, **사진당 오차 0.20마리**(Geo 0.54의 절반 이하),
+  80%의 사진에서 마릿수를 정확히 맞힘.
+- RF·RF+Geo는 Stage 1에서는 좋지만 Stage 2에서 **1마리 이상 과대 집계** → 사료통 근처에 **누워 있는 돼지**를
+  먹는 중으로 셈. 다리 특징을 넣자 이 오류가 사라짐(오검출 55 → 5).
+- 다리 특징의 차이가 뚜렷함 (Stage 1 중앙값): 다리-척추 각도 visiting **13°** vs other **60°**,
+  발 쏠림 visiting **0** vs other **1** ("ㄷ" 자로 한쪽에 다리를 뻗고 누운 자세).
+- **다른 카메라(CH005)로만 학습했는데 CH010에서 잘 맞음** → 카메라가 바뀌어도 쓸 수 있다는 근거.
+  CH010 라벨이 학습에 없으므로 "같은 클립 누수" 문제도 이번 결과에는 해당 없음.
+- 한계: Stage 1 라벨이 한 카메라 90장(클립 4개)뿐. 000·002 라벨이 들어오면 다시 돌려 확인.
+
+상세: `counting/outputs/eval_001/summary.md` · 그림 다시 그리기: `scripts/plot_methods.py <결과폴더>`
 
 ```powershell
 cd C:\ETRI\2026_Project\counting

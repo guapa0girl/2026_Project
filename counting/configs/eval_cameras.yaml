@@ -5,12 +5,12 @@ cameras:
   CH010:
     config: configs/farm_ch010.yaml
     zones: configs/zones/feeder_zones_ch010.yaml
-  # CH005:
-  #   config: configs/farm_ch005.yaml
-  #   zones: configs/zones/feeder_zones_ch005.yaml
-  # CH002:
+  CH005:
+    config: configs/farm_ch005.yaml
+    zones: configs/zones/feeder_zones_ch005.yaml
+  SAMPLE:              # 1분 샘플 영상 (960x720, 파일명에 CH 없음)
+    config: configs/farm_sample.yaml
+    zones: configs/zones/feeder_zones_sample.yaml
+  # CH002: 제외 — 금속 원형 급이기가 화면 아래쪽에 잘려 있어 빨간 원형 사료통 ROI와 조건이 다름 (task 003)
   #   config: configs/farm_ch002.yaml
   #   zones: configs/zones/feeder_zones_ch002.yaml
-  # SAMPLE:              # 1분 샘플 영상 (960x720, 파일명에 CH 없음)
-  #   config: configs/farm_sample.yaml
-  #   zones: configs/zones/feeder_zones_sample.yaml

@@ -25,6 +25,8 @@ Methods
   rf      : RandomForest on the 6 posture_features (README "RF 단독")
   rf_geo  : rf features + Geo rule values (nose distance / r, head angle to
             feeder center, 3 posture signals)
+  rf_geo_leg : rf_geo + leg-geometry lying features (leg angle / extension /
+            side bias -- the "ㄷ" sleeping shape; src/feeding_monitor/leg_features.py)
 
 Usage (from counting/):
   ..\\.venv\\Scripts\\python scripts\\evaluate_methods.py ^
@@ -59,10 +61,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from feeding_monitor.config import load_config                      # noqa: E402
-from feeding_monitor.feeding_classifier import classify               # noqa: E402
+from feeding_monitor.method_features import (LEG_FEATURES, METHOD_FEATURES, METHODS,  # noqa: E402
+                                             featurize_det)
 from feeding_monitor.pose_tracker import Detection                    # noqa: E402
-from feeding_monitor.posture import evaluate_posture                  # noqa: E402
-from feeding_monitor.posture_features import FEATURE_NAMES, extract_features, load_zones  # noqa: E402
+from feeding_monitor.posture_features import load_zones               # noqa: E402
 
 # CVAT skeleton node order == pose model keypoint order (verified 2026-11-04/05)
 KPT_ORDER = ["tail_tip", "tail", "l_hip", "r_hip", "l_foot", "r_foot", "r_flank", "l_flank",
@@ -78,11 +80,6 @@ STATE_MAP = {
     "unlabeled": None,
 }
 
-GEO_FEATURES = ["geo_nose_dist_over_r", "geo_head_angle_deg",
-                "geo_limb_visibility", "geo_aspect_ratio", "geo_lateral_asymmetry"]
-RF_FEATURES = list(FEATURE_NAMES)
-RFGEO_FEATURES = RF_FEATURES + GEO_FEATURES
-METHODS = ["geo", "rf", "rf_geo"]
 
 
 # --------------------------------------------------------------------------
@@ -173,33 +170,11 @@ class Cameras:
 # features + geo rule
 # --------------------------------------------------------------------------
 
-def geo_values(det: Detection, feeder, rule) -> list[float]:
-    nx, ny, _ = det.kpts[rule.nose_index]
-    kx, ky, _ = det.kpts[rule.neck_index]
-    dist = math.hypot(nx - feeder.cx, ny - feeder.cy) / max(feeder.r, 1e-6)
-    hv, fv = (nx - kx, ny - ky), (feeder.cx - nx, feeder.cy - ny)
-    hn, fn = math.hypot(*hv), math.hypot(*fv)
-    if hn < 1e-3 or fn < 1e-3:
-        angle = 0.0 if fn < 1e-3 else 180.0
-    else:
-        c = max(-1.0, min(1.0, (hv[0] * fv[0] + hv[1] * fv[1]) / (hn * fn)))
-        angle = math.degrees(math.acos(c))
-    p = evaluate_posture(det.kpts, rule)
-    fill = lambda v: -1.0 if v is None else float(v)   # "not computable" sentinel for RF
-    return [dist, angle, fill(p.limb_visibility), fill(p.aspect_ratio), fill(p.lateral_asymmetry)]
-
-
 def featurize(rows: list[dict], cams: Cameras) -> pd.DataFrame:
     out = []
     for r in rows:
-        cfg, zones = cams.cfg[r["camera"]], cams.zones[r["camera"]]
-        d = r["det"]
         rec = {k: v for k, v in r.items() if k != "det"}
-        rec.update(dict(zip(RF_FEATURES, extract_features(d, zones).as_row())))
-        rec.update(dict(zip(GEO_FEATURES, geo_values(d, cfg.feeder, cfg.feeding_rule))))
-        v = classify(d, cfg.feeder, cfg.feeding_rule)
-        rec["pred_geo"] = int(v.is_feeding)
-        rec["geo_reason"] = v.reason
+        rec.update(featurize_det(r["det"], cams.cfg[r["camera"]], cams.zones[r["camera"]]))
         out.append(rec)
     return pd.DataFrame(out)
 
@@ -245,14 +220,14 @@ def run_stage1(df: pd.DataFrame, out: Path, n_splits: int, seed: int) -> tuple[l
         return [msg], ""
     k = min(k, pos_groups)
 
-    df["pred_rf"] = -1
-    df["pred_rf_geo"] = -1
+    for m in METHOD_FEATURES:
+        df[f"pred_{m}"] = -1
     df["fold"] = -1
     sgkf = StratifiedGroupKFold(n_splits=k, shuffle=True, random_state=seed)
     fold_rows = []
     for f, (tr, te) in enumerate(sgkf.split(df, y, groups)):
         df.iloc[te, df.columns.get_loc("fold")] = f
-        for m, feats in [("rf", RF_FEATURES), ("rf_geo", RFGEO_FEATURES)]:
+        for m, feats in METHOD_FEATURES.items():
             clf = new_rf(seed).fit(df.iloc[tr][feats], y[tr])
             df.iloc[te, df.columns.get_loc(f"pred_{m}")] = clf.predict(df.iloc[te][feats])
         for m in METHODS:
@@ -268,14 +243,18 @@ def run_stage1(df: pd.DataFrame, out: Path, n_splits: int, seed: int) -> tuple[l
     per_cam = pd.DataFrame([{"camera": c, "method": m, **metrics(g["label"], g[f"pred_{m}"])}
                             for c, g in df.groupby("camera") for m in METHODS])
 
-    imp = pd.Series(new_rf(seed).fit(df[RFGEO_FEATURES], y).feature_importances_,
-                    index=RFGEO_FEATURES).sort_values(ascending=False)
+    allf = METHOD_FEATURES["rf_geo_leg"]
+    imp = pd.Series(new_rf(seed).fit(df[allf], y).feature_importances_, index=allf).sort_values(ascending=False)
+    # leg features: how visiting vs other differ (helps decide a leg-based lying rule later)
+    leg = df[LEG_FEATURES].where(df[LEG_FEATURES] != -1.0)
+    leg_summary = leg.groupby(df["label"].map({1: "visiting", 0: "other"})).median().T
 
     df.to_csv(out / "stage1_predictions.csv", index=False, encoding="utf-8-sig")
     overall.to_csv(out / "stage1_metrics.csv", encoding="utf-8-sig")
     folds.to_csv(out / "stage1_folds.csv", index=False, encoding="utf-8-sig")
     per_cam.to_csv(out / "stage1_per_camera.csv", index=False, encoding="utf-8-sig")
-    imp.to_csv(out / "stage1_rf_geo_importance.csv", header=["importance"], encoding="utf-8-sig")
+    imp.to_csv(out / "stage1_rf_geo_leg_importance.csv", header=["importance"], encoding="utf-8-sig")
+    leg_summary.to_csv(out / "stage1_leg_feature_medians.csv", encoding="utf-8-sig")
 
     lines += [f"## Stage 1 — 사람 keypoint, 클립 단위 {k}-fold",
               f"개체 {len(df)} (visiting {int(y.sum())}), 이미지 {df.image.nunique()}, 클립 {n_groups}, "
@@ -284,7 +263,8 @@ def run_stage1(df: pd.DataFrame, out: Path, n_splits: int, seed: int) -> tuple[l
                                          "fold_F1_mean", "fold_F1_std", "TP", "FP", "FN", "TN"]]), "```", "",
               "geo 규칙이 놓친 이유(visiting인데 geo=0):",
               "```", df[(df.label == 1) & (df.pred_geo == 0)]["geo_reason"].value_counts().to_string(), "```", "",
-              "RF+Geo 특징 중요도 (전체 데이터로 학습):", "```", imp.to_string(float_format=lambda v: f"{v:.3f}"), "```"]
+              "RF+Geo+Leg 특징 중요도 (전체 데이터로 학습):", "```", imp.to_string(float_format=lambda v: f"{v:.3f}"), "```", "",
+              "다리 기하 특징 중앙값 (visiting vs other):", "```", leg_summary.to_string(float_format=lambda v: f"{v:.3f}"), "```"]
     return lines, "ok"
 
 
@@ -316,13 +296,21 @@ def match(gt: list[Detection], pred: list[Detection], thresh: float) -> list[tup
 
 
 def run_stage2(gt_rows: list[dict], images: dict[str, Path], cams: Cameras, stage1_df: pd.DataFrame | None,
-               out: Path, match_thresh: float, seed: int) -> list[str]:
+               out: Path, match_thresh: float, seed: int, exclude_shared_clips: bool = False) -> list[str]:
     import cv2
     from feeding_monitor.pose_tracker import PoseTracker, _parse_detections
 
     models = {}
+    train_note = ""
+    if stage1_df is not None and exclude_shared_clips:
+        eval_clips = {r["clip"] for r in gt_rows}
+        n_before = len(stage1_df)
+        stage1_df = stage1_df[~stage1_df["clip"].isin(eval_clips)]
+        train_note = (f"RF 학습 데이터에서 평가 50장과 같은 클립의 개체 {n_before - len(stage1_df)}개 제외 "
+                      f"(남은 {len(stage1_df)}개) -- 2초 간격 비슷한 장면이 시험지로 새는 것 방지")
+        print(f"[stage2] {train_note}")
     if stage1_df is not None and len(stage1_df) and stage1_df.label.nunique() == 2:
-        for m, feats in [("rf", RF_FEATURES), ("rf_geo", RFGEO_FEATURES)]:
+        for m, feats in METHOD_FEATURES.items():
             models[m] = (new_rf(seed).fit(stage1_df[feats], stage1_df["label"]), feats)
     else:
         print("[stage2] stage1 데이터가 없어 RF / RF+Geo는 건너뜀 (geo 규칙만 평가)")
@@ -398,7 +386,8 @@ def run_stage2(gt_rows: list[dict], images: dict[str, Path], cams: Cameras, stag
     return [f"## Stage 2 — 평가용 {fr_df.image.nunique()}장, 모델 keypoint (학습 미사용 프레임)",
             f"사람 개체 {n_gt} 중 모델 검출과 매칭 {n_m} ({n_m / n_gt:.1%}), "
             f"매칭 안 된 모델 검출 {int((fr_df.n_pred - fr_df.n_matched).sum())}개",
-            "매칭 실패한 사람 개체는 '모델이 못 찾음 = other로 예측'으로 계산 (실제 운용과 동일)", "",
+            "매칭 실패한 사람 개체는 '모델이 못 찾음 = other로 예측'으로 계산 (실제 운용과 동일)",
+            (train_note or "RF 학습: Stage 1 전체 (평가 클립과 같은 클립 포함)"), "",
             "개체 단위:", "```", fmt_table(table[["n", "visiting_F1", "precision", "recall", "macro_F1",
                                                  "TP", "FP", "FN", "TN"]]), "```", "",
             "프레임 단위 visiting 마릿수 (그래프에 실제로 쓰이는 값):",
@@ -419,13 +408,15 @@ def main():
     ap.add_argument("--n-splits", type=int, default=5)
     ap.add_argument("--match-thresh", type=float, default=0.25, help="keypoint 평균거리/박스대각선 허용치")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--stage2-exclude-shared-clips", action="store_true",
+                    help="Stage 2용 RF 학습에서 평가 프레임과 같은 영상 클립의 Stage 1 개체를 뺀다 (엄격한 평가)")
     ap.add_argument("--out", default="outputs/eval")
     a = ap.parse_args()
 
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     cams = Cameras(a.cameras)
-    report = ["# 판정 방법 비교 (Geo 규칙 / RF / RF+Geo)", ""]
+    report = ["# 판정 방법 비교 (Geo 규칙 / RF / RF+Geo / RF+Geo+Leg)", ""]
 
     s1 = None
     if a.stage1_xml:
@@ -454,7 +445,8 @@ def main():
             rows = [r for r in rows if r["image"] in only]
         rows = [r for r in rows if cams.has(r["camera"])]
         print(f"[stage2] 평가 개체 {len(rows)} (이미지 {len({r['image'] for r in rows})})")
-        report += run_stage2(rows, find_images(Path(a.stage2_images)), cams, s1, out, a.match_thresh, a.seed)
+        report += run_stage2(rows, find_images(Path(a.stage2_images)), cams, s1, out, a.match_thresh, a.seed,
+                             exclude_shared_clips=a.stage2_exclude_shared_clips)
 
     (out / "summary.md").write_text("\n".join(report) + "\n", encoding="utf-8")
     print("\n".join(report))

@@ -7,7 +7,7 @@
 | 11/04 | 수 | pose 모델 학습(n/s/m) → 가중치, 영상 시간·fps 확인, 레포 생성 | ✅ 완료 |
 | 11/05 | 목 | PC: 25분 클립 추론, 레포 정리, 주간 추론, Geo 조건별 비교(Stage 2), 주간 Geo 그래프 | ✅ 완료 |
 | 11/06 | 금 | 휴무 | — |
-| 11/07 | 토 | PC: 수아 라벨 → Stage 1, RF 학습 → Stage 2 재실행, 세 방법 그래프 비교, 슬라이드 초안 | ⏳ 예정 |
+| 11/07 | 토 | PC: 카메라 ROI, 수아 라벨 → Stage 1·2 (각도 기반 누움 특징 포함), 주간 그래프 비교, 슬라이드 초안 | 🔄 진행 중 |
 | 11/08 | 일 | 휴무 | — |
 | 11/09 | 월 | 미팅 | ⏳ 예정 |
 
@@ -124,8 +124,10 @@
 - 개별 판정(F1)은 **90°**가 가장 좋지만, 사진당 평균 0.5마리를 **더 세는** 경향이 있습니다.
 - 우리가 그래프로 보여 줄 **마릿수는 60°(현재)가 가장 정확**합니다 (평균 0.54마리 오차, 거의 치우침 없음).
 - 방향을 끄면(dir off) 사료통 근처에 있기만 해도 세서 1.2마리씩 **과대 집계**됩니다 → 방향 조건이 필요하다는 근거.
-- 누움 조건을 켜면 **한 마리도 "먹는 중"으로 안 나옵니다**(F1 0). 누움 판정 기준값이 이전 연구(CH005)용이라
-  CH010 돼지를 전부 누운 것으로 잘못 빼기 때문입니다 → **CH010용 보정 전에는 사용 불가**.
+- 누움 조건을 켜면 **한 마리도 "먹는 중"으로 안 나옵니다**(F1 0). 이 누움 조건은 keypoint의 **confidence**
+  (다리가 얼마나 보이는지, 좌우 confidence 비대칭)로 누움을 판단하는데, CH010처럼 위에서 내려다본 화면에서는
+  이 신호가 제대로 동작하지 않습니다. 기준값만 다시 맞추면 해결되는지는 확인되지 않았고,
+  → **keypoint 위치로 계산하는 각도 기반 누움 특징으로 교체 예정** (11/07 진행).
 - 사람 라벨 495마리 중 455마리(91.9%)를 모델이 찾아서 짝지었습니다. 못 찾은 40마리는 "먹지 않음"으로 계산했습니다.
 
 상세: `counting/outputs/eval/geo_ablation/<설정>/summary.md` · 그림 다시 그리기: `scripts/plot_geo_ablation.py`
@@ -163,22 +165,43 @@
 
 ## 11/07 (토) — PC
 
-- [ ] 수아 라벨 export (CVAT for images 1.1) → `counting/data/labels/state_287.xml`
+- [x] 새 스크립트 반영: `leg_features.py`(각도 기반 누움 특징 5개), `method_features.py`, `evaluate_methods.py`(rf_geo_leg 추가, `--stage2-exclude-shared-clips`), `apply_methods.py`(주간 `_dets.csv`에 모든 방법 적용)
+- [x] 남은 주간 영상 5개 클립 추론 시작 (백그라운드, 약 1시간 반)
+- [x] 카메라 ROI 설정 — CH005·SAMPLE 추가, CH002 제외 (아래 표)
+- [ ] 수아 라벨 export (000·001·002 task별 CVAT for images 1.1) → `counting/data/labels/state_000.xml`, `state_001.xml`, `state_002.xml`
 - [ ] kappa용 10장 겹치기 확인 (수아·서인)
-- [ ] Stage 1 (Geo / RF / RF+Geo, 클립 단위 StratifiedGroupKFold)
-- [ ] Stage 1 전체로 RF 학습 → Stage 2 재실행 (RF·RF+Geo 포함)
-- [ ] 가장 좋은 방법을 주간 `_dets.csv`에 적용 → 세 방법 그래프 비교 (적용 스크립트 필요)
+- [ ] Stage 1 + Stage 2 (Geo / RF / RF+Geo / RF+Geo+Leg) — `--stage2-exclude-shared-clips` 있이/없이 두 번
+  - 로그 확인: 카메라 목록에 CH005·SAMPLE·CH010, "평가용 제외" 0개
+- [ ] 주간 `_dets.csv`에 모든 방법 적용 → 10분 단위 비교 그래프 (10:26~13:32 전체)
 - [ ] 방향 60° / 90° 중 그래프에 쓸 설정 결정
-- [ ] 슬라이드 초안 (일요일 휴무 → 토요일에 결과물 전부 마무리)
+- [ ] 슬라이드 초안 + PROGRESS.md 갱신
 
 라벨이 적게 들어오면 들어온 만큼으로 돌리고, 라벨 수를 한계점으로 적는다.
 
+### Stage 1에 쓰는 카메라
+
+| 폴더(task) | 카메라 | Stage 1 장수 | 클립 수 | 사료통 원 (cx, cy, r) |
+|---|---|---|---|---|
+| 000 | 1분 샘플 (960×720) | 86 | 1 | 453.4, 354.3, 169.2 |
+| 001 | CH005 (1920×1080) | 90 | 4 | 908.3, 529.1, 338.0 |
+| 002 | CH010 (51~100번) | 50 | 11 | 925.3, 535.1, 337.8 |
+| 003 | CH002 | 61 → **제외** | | 금속 급이기가 화면 아래에 잘림 → 같은 ROI 조건 불가 |
+| 합계 | | **226장** | **16개** | |
+
+- 사료통 원은 `calibrate_feeder.py`를 사진 한 장에 돌려 자동 검출 → 눈으로 뚜껑 테두리와 겹치는지 확인.
+  CH005는 첫 클립·마지막 클립 사진에서 1~2px 차이 → 카메라 고정 확인.
+- 002의 50장 중 33장은 평가 50장과 **같은 클립**에서 나온 사진 → Stage 2의 RF 점수가 부풀 수 있어
+  `--stage2-exclude-shared-clips`(같은 클립 제외) 버전과 비교.
+
 ```powershell
 cd C:\ETRI\2026_Project\counting
-C:\ETRI\Piggy_Feeding_Counting\.venv\Scripts\python scripts\evaluate_methods.py --cameras configs\eval_cameras.yaml `
-    --stage1-xml data\labels\state_287.xml --stage1-exclude ..\training\eval_frames.txt `
+$py = "C:\ETRI\Piggy_Feeding_Counting\.venv\Scripts\python"
+& $py scripts\evaluate_methods.py --cameras configs\eval_cameras.yaml `
+    --stage1-xml data\labels\state_000.xml data\labels\state_001.xml data\labels\state_002.xml `
+    --stage1-exclude ..\training\eval_frames.txt `
     --stage2-xml data\labels\ch010_eval50.xml --stage2-images data\labels\eval50_img `
     --stage2-only-list ..\training\eval_frames.txt --out outputs\eval
+# 같은 명령 + --stage2-exclude-shared-clips --out outputs\eval_strict
 ```
 
 ---

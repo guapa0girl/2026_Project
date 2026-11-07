@@ -7,8 +7,8 @@
 | 11/04 | 수 | pose 모델 학습(n/s/m) → 추론용 가중치, 영상 시각·fps 확인, 레포 생성 | ✅ 완료 |
 | 11/05 | 목 | 25분 클립 추론, 레포 정리, 평가 도구 준비, 주간 추론(1시간), Geo 조건별 비교, 주간 Geo 그래프 | ✅ 완료 |
 | 11/06 | 금 | 휴무 | — |
-| 11/07 | 토 | 카메라 ROI, 남은 주간 추론(총 3시간), 수아 라벨(001) → 4가지 방법 비교, 주간 방법별 그래프, 장면 확인 | 🔄 진행 중 |
-| 11/08 | 일 | 휴무 (남은 라벨이 오면 재실행) | — |
+| 11/07 | 토 | 카메라 ROI, 남은 주간 추론(총 3시간), 수아 라벨(001) → 4가지 방법 비교, 주간 방법별 그래프, 장면 확인, 라벨 일치도, Geo 60° 확정 | ✅ 완료 |
+| 11/08 | 일 | 추가 라벨 약 140장 → 전체 재실행, 숫자·그림 교체, 슬라이드 | ⏳ 예정 |
 | 11/09 | 월 | 미팅 | ⏳ 예정 |
 
 **표시 규칙** — ✅ **정답 평가 완료**: 사람이 직접 만든 정답과 비교한 결과 / ⚠️ **정답 확인 필요**: 모델이 센 추정치(사람 정답 없음)
@@ -380,16 +380,28 @@ CCTV 영상 ─(1초에 1장)→ 포즈 모델(YOLOv8m-pose) ─→ 돼지마다
 → 한낮 휴식 시간에 Geo·RF·RF+Geo는 **자는 돼지를 먹는 중으로 과대 집계**하고, 다리 특징이 이를 걸러 냄.
 12:59:20 오른쪽 돼지는 사진 한 장만으로는 서 있는지 누웠는지 애매합니다.
 
-### 남은 일
-- [ ] 수아 라벨 000 (1분 샘플), 002 (CH010 51~100번) → `state_000.xml`, `state_002.xml`
-- [ ] kappa용 10장 겹치기 확인 (수아·서인)
-- [ ] 전체 라벨로 Stage 1 + Stage 2 — `--stage2-exclude-shared-clips` 있이/없이 두 번
-  - 로그 확인: 카메라 목록에 CH005·SAMPLE·CH010, "평가용 제외" 0개
-- [ ] 주간 방법별 그래프 다시 그리기 (RF 재학습)
-- [ ] 방향 60° / 90° 중 그래프에 쓸 Geo 설정 결정
-- [ ] 슬라이드 초안
+### ⑨ 라벨 일치도 확인
+- **방법**: 수아가 라벨링한 20장을 검토자(본인)가 한 장씩 확인.
+- **결과**: State(visiting / other) **20장 모두 일치 (100%)**.
+- 참고: 두 사람이 따로 라벨링해 비교한 것(독립 이중 라벨링)이 아니라 **검토 방식**의 일치도입니다.
+  독립 kappa가 필요하면 같은 10장을 서로 안 보고 라벨링해 비교.
 
-라벨이 적게 들어오면 들어온 만큼으로 돌리고, 라벨 수를 한계점으로 적는다.
+### ⑩ Geo 설정 결정 — 방향 60°로 확정
+- **근거** (⑤ 11/05 Geo 조건별 비교, 평가 50장):
+  - 60°: 사진당 마릿수 오차 **0.54**, 치우침 **+0.02** — 그래프에 쓰이는 마릿수가 가장 정확.
+  - 90°: F1은 0.713으로 조금 높지만 오차 0.66, 치우침 **+0.50**(사진당 0.5마리 과대 집계).
+- **적용**: `configs/farm_ch010.yaml`·`farm_ch005.yaml`·`farm_sample.yaml` 모두 60°(변경 없음).
+  앞으로 비교 그래프의 Geo 선은 60°만 그림(`apply_methods.py`에서 `--geo dir90=...` 생략).
+- README 연구 계획도 4가지 방법·60° 확정·현재 결과로 갱신.
+
+### 남은 일
+- [x] 라벨 일치도 확인 (20장, 100%)
+- [x] Geo 설정 60° 확정, README 연구 계획 갱신
+- [ ] (일) 수아 라벨 약 140장(000 1분 샘플, 002 CH010 51~100번 등) → `state_000.xml`, `state_002.xml`
+- [ ] (일) 전체 라벨로 Stage 1 + Stage 2 — `--stage2-exclude-shared-clips` 있이/없이 두 번
+  - 로그 확인: 카메라 목록에 CH005·SAMPLE·CH010, "평가용 제외" 0개
+- [ ] (일) 주간 방법별 그래프 다시 그리기 (RF 재학습, Geo는 60°만)
+- [ ] (일) PROGRESS.md·README 숫자와 그림 교체 → 슬라이드
 
 ### 실행 명령 (counting 폴더에서)
 
@@ -406,15 +418,25 @@ $py = "C:\ETRI\Piggy_Feeding_Counting\.venv\Scripts\python"
 # 같은 명령 + --stage2-exclude-shared-clips --out outputs\eval_strict
 & $py scripts\plot_methods.py outputs\eval
 
-# 주간 방법별 그래프 (RF 재학습)
+# 주간 방법별 그래프 (RF 재학습, Geo는 60°만)
 & $py scripts\apply_methods.py outputs\ch010_20260716_day --config configs\farm_ch010.yaml `
     --zones configs\zones\feeder_zones_ch010.yaml `
-    --geo dir60=configs\ablation\farm_ch010_dir60.yaml --geo dir90=configs\ablation\farm_ch010_dir90.yaml `
+    --geo dir60=configs\ablation\farm_ch010_dir60.yaml `
     --cameras configs\eval_cameras.yaml `
     --stage1-xml data\labels\state_000.xml data\labels\state_001.xml data\labels\state_002.xml `
     --stage1-exclude ..\training\eval_frames.txt
 # 그래프만 다시: 위 명령에서 --stage1-xml/--stage1-exclude 대신 --load-models outputs\ch010_20260716_day\rf_models.joblib
 ```
+
+---
+
+## 11/08 (일) — 추가 라벨로 재실행
+
+- [ ] 수아 라벨 약 140장 받기 → task별 XML을 `counting/data/labels/state_<task>.xml`로 이름 변경
+- [ ] 위 "실행 명령"으로 Stage 1 + Stage 2 (일반 / strict 두 번) → `plot_methods.py`로 그림
+- [ ] `apply_methods.py`로 주간 방법별 그래프 재생성 (Geo 60°만)
+- [ ] PROGRESS.md·README 숫자와 그림 교체 (1차 결과와 달라진 점 기록)
+- [ ] 슬라이드 작성
 
 ---
 

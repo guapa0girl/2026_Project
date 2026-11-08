@@ -10,24 +10,35 @@
 ```
 counting/
 ├── configs/
-│   ├── farm_ch010.yaml                 CH010 설정 (가중치, 사료통 원 좌표, 판정 규칙)
-│   └── zones/feeder_zones_ch010.yaml   같은 사료통 원을 48각형으로 만든 구역 (RF 특징용)
+│   ├── farm_ch010.yaml / farm_ch005.yaml / farm_sample.yaml   채널별 설정 (가중치, 사료통 원 좌표, 판정 규칙 — 방향 60°)
+│   ├── eval_cameras.yaml               평가용 채널 → 설정·구역 연결 (CH010, CH005, SAMPLE; CH002 제외)
+│   ├── ablation/                       Geo 조건 비교용 설정 5종 (방향 60°/90°/끔, 누움 조건)
+│   └── zones/feeder_zones_*.yaml       같은 사료통 원을 48각형으로 만든 구역 (RF 특징용)
 ├── models/          가중치 (pig_pose_ch010_m_best.pt, git 제외 — Releases)
 ├── data/raw/        원본 영상 (git 제외)
-├── outputs/         추론 결과 (git 제외)
+├── data/labels/     CVAT 라벨 XML·평가 이미지 (git 제외)
+├── outputs/         추론·평가 결과 (git 제외)
 ├── scripts/
 │   ├── count_day.py          폴더의 클립 전체를 순서대로 추론 (클립마다 KST 시작 시각 자동 계산, 이어하기 가능)
 │   ├── count_full_video.py   클립 1개를 1초 샘플링으로 추론 → 1초 CSV + 집계 CSV/그래프 (+ _dets.csv)
-│   ├── plot_1min.py          1초 CSV → 1분 평균/최대 CSV + 그래프 (YOLO 재실행 없음)
-│   ├── calibrate_feeder.py   영상 한 프레임에서 사료통 원 좌표 잡기
+│   ├── plot_1min.py          1초 CSV → 1분 평균/최대 CSV + 그래프
+│   ├── plot_day.py           클립별 1초 CSV를 이어 붙여 시계 기준 10분 그래프
+│   ├── evaluate_methods.py   Stage 1·2 평가 (Geo / RF / RF+Geo / RF+Geo+Leg)
+│   ├── run_geo_ablation.ps1  Geo 조건 5종 Stage 2 평가
+│   ├── apply_methods.py      _dets.csv에 모든 방법 적용 → 방법별 10분 그래프 (YOLO 재실행 없음)
+│   ├── plot_methods.py / plot_geo_ablation.py / plot_compare_runs.py   평가 결과 그림
+│   ├── extract_dm_frames.py  DM 정답지용 구간 사진(1초 1장) + 기록 시트 추출 (모델과 같은 프레임)
+│   ├── make_dm_examples.py   DM 라벨링 기준 예시 사진 (사람 라벨 기준)
+│   ├── calibrate_feeder.py   사진·영상 한 프레임에서 사료통 원 좌표 잡기
 │   └── make_circle_zone.py   사료통 원 → 다각형 구역 yaml
 ├── src/feeding_monitor/
 │   ├── config.py             yaml → 설정 객체
 │   ├── pose_tracker.py       YOLO-Pose 래퍼, KEYPOINT_NAMES (18개 순서)
-│   ├── feeding_classifier.py geometric 섭취 판정
-│   ├── posture.py            누운 자세 판정 (CH010에서는 꺼짐)
-│   ├── posture_features.py   RF용 특징 6개 추출
-│   ├── posture_classifier.py RandomForest 래퍼
+│   ├── feeding_classifier.py Geo 규칙 판정
+│   ├── posture.py            confidence 기반 누움 신호 (규칙에서는 꺼짐, RF+Geo 특징으로 사용)
+│   ├── posture_features.py   RF 특징 6개
+│   ├── leg_features.py       다리 모양 누움 특징 5개 (RF+Geo+Leg)
+│   ├── method_features.py    모든 방법의 특징 계산 (평가·그래프 공통)
 │   └── feeder_roi.py         사료통 빨간 뚜껑 자동 검출 (calibrate_feeder.py 보조용)
 └── tests/                    판정 로직 단위 테스트 (모델·영상 불필요)
 ```
@@ -40,11 +51,11 @@ counting/
 cd counting
 # 테스트: 첫 클립 1개만
 ..\.venv\Scripts\python scripts\count_day.py --config configs\farm_ch010.yaml --videos "<영상폴더>" `
-    --out-dir outputs\ch010_test --zones configs\zones\feeder_zones_ch010.yaml --bin-sec 600 --save-dets --limit 1
+    --out-dir outputs\ch010_test --bin-sec 600 --save-dets --limit 1
 
 # 본 실행: --limit 빼고 out-dir만 바꾼다. 중간에 멈추면 같은 명령을 다시 실행하면 끝난 클립은 건너뛴다.
 ..\.venv\Scripts\python scripts\count_day.py --config configs\farm_ch010.yaml --videos "<영상폴더>" `
-    --out-dir outputs\ch010_20260716 --zones configs\zones\feeder_zones_ch010.yaml --bin-sec 600 --save-dets
+    --out-dir outputs\ch010_20260716_day --bin-sec 600 --save-dets
 
 # 1분 단위 그래프
 ..\.venv\Scripts\python scripts\plot_1min.py outputs\ch010_20260716\<클립>_1s.csv
@@ -53,14 +64,14 @@ cd counting
 - **시각**: DVR 파일명(`[CH010] 20260716012647-20260716015128.avi`)의 시각은 UTC입니다. `count_day.py`가 +9시간 해서
   KST로 기록합니다.
 - **fps**: CH010 AVI는 헤더와 상관없이 200fps로 계산합니다(`--fps 200`, 기본값).
-- **RF**: `--model <rf.joblib>`을 주면 RandomForest 판정도 같이 셉니다. 없으면 RF 열은 `nan`입니다.
+- 추론 중에는 Geo 규칙으로만 셉니다. RF 계열은 `--save-dets`로 저장한 `_dets.csv`에 `apply_methods.py`로 나중에 적용합니다.
 - 오래 돌릴 때는 Windows 절전 모드를 꺼 두세요.
 
 ### 출력 (클립마다, `<prefix>` = `CH010_<시작>-<끝>`)
 
 | 파일 | 내용 |
 |---|---|
-| `<prefix>_1s.csv` | 1초마다 `wall_time`(KST), `pigs_geometric`, `pigs_randomforest` |
+| `<prefix>_1s.csv` | 1초마다 `elapsed_sec`, `wall_time`(KST), `pigs_geometric` (2026-11-08 이전 결과에는 빈 `pigs_randomforest` 열이 더 있음) |
 | `<prefix>.csv` / `.png` | `--bin-sec` 단위 평균(기본 mean, `--bin-agg max` 가능)과 그래프 |
 | `<prefix>_1min.csv` / `.png` | `plot_1min.py` 결과: 1분 평균·최대 |
 | `<prefix>_dets.csv` | `--save-dets`: 1초 샘플마다 검출된 돼지 전부의 bbox + 18 keypoint (x, y, conf) + geo 판정. 판정 규칙이나 RF 특징을 바꿔도 YOLO를 다시 돌리지 않고 재계산할 수 있습니다. |
@@ -82,7 +93,7 @@ cd counting
 | 3 | 목→코 방향이 사료통 중심을 향함 | `direction_angle_max_deg: 60` |
 | 4 | 옆으로 누운 자세가 아님 | `posture_enabled: false` (CH010 라벨로 확인 전까지 꺼 둠) |
 
-Geo 단독 / RF 단독 / RF + Geo feature 세 방법의 비교 계획은 [루트 README의 연구 계획](../README.md#연구-계획--섭취visiting-판정-방법-비교)을 참고하세요.
+Geo / RF / RF+Geo / RF+Geo+Leg 네 방법의 비교와 결과는 [루트 README의 연구 계획](../README.md#연구-계획--섭취visiting-판정-방법-비교)과 [PROGRESS.md](../PROGRESS.md)를 참고하세요.
 
 사료통 좌표를 다시 잡을 때:
 

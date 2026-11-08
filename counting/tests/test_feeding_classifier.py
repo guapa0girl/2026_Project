@@ -72,7 +72,8 @@ class TestKeypointIndicesMatchSkeleton(unittest.TestCase):
         self.assertEqual(KEYPOINT_NAMES[rule.neck_index], "neck")
 
     def test_example_configs_indices_are_correct(self):
-        for path in (ROOT / "configs").glob("*.yaml"):
+        # pen configs only (configs/eval_cameras.yaml is a camera list, not a pen config)
+        for path in (ROOT / "configs").rglob("farm_*.yaml"):
             config = load_config(path)
             self.assertEqual(
                 KEYPOINT_NAMES[config.feeding_rule.nose_index], "nose",

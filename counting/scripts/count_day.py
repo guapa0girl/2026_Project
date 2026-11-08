@@ -11,8 +11,7 @@ so if the run stops (sleep, crash) just run the same command again.
 Usage (Mac -- caffeinate keeps the laptop awake all night):
     caffeinate -i python scripts/count_day.py --config configs/farm_ch010.yaml \
         --videos "data/raw/CH010_20260716" --out-dir outputs/ch010_20260716 \
-        --zones configs/zones/feeder_zones_ch010.yaml \
-        --model models/posture_random_forest.joblib --bin-sec 600 --save-dets
+        --bin-sec 600 --save-dets
 """
 
 import argparse
@@ -37,8 +36,7 @@ def main():
     p.add_argument("--config", required=True)
     p.add_argument("--videos", required=True, help="folder with the day's .avi clips")
     p.add_argument("--out-dir", required=True)
-    p.add_argument("--zones", required=True)
-    p.add_argument("--model", default=None, help="RF .joblib (optional)")
+    p.add_argument("--zones", default=None, help="(unused, kept so older commands still run)")
     p.add_argument("--fps", type=float, default=200.0)
     p.add_argument("--bin-sec", type=float, default=600.0)
     p.add_argument("--save-dets", action="store_true")
@@ -63,9 +61,7 @@ def main():
         cmd = [sys.executable, str(ROOT / "scripts" / "count_full_video.py"),
                "--config", a.config, "--source", str(clip), "--fps", str(a.fps),
                "--bin-sec", str(a.bin_sec), "--start-time", start.isoformat(),
-               "--zones", a.zones, "--out-prefix", str(prefix)]
-        if a.model:
-            cmd += ["--model", a.model]
+               "--out-prefix", str(prefix)]
         if a.save_dets:
             cmd.append("--save-dets")
         if subprocess.run(cmd).returncode != 0:

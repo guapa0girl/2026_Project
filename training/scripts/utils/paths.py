@@ -8,7 +8,6 @@ RAW_DIR = DATA_DIR / "raw"
 RAW_IMAGES_DIR = RAW_DIR / "img"
 RAW_LABELS_DIR = RAW_DIR / "label"
 PROCESSED_DIR = DATA_DIR / "processed"
-DATA_PAST_TRAIN_DIR = DATA_DIR / "past_train"
 
 CONFIGS_DIR = ROOT / "configs"
 DATA_YAML = CONFIGS_DIR / "pig_pose.yaml"

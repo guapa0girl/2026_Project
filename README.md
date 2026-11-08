@@ -5,10 +5,10 @@
 
 ```
 2026_Project/
-├── training/   ① 돼지 18-keypoint 포즈 모델 학습 (CVAT 라벨 → YOLOv8-pose n/s/m/l)
-│   └── past/   이전 연구에서 쓰던 파일 보관 (현재 연구에서는 사용 안 함)
-└── counting/   ② 학습된 모델로 영상 추론 → 사료통 판정 → 시간대별 집계
-    └── past/   이전 연구에서 쓰던 파일 보관 (현재 연구에서는 사용 안 함)
+├── training/      ① 돼지 18-keypoint 포즈 모델 학습 (CVAT 라벨 → YOLOv8-pose n/s/m/l)
+├── counting/      ② 학습된 모델로 영상 추론 → 판정 방법 평가 → 시간대별 집계 → DM 정답지 추출
+├── docs/figures/  PROGRESS.md에 쓰는 결과 그림
+└── PROGRESS.md    날짜별 진행 상황 (방법, 결과, 그림 설명)
 ```
 
 | 폴더 | 하는 일 | 자세한 설명 |
@@ -55,7 +55,7 @@ cd training
 cd counting
 # 가중치를 models\pig_pose_ch010_m_best.pt 로 둔다 (configs\farm_ch010.yaml 의 weights:)
 ..\.venv\Scripts\python scripts\count_day.py --config configs\farm_ch010.yaml --videos "<영상폴더>" `
-    --out-dir outputs\ch010_<날짜> --zones configs\zones\feeder_zones_ch010.yaml --bin-sec 600 --save-dets
+    --out-dir outputs\ch010_<날짜> --bin-sec 600 --save-dets
 ..\.venv\Scripts\python scripts\plot_1min.py outputs\ch010_<날짜>\<클립>_1s.csv   # 1분 단위 그래프
 ```
 

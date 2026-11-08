@@ -14,18 +14,18 @@ single-frame inference), which is fine here -- a per-second *count* doesn't
 need persistent per-pig identity, only "how many right now".
 
 Outputs:
-  <out-prefix>_1s.csv   one row per second, geo/rf count at that instant
+  <out-prefix>_1s.csv   one row per second, Geo-rule count at that instant
   <out-prefix>.csv/.png the usual --bin-sec-binned summary + graph, now
                          aggregated FROM the 1s data via --bin-agg
                          (mean = "avg pigs feeding", the default; max =
                          a bin's peak, a different metric)
   <out-prefix>_dets.csv  (--save-dets) every detection's box + keypoints
+                         -> scripts/apply_methods.py recomputes every method from it
 
 Usually run through scripts/count_day.py (sets --start-time per clip). Direct use:
     python scripts/count_full_video.py --config configs/farm_ch010.yaml \
         --source "data/raw/[CH010] 20260716012647-20260716015128.avi" --fps 200 --bin-sec 600 \
-        --start-time 2026-07-16T10:26:47 \
-        --zones configs/zones/feeder_zones_ch010.yaml --save-dets \
+        --start-time 2026-07-16T10:26:47 --save-dets \
         --out-prefix outputs/ch010_20260716/CH010_20260716012647-20260716015128
 """
 
@@ -47,12 +47,10 @@ import matplotlib.dates as mdates
 from feeding_monitor.config import load_config
 from feeding_monitor.feeding_classifier import classify
 from feeding_monitor.pose_tracker import Detection, PoseTracker
-from feeding_monitor.posture_classifier import MLPostureModel
-from feeding_monitor.posture_features import load_zones
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="1-second-sampled feeding count over a full long video (geometric + RandomForest)")
+    p = argparse.ArgumentParser(description="1-second-sampled feeding count over a full long video (Geo rule)")
     p.add_argument("--config", required=True)
     p.add_argument("--source", required=True)
     p.add_argument("--fps", type=float, required=True, help="real fps (DVR AVI headers lie; CH010 = 200)")
@@ -61,15 +59,11 @@ def parse_args():
                     help="how to collapse 1s samples into each --bin-sec bin -- "
                          "mean = 'avg pigs feeding' (default); max = the bin's peak (a different metric)")
     p.add_argument("--start-time", required=True, help="ISO datetime the recording started, e.g. 2026-06-10T10:09:23")
-    p.add_argument("--zones", required=True)
-    p.add_argument("--model", default=None,
-                   help="RandomForest .joblib (optional). Omit -> rf column is left empty; "
-                        "RF can be (re)trained later from <out-prefix>_dets.csv")
-    p.add_argument("--rf-threshold", type=float, default=0.5, help="RandomForest 'eating' probability cutoff -- lower is more lenient (e.g. 0.4)")
+    p.add_argument("--zones", default=None, help="(unused, kept so older commands still run)")
     p.add_argument("--out-prefix", required=True)
     p.add_argument("--save-dets", action="store_true",
                    help="also write <out-prefix>_dets.csv: every detection's box + all keypoints (x,y,conf) per 1s sample, "
-                        "so geo/RF/RF+Geo can be recomputed later (other ROI, new features) without re-running YOLO")
+                        "so every method (scripts/apply_methods.py) can be recomputed later without re-running YOLO")
     return p.parse_args()
 
 
@@ -92,8 +86,6 @@ def detection_from_result(result, frame_idx):
 def main():
     args = parse_args()
     config = load_config(args.config)
-    zones = load_zones(args.zones)
-    ml_model = MLPostureModel.load(args.model) if args.model else None
     start_time = datetime.fromisoformat(args.start_time)
 
     cap = cv2.VideoCapture(args.source)
@@ -123,7 +115,7 @@ def main():
             header += [f"k{j}_x", f"k{j}_y", f"k{j}_c"]
         dets_w.writerow(header + ["geo_feeding"])
 
-    per_second = []  # one row per second: (sec, wall_time, geo_count, rf_count) or None on read failure
+    per_second = []  # one row per second: (sec, wall_time, geo_count) or None on read failure
     n_read_fail = 0
     for sec in range(n_seconds):
         target = min(total_frames - 1, round(sec * args.fps))
@@ -138,12 +130,8 @@ def main():
         dets = detection_from_result(result, target)
         geo_flags = [classify(d, config.feeder, config.feeding_rule).is_feeding for d in dets]
         geo_count = sum(geo_flags)
-        if ml_model is None:
-            rf_count = float("nan")
-        else:
-            rf_count = sum(ml_model.predict_batch(dets, zones, threshold=args.rf_threshold)) if dets else 0
         wall_time = start_time + timedelta(seconds=sec)
-        per_second.append({"sec": sec, "wall_time": wall_time, "geo": geo_count, "rf": rf_count})
+        per_second.append({"sec": sec, "wall_time": wall_time, "geo": geo_count})
         if dets_w is not None:
             for i, d in enumerate(dets):
                 row = [sec, wall_time.isoformat(), i] + [round(v, 1) for v in d.box]
@@ -153,7 +141,7 @@ def main():
             if sec % 60 == 0:
                 dets_f.flush()
         if sec % 120 == 0:
-            print(f"  [{sec+1}/{n_seconds}] {wall_time:%H:%M:%S}  geo={geo_count}  rf={rf_count}")
+            print(f"  [{sec+1}/{n_seconds}] {wall_time:%H:%M:%S}  geo={geo_count}")
 
     cap.release()
     if dets_f is not None:
@@ -168,11 +156,11 @@ def main():
     csv_1s_path = Path(str(out_prefix) + "_1s.csv")
     with open(csv_1s_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow(["elapsed_sec", "wall_time", "pigs_geometric", "pigs_randomforest"])
+        w.writerow(["elapsed_sec", "wall_time", "pigs_geometric"])
         for r in per_second:
             if r is None:
                 continue
-            w.writerow([r["sec"], r["wall_time"].isoformat(), r["geo"], r["rf"]])
+            w.writerow([r["sec"], r["wall_time"].isoformat(), r["geo"]])
 
     # --- bin-sec summary (mean or max of the 1s samples in each bin) ----
     agg = max if args.bin_agg == "max" else (lambda vals: sum(vals) / len(vals))
@@ -188,24 +176,20 @@ def main():
             "wall_time": start_time + timedelta(seconds=bin_start_sec),
             "n_samples_ok": len(bin_secs),
             "avg_geo": agg([r["geo"] for r in bin_secs]),
-            "avg_rf": agg([r["rf"] for r in bin_secs]),
         })
 
     csv_path = out_prefix.with_suffix(".csv")
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow(["bin_start_sec", "wall_time", "n_samples_ok", "avg_pigs_geometric", "avg_pigs_randomforest"])
+        w.writerow(["bin_start_sec", "wall_time", "n_samples_ok", "avg_pigs_geometric"])
         for r in rows:
-            w.writerow([r["bin_start_sec"], r["wall_time"].isoformat(), r["n_samples_ok"],
-                        round(r["avg_geo"], 3), round(r["avg_rf"], 3)])
+            w.writerow([r["bin_start_sec"], r["wall_time"].isoformat(), r["n_samples_ok"], round(r["avg_geo"], 3)])
 
     times = [r["wall_time"] for r in rows]
     geo_vals = [r["avg_geo"] for r in rows]
-    rf_vals = [r["avg_rf"] for r in rows]
 
     plt.figure(figsize=(14, 4.8))
-    plt.plot(times, geo_vals, marker="o", markersize=2, label="geometric (this project)", color="#2a78d6")
-    plt.plot(times, rf_vals, marker="o", markersize=2, label="RandomForest (ported)", color="#d6702a")
+    plt.plot(times, geo_vals, marker="o", markersize=2, label="Geo rule", color="#2a78d6")
     ax = plt.gca()
     ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=10))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
@@ -222,14 +206,8 @@ def main():
     png_path = out_prefix.with_suffix(".png")
     plt.savefig(png_path, dpi=130)
 
-    valid_geo = [v for v in geo_vals if v == v]
-    valid_rf = [v for v in rf_vals if v == v]
     print(f"\n===== 요약 ({len(rows)}개 {args.bin_sec:.0f}초 구간, {total_sec/60:.1f}분) =====")
-    print(f"geometric : peak={max(valid_geo):.2f}  mean={sum(valid_geo)/len(valid_geo):.2f}")
-    if valid_rf:
-        print(f"randomforest : peak={max(valid_rf):.2f}  mean={sum(valid_rf)/len(valid_rf):.2f}")
-    else:
-        print("randomforest : (no --model given, skipped)")
+    print(f"geometric : peak={max(geo_vals):.2f}  mean={sum(geo_vals)/len(geo_vals):.2f}")
     print(f"\n[saved] {csv_1s_path}  (1초 단위 원본)")
     print(f"[saved] {csv_path}  ({args.bin_sec:.0f}초 {args.bin_agg} 집계)")
     print(f"[saved] {png_path}")

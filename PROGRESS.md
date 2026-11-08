@@ -564,6 +564,18 @@ strict 그림: `docs/figures/methods_all_strict.png`
 
 원본: `counting/outputs/ch010_20260716_day/day_methods_10min_all.csv`, `day_methods_1s_all.csv`, `rf_models_all.joblib`
 
+### ⑤ 레포 정리 — 이전 연구(ETRI) 파일 삭제
+- **삭제**: `counting/past/`, `training/past/`(이전 연구 보관 폴더 전체), `src/feeding_monitor/posture_classifier.py`
+  (이전 연구 RF 모델 불러오기), 쓰지 않는 빈 폴더(`training/video_result/`, `training/runs/`, `training/data/past_train/`,
+  `training/data/raw/annotations/`), `__pycache__`. 지운 파일은 git 기록에 남아 있어 필요하면 되살릴 수 있음.
+- `count_day.py` / `count_full_video.py`: 이전 연구 RF 옵션(`--model`, `--rf-threshold`) 제거, `--zones` 생략 가능.
+  `_1s.csv`에서 비어 있던 `pigs_randomforest` 열 제거 → `elapsed_sec, wall_time, pigs_geometric`.
+  확인: 5분 클립을 다시 추론해 270초 모두 기존 결과와 같은 마릿수.
+- 단위 테스트가 `eval_cameras.yaml`까지 채널 설정으로 읽어 실패하던 것을 `farm_*.yaml`만 보도록 수정 → 7개 통과.
+- README(루트·counting) 폴더 구조와 명령을 현재 스크립트 기준으로 갱신.
+- DM 정답지용 스크립트 추가: `extract_dm_frames.py`(모델과 같은 프레임으로 1초 1장 + 기록 시트),
+  `make_dm_examples.py`(사람 라벨 기준 예시 사진). A 구간(10:30~10:40) 600장 추출 완료(레포에는 올리지 않음).
+
 ### 11/08 체크리스트
 - [x] 수아 라벨 000·002 정리 (총 226장)
 - [x] 전체 라벨로 Stage 1 + Stage 2 — 일반 / strict 두 번

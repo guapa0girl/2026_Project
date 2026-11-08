@@ -5,16 +5,12 @@ data/raw/img/*
 !data/raw/img/.gitkeep
 data/raw/label/*
 !data/raw/label/.gitkeep
-data/raw/annotations/*
-!data/raw/annotations/.gitkeep
 data/raw/_ingest_conflicts.log
 data/processed/*/images/*
 data/processed/*/labels/*
 data/processed/*/labels.cache
 !data/processed/*/images/.gitkeep
 !data/processed/*/labels/.gitkeep
-data/past_train/*
-!data/past_train/.gitkeep
 
 # 사전학습/학습된 가중치 (용량 큼 - Git LFS 사용 권장, README 참고)
 models/pretrained/*.pt
@@ -27,13 +23,11 @@ past_train/**/*.png
 # ultralytics가 AMP 체크 등으로 CWD에 자동 다운로드하는 보조 체크포인트
 scripts/*.pt
 train_full*.log
-# ultralytics 기본 학습 로그/그래프 산출물
-runs/*
-!runs/.gitkeep
+# ultralytics 기본 학습 로그/그래프 산출물 (생겨도 올리지 않음)
+runs/
 
-# 원본 영상, 예전 추적 샘플 영상 폴더 (용량 큼)
+# 원본 영상 (용량 큼)
 *.avi
-video_result/
 
 # 런타임에 절대경로로 재생성되는 data yaml (머신마다 다름, configs/pig_pose.yaml이 원본)
 configs/_pig_pose.resolved.yaml

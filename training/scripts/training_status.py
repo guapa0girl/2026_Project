@@ -25,7 +25,10 @@ STALE_SECONDS = 180  # 이보다 오래 로그 갱신이 없으면 "중단 의�
 
 
 def target_epochs(size):
-    with open(SIZE_CONFIG_FILE[size], encoding="utf-8") as f:
+    # the run's own args.yaml wins (train.py --epochs overrides the config, e.g. 100 vs 200)
+    run_args = RESULTS_DIR / size / "args.yaml"
+    path = run_args if run_args.exists() else SIZE_CONFIG_FILE[size]
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)["epochs"]
 
 

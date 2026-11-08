@@ -21,7 +21,7 @@ CREATE_BREAKAWAY_FROM_JOB = 0x01000000
 
 ROOT = Path(__file__).resolve().parent
 SCRIPTS_DIR = ROOT / "scripts"
-PYTHON = r"C:\Users\user\miniconda3\python.exe"
+PYTHON = sys.executable  # the interpreter that ran this script (e.g. the project .venv)
 
 if __name__ == "__main__":
     args = sys.argv[1:]
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     if not args:
         raise SystemExit("사용법: python launch_detached.py -- <script.py> [args...]")
 
-    log_path = ROOT / "train_l_x.log"
+    log_path = ROOT / "train_full_detached.log"  # train_full*.log is git-ignored
     log_f = open(log_path, "a", encoding="utf-8", errors="replace")
 
     # 새 콘솔은 할당하되(워커 스폰용) 화면에는 안 보이도록 숨긴다

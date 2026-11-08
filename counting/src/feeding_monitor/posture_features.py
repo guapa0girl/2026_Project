@@ -4,8 +4,8 @@ against the geometric rule (feeding_classifier.classify).
 Where feeding_classifier.classify() only asks "is the nose in the ring,
 pointed at the center, with good confidence", this extracts 6 features
 (zone containment/distance + how far the head and spine are dipped down +
-neck height + keypoint confidence) and either applies a similar rule
-threshold, or feeds them to a RandomForest (.joblib passed via --model).
+neck height + keypoint confidence). The RandomForest that uses them is trained
+in scripts/evaluate_methods.py / scripts/apply_methods.py (method_features.py).
 
 Uses polygon feeder zones (configs/zones/feeder_zones_ch010.yaml, a 48-gon of
 the same circle as the geo ROI -- scripts/make_circle_zone.py), so geo and RF

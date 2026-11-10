@@ -71,8 +71,8 @@ python scripts\training_status.py                                  # 진행률 �
 | medium | **0.795** | 0.436 | 0.870 | 0.828 | 0.934 |
 | large | 0.778 | **0.437** | **0.874** | **0.831** | **0.938** |
 
-- 데이터: CVAT task 000~003, 287장 (CH005 90 · CH010 50 · CH002 61 · 채널 미표기 86). 분할 train 230 / valid 29 / test 28.
-- test가 28장이라 사이즈 간 0.01~0.02 차이는 오차 범위. large(2026-11-10 학습)는 medium과 거의 같아 추론은 medium 사용.
+- 데이터: CVAT task 000\~003, 287장 (CH005 90 · CH010 50 · CH002 61 · 채널 미표기 86). 분할 train 230 / valid 29 / test 28.
+- test가 28장이라 사이즈 간 0.01\~0.02 차이는 오차 범위. large(2026-11-10 학습)는 medium과 거의 같아 추론은 medium 사용.
 - 굵은 값 = 지표별 1등.
 - 키포인트별 PCK는 `reports/metrics/<size>/test_metrics.json`의 `pck.by_threshold.PCK@0.2.per_keypoint`에 있음.
 
@@ -101,13 +101,13 @@ python scripts\training_status.py                                  # 진행률 �
 | 4 | l_foot | 10 | l_hand (왼 앞발) | 16 | r_ear_tip |
 | 5 | r_foot | 11 | **neck** | 17 | r_hand (오른 앞발) |
 
-라벨 한 줄 형식: `0 cx cy w h x1 y1 v1 ... x18 y18 v18` (좌표는 0~1 정규화, v: 0=라벨 없음 / 1=가려짐 / 2=보임)
+라벨 한 줄 형식: `0 cx cy w h x1 y1 v1 ... x18 y18 v18` (좌표는 0\~1 정규화, v: 0=라벨 없음 / 1=가려짐 / 2=보임)
 
 ---
 
 ## 5. 주의사항
 
-- **좌표 클리핑**: CVAT가 이미지 밖 좌표를 저장하는 경우가 있고, Ultralytics는 0~1 밖 좌표가 하나라도 있으면
+- **좌표 클리핑**: CVAT가 이미지 밖 좌표를 저장하는 경우가 있고, Ultralytics는 0\~1 밖 좌표가 하나라도 있으면
   그 인스턴스를 통째로 버림. `split_dataset.py`가 복사할 때 [0,1]로 클리핑(원본은 그대로).
 - **데이터 경로는 항상 절대경로**: 학습/평가는 `configs/pig_pose.yaml` 대신 런타임에 만드는
   `configs/_pig_pose.resolved.yaml`(절대경로, git 제외)을 사용. 새 스크립트에서 `model.train()`/`model.val()`을

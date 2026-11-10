@@ -1,7 +1,7 @@
 # training — 돼지 18-keypoint 포즈 모델 학습 (YOLOv8-pose)
 
 CVAT에서 라벨링한 돼지 스켈레톤(18개 keypoint)으로 YOLOv8-pose `nano / small / medium / large`를 학습하고
-pose mAP·PCK로 비교합니다. **bbox보다 포즈(keypoint) 성능을 우선 지표**로 봅니다.
+pose mAP·PCK로 비교. **bbox보다 포즈(keypoint) 성능을 우선 지표**로 봄.
 
 ---
 
@@ -53,12 +53,12 @@ python scripts\train.py --sizes n s m --epochs 100                 # 학습 + �
 python scripts\training_status.py                                  # 진행률 확인
 ```
 
-- **평가 50장 제외**: `eval_frames.txt`의 프레임은 pose 학습에 섞이면 안 됩니다. `build_raw_zip.py --exclude`가
-  파일명 또는 `[CH010] <영상>_f<프레임>` ID로 걸러냅니다.
-- **데이터가 늘면 항상 처음부터 재학습**합니다(이전 가중치에서 이어 학습하지 않음, COCO 사전학습에서 시작).
-  이전 결과는 학습 직전에 `past_train/run_<시각>/`으로 자동 이동됩니다.
-- **중간에 끊긴 학습**은 `--resume`으로 이어갑니다: `python scripts\train.py --sizes l --resume`
-- 오래 걸리는 학습은 `python launch_detached.py -- train.py --sizes l`로 띄우면 터미널을 닫아도 계속 돕니다.
+- **평가 50장 제외**: `eval_frames.txt`의 프레임은 pose 학습에 섞이면 안 됨. `build_raw_zip.py --exclude`가
+  파일명 또는 `[CH010] <영상>_f<프레임>` ID로 걸러 냄.
+- **데이터가 늘면 항상 처음부터 재학습**(이전 가중치에서 이어 학습하지 않음, COCO 사전학습에서 시작).
+  이전 결과는 학습 직전에 `past_train/run_<시각>/`으로 자동 이동.
+- **중간에 끊긴 학습**은 `--resume`으로 이어 감: `python scripts\train.py --sizes l --resume`
+- 오래 걸리는 학습은 `python launch_detached.py -- train.py --sizes l`로 띄우면 터미널을 닫아도 계속 돎.
 
 ---
 
@@ -72,9 +72,9 @@ python scripts\training_status.py                                  # 진행률 �
 | large | 0.778 | **0.437** | **0.874** | **0.831** | **0.938** |
 
 - 데이터: CVAT task 000~003, 287장 (CH005 90 · CH010 50 · CH002 61 · 채널 미표기 86). 분할 train 230 / valid 29 / test 28.
-- test가 28장이라 사이즈 간 0.01~0.02 차이는 오차 범위입니다. large(2026-11-10 학습)는 medium과 거의 같아 추론은 medium을 씁니다.
+- test가 28장이라 사이즈 간 0.01~0.02 차이는 오차 범위. large(2026-11-10 학습)는 medium과 거의 같아 추론은 medium 사용.
 - 굵은 값 = 지표별 1등.
-- 키포인트별 PCK는 `reports/metrics/<size>/test_metrics.json`의 `pck.by_threshold.PCK@0.2.per_keypoint`에 있습니다.
+- 키포인트별 PCK는 `reports/metrics/<size>/test_metrics.json`의 `pck.by_threshold.PCK@0.2.per_keypoint`에 있음.
 
 ### 지표
 
@@ -88,9 +88,9 @@ python scripts\training_status.py                                  # 진행률 �
 
 ## 4. 18개 keypoint
 
-라벨 txt의 keypoint 순서는 CVAT skeleton svg의 **`data-node-id` 오름차순**입니다(raw json의 `sublabels` 표시 순서가 아님).
+라벨 txt의 keypoint 순서는 CVAT skeleton svg의 **`data-node-id` 오름차순**(raw json의 `sublabels` 표시 순서가 아님).
 순서가 어긋나면 지표와 섭취 판정(코=12, 목=11)이 조용히 틀어지므로, CVAT skeleton을 바꾸면
-`configs/pig_pose.yaml`과 `counting/src/feeding_monitor/pose_tracker.py`의 `KEYPOINT_NAMES`를 함께 고치세요.
+`configs/pig_pose.yaml`과 `counting/src/feeding_monitor/pose_tracker.py`의 `KEYPOINT_NAMES`를 함께 고칠 것.
 
 | # | 이름 | # | 이름 | # | 이름 |
 |---|---|---|---|---|---|
@@ -108,7 +108,7 @@ python scripts\training_status.py                                  # 진행률 �
 ## 5. 주의사항
 
 - **좌표 클리핑**: CVAT가 이미지 밖 좌표를 저장하는 경우가 있고, Ultralytics는 0~1 밖 좌표가 하나라도 있으면
-  그 인스턴스를 통째로 버립니다. `split_dataset.py`가 복사할 때 [0,1]로 클리핑합니다(원본은 그대로).
+  그 인스턴스를 통째로 버림. `split_dataset.py`가 복사할 때 [0,1]로 클리핑(원본은 그대로).
 - **데이터 경로는 항상 절대경로**: 학습/평가는 `configs/pig_pose.yaml` 대신 런타임에 만드는
-  `configs/_pig_pose.resolved.yaml`(절대경로, git 제외)을 씁니다. 새 스크립트에서 `model.train()`/`model.val()`을
-  부를 때도 `data=str(resolve_data_yaml())`을 쓰세요. 상대경로를 쓰면 Ultralytics 전역 설정의 다른 폴더를 읽을 수 있습니다.
+  `configs/_pig_pose.resolved.yaml`(절대경로, git 제외)을 사용. 새 스크립트에서 `model.train()`/`model.val()`을
+  부를 때도 `data=str(resolve_data_yaml())`을 쓸 것. 상대경로를 쓰면 Ultralytics 전역 설정의 다른 폴더를 읽을 수 있음.

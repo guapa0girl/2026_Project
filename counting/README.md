@@ -1,7 +1,7 @@
 # counting — 사료통 점유 마리 수 추론
 
 학습된 포즈 모델로 CCTV 클립을 1초에 한 프레임씩 추론하고, 사료통에서 먹고 있는 돼지 수를 세어
-1초 / 1분 / 10분 단위로 집계합니다.
+1초 / 1분 / 10분 단위로 집계.
 
 ---
 
@@ -54,7 +54,7 @@ cd counting
 ..\.venv\Scripts\python scripts\count_day.py --config configs\farm_ch010.yaml --videos "<영상폴더>" `
     --out-dir outputs\ch010_test --bin-sec 600 --save-dets --limit 1
 
-# 본 실행: --limit 빼고 out-dir만 바꾼다. 중간에 멈추면 같은 명령을 다시 실행하면 끝난 클립은 건너뛴다.
+# 본 실행: --limit 빼고 out-dir만 바꿈. 중간에 멈추면 같은 명령을 다시 실행하면 끝난 클립은 건너뜀.
 ..\.venv\Scripts\python scripts\count_day.py --config configs\farm_ch010.yaml --videos "<영상폴더>" `
     --out-dir outputs\ch010_20260716_day --bin-sec 600 --save-dets
 
@@ -62,11 +62,11 @@ cd counting
 ..\.venv\Scripts\python scripts\plot_1min.py outputs\ch010_20260716\<클립>_1s.csv
 ```
 
-- **시각**: DVR 파일명(`[CH010] 20260716012647-20260716015128.avi`)의 시각은 UTC입니다. `count_day.py`가 +9시간 해서
-  KST로 기록합니다.
-- **fps**: CH010 AVI는 헤더와 상관없이 200fps로 계산합니다(`--fps 200`, 기본값).
-- 추론 중에는 Geo 규칙으로만 셉니다. RF 계열은 `--save-dets`로 저장한 `_dets.csv`에 `apply_methods.py`로 나중에 적용합니다.
-- 오래 돌릴 때는 Windows 절전 모드를 꺼 두세요.
+- **시각**: DVR 파일명(`[CH010] 20260716012647-20260716015128.avi`)의 시각은 UTC. `count_day.py`가 +9시간 해서
+  KST로 기록.
+- **fps**: CH010 AVI는 헤더와 상관없이 200fps로 계산(`--fps 200`, 기본값).
+- 추론 중에는 Geo 규칙으로만 셈. RF 계열은 `--save-dets`로 저장한 `_dets.csv`에 `apply_methods.py`로 나중에 적용.
+- 오래 돌릴 때는 Windows 절전 모드를 꺼 둘 것.
 
 ### 출력 (클립마다, `<prefix>` = `CH010_<시작>-<끝>`)
 
@@ -75,7 +75,7 @@ cd counting
 | `<prefix>_1s.csv` | 1초마다 `elapsed_sec`, `wall_time`(KST), `pigs_geometric` (2026-11-08 이전 결과에는 빈 `pigs_randomforest` 열이 더 있음) |
 | `<prefix>.csv` / `.png` | `--bin-sec` 단위 평균(기본 mean, `--bin-agg max` 가능)과 그래프 |
 | `<prefix>_1min.csv` / `.png` | `plot_1min.py` 결과: 1분 평균·최대 |
-| `<prefix>_dets.csv` | `--save-dets`: 1초 샘플마다 검출된 돼지 전부의 bbox + 18 keypoint (x, y, conf) + geo 판정. 판정 규칙이나 RF 특징을 바꿔도 YOLO를 다시 돌리지 않고 재계산할 수 있습니다. |
+| `<prefix>_dets.csv` | `--save-dets`: 1초 샘플마다 검출된 돼지 전부의 bbox + 18 keypoint (x, y, conf) + geo 판정. 판정 규칙이나 RF 특징을 바꿔도 YOLO를 다시 돌리지 않고 재계산 가능. |
 
 ---
 
@@ -85,7 +85,7 @@ cd counting
 - **visiting** = 코가 빨간 사료통 뚜껑 안에 있고, 누워 있지 않음
 - **other** = 나머지 (뚜껑에 머리만 얹고 누운 경우, 벽 급수기 포함)
 
-`feeding_classifier.classify()`는 아래 조건을 모두 만족해야 "섭취"로 셉니다. 값은 `configs/farm_ch010.yaml`에 있습니다.
+`feeding_classifier.classify()`는 아래 조건을 모두 만족해야 "섭취"로 셈. 값은 `configs/farm_ch010.yaml`에 있음.
 
 | # | 조건 | CH010 설정 |
 |---|---|---|
@@ -94,7 +94,7 @@ cd counting
 | 3 | 목→코 방향이 사료통 중심을 향함 | `direction_angle_max_deg: 60` |
 | 4 | 옆으로 누운 자세가 아님 | `posture_enabled: false` (CH010 라벨로 확인 전까지 꺼 둠) |
 
-Geo / RF / RF+Geo / RF+Geo+Leg 네 방법의 비교와 결과는 [루트 README의 연구 계획](../README.md#연구-계획--섭취visiting-판정-방법-비교)과 [PROGRESS.md](../PROGRESS.md)를 참고하세요.
+Geo / RF / RF+Geo / RF+Geo+Leg 네 방법의 비교와 결과는 [루트 README의 연구 계획](../README.md#연구-계획--섭취visiting-판정-방법-비교)과 [PROGRESS.md](../PROGRESS.md) 참고.
 
 사료통 좌표를 다시 잡을 때:
 
@@ -111,4 +111,4 @@ Geo / RF / RF+Geo / RF+Geo+Leg 네 방법의 비교와 결과는 [루트 README�
 ..\.venv\Scripts\python -m unittest discover -s tests -p "test_*.py"
 ```
 
-keypoint 순서(코=12, 목=11)가 `configs/*.yaml`과 맞는지, 판정 조건이 의도대로 동작하는지 확인합니다.
+keypoint 순서(코=12, 목=11)가 `configs/*.yaml`과 맞는지, 판정 조건이 의도대로 동작하는지 확인.

@@ -567,29 +567,7 @@ strict 그림: `docs/figures/methods_all_strict.png`
 
 원본: `counting/outputs/ch010_20260716_day/day_methods_10min_all.csv`, `day_methods_1s_all.csv`, `rf_models_all.joblib`
 
-### ⑤ 레포 정리 — 이전 연구(ETRI) 파일 삭제
-- **삭제**: `counting/past/`, `training/past/`(이전 연구 보관 폴더 전체), `src/feeding_monitor/posture_classifier.py`
-  (이전 연구 RF 모델 불러오기), 쓰지 않는 빈 폴더(`training/video_result/`, `training/runs/`, `training/data/past_train/`,
-  `training/data/raw/annotations/`), `__pycache__`. 지운 파일은 git 기록에 남아 있어 필요하면 되살릴 수 있음.
-- `count_day.py` / `count_full_video.py`: 이전 연구 RF 옵션(`--model`, `--rf-threshold`) 제거, `--zones` 생략 가능.
-  `_1s.csv`에서 비어 있던 `pigs_randomforest` 열 제거 → `elapsed_sec, wall_time, pigs_geometric`.
-  확인: 5분 클립을 다시 추론해 270초 모두 기존 결과와 같은 마릿수.
-- 단위 테스트가 `eval_cameras.yaml`까지 채널 설정으로 읽어 실패하던 것을 `farm_*.yaml`만 보도록 수정 → 7개 통과.
-- README(루트·counting) 폴더 구조와 명령을 현재 스크립트 기준으로 갱신.
-- DM 정답지용 스크립트 추가: `extract_dm_frames.py`(모델과 같은 프레임으로 1초 1장 + 기록 시트),
-  `make_dm_examples.py`(사람 라벨 기준 예시 사진). A 구간(10:30\~10:40) 600장 추출 완료(레포에는 올리지 않음).
-- **정리 후 검증**
-  - 지운 모듈·폴더·옵션 이름을 레포 전체에서 검색 → 코드에는 참조 없음(기록 문서에만 남음).
-  - 스크립트 21개·모듈 12개 모두 불러오기 정상.
-  - 학습: training 폴더를 임시 복사해 병합(287장) → 분할(230/29/28) → nano 1 epoch 학습 → train·valid·test 평가 → 비교까지 정상.
-    실제 학습 결과는 건드리지 않음.
-  - 추론·평가: 다시 돌린 Stage 1·2(226장), Geo 60° 조건 비교, 주간 방법별 판정(5분 클립)이 **기존 결과와 완전히 같음**.
-    그림·사료통 원·DM 추출 스크립트 모두 정상, 단위 테스트 7개 통과.
-- **검증 중 고친 것 (원래 있던 문제)**
-  - `training_status.py`: 설정 파일의 200 epoch 기준이라 100 epoch로 끝난 n·s·m이 "50%, 중단 의심"으로 나옴
-    → 실제 학습 설정(`args.yaml`)의 epoch를 먼저 읽도록 수정, 이제 "완료"로 표시.
-  - `launch_detached.py`: Python 경로가 다른 PC 경로로 고정되어 있어 이 PC에서 실행 불가
-    → 실행 중인 Python을 쓰도록 수정, 로그는 `train_full_detached.log`(git 제외). 실제 실행 확인은 large 학습 때.
+### ⑤ 레포 정리
 
 ### 11/08 체크리스트
 - [x] 수아 라벨 000·002 정리 (총 226장)

@@ -385,7 +385,7 @@ def run_stage2(gt_rows: list[dict], images: dict[str, Path], cams: Cameras, stag
             f"사람 개체 {n_gt} 중 모델 검출과 매칭 {n_m} ({n_m / n_gt:.1%}), "
             f"매칭 안 된 모델 검출 {int((fr_df.n_pred - fr_df.n_matched).sum())}개",
             "매칭 실패한 사람 개체는 '모델이 못 찾음 = other로 예측'으로 계산 (실제 운용과 동일)",
-            (train_note or "RF 학습: Stage 1 전체 (평가 클립과 같은 클립 포함)"), "",
+            (train_note or "RF 학습: Stage 1 전체"), "",
             "개체 단위:", "```", fmt_table(table[["n", "visiting_F1", "precision", "recall", "macro_F1",
                                                  "TP", "FP", "FN", "TN"]]), "```", "",
             "프레임 단위 visiting 마릿수 (그래프에 실제로 쓰이는 값):",
@@ -425,7 +425,7 @@ def main():
         n1 = len(rows)
         skipped = sorted({r["camera"] for r in rows if not cams.has(r["camera"])})
         rows = [r for r in rows if cams.has(r["camera"])]
-        print(f"[stage1] 라벨 개체 {n0} -> 평가용 50장 제외 {n0 - n1} -> ROI 미설정 카메라 제외 {n1 - len(rows)}"
+        print(f"[stage1] 라벨 개체 {n0} -> 제외 목록 {n0 - n1} -> ROI 미설정 카메라 제외 {n1 - len(rows)}"
               f" -> 사용 {len(rows)}" + (f"  (미설정: {skipped})" if skipped else ""))
         if rows:
             s1 = featurize(rows, cams)

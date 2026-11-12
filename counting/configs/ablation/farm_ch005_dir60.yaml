@@ -1,0 +1,42 @@
+# ablation 'dir60': direction=60deg (on), posture=off
+# CH005 (2026-07-08 KST 06:15~07:44, Stage 1 labels: CVAT task 001, 90 imgs / 4 clips).
+# Feeder circle: calibrate_feeder.py on a task-001 image (1920x1080), checked on clip 1 and clip 4
+# (908.3,529.1,338.0) vs (909.5,527.0,339.5) -> camera did not move.
+#
+# Same label definition and rule as farm_ch010.yaml (ring inner 0.0 / outer 1.0 = whole lid,
+# direction 60 deg, posture off). Used by evaluate_methods.py via eval_cameras.yaml.
+
+pen_id: farm_ch005
+growth_stage: TODO
+expected_pig_count: 10  # sanity check only
+
+model:
+  weights: models/pig_pose_best.pt # YOLOv8-pose trained on 001+002 (CH005+CH010, 190 imgs); copy the chosen size's best.pt here
+  imgsz: 640
+  conf: 0.4
+  iou: 0.5
+  tracker: bytetrack.yaml
+  device: null # Windows(CUDA): null -> GPU 자동 선택
+  # device: mps        # Mac에서 돌릴 때는 위 줄을 주석 처리하고 이 줄 주석 해제 (null이면 Mac은 CPU로 떨어져 매우 느림)
+  n_keypoints: 18
+
+feeder:
+  cx: 908.3
+  cy: 529.1
+  r: 338.0
+  ring_inner_ratio: 0.0
+  ring_outer_ratio: 1.0
+
+feeding_rule:
+  nose_index: 12
+  neck_index: 11
+  direction_angle_max_deg: 60.0
+  keypoint_conf_min: 0.5
+  min_bout_sec: 0.0
+  posture_enabled: false
+
+aggregation:
+  smooth_sec: 1.0
+  bin_size: 10min
+
+notes: "CH005 2026-07-08 새벽~아침, Stage 1 라벨(001) 기준. ROI=빨간 사료통 전체."

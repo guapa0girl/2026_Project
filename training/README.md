@@ -94,7 +94,7 @@ test(000) 기준. 배치 nano 16 / small 16 / medium 8 / large 8, 조기 종료 
 | medium | 100 / 200 | 7.9 / 15.3 | 0.091 / 0.100 | 0.684 / **0.710** | 0.865 / **0.870** |
 | large | 100 / 200 | 16.1 / 31.5 | 0.059 / **0.107** | 0.673 / 0.668 | 0.866 / 0.834 |
 
-- epoch 200이 전 사이즈에서 mAP 향상, PCK 차이는 작음. 사용 모델(안): **medium ep200**.
+- epoch 200이 전 사이즈에서 mAP 향상, PCK 차이는 작음. 사용 모델: **medium ep200**.
 - 전체 표·그림: `reports/comparison/runs_ep100_vs_ep200.csv` / `.png`. 해석은 [PROGRESS.md](../PROGRESS.md) 2장.
 
 ### 지표

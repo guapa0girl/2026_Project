@@ -2,3 +2,9 @@ cameras:
   CH010:
     config: configs/ablation/farm_ch010_dir60_posture.yaml
     zones: configs/zones/feeder_zones_ch010.yaml
+  SAMPLE:
+    config: configs/ablation/farm_sample_dir60_posture.yaml
+    zones: configs/zones/feeder_zones_sample.yaml
+  CH005:
+    config: configs/ablation/farm_ch005_dir60_posture.yaml
+    zones: configs/zones/feeder_zones_ch005.yaml

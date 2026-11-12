@@ -1,13 +1,13 @@
 # yolov8l-pose 학습 하이퍼파라미터
 # scripts/train.py --size l 실행 시 이 파일 값을 사용합니다.
-# batch: -1 (autobatch) — large 모델은 n/s/m보다 VRAM을 훨씬 많이 쓰므로
-# GPU 메모리(8GB급)에 맞춰 Ultralytics가 자동으로 배치 크기를 정하게 한다.
+# batch: 8 고정 — 자동 배치(-1)가 계산에 실패하면 기본값 16으로 떨어져 8GB GPU를 넘기고(약 10.4GB)
+# 시스템 메모리로 넘쳐 epoch당 약 220초까지 느려짐(정상은 수십 초). medium과 같은 8로 고정.
 # workers: 0 — 콘솔 없이 완전히 분리된(detached) 프로세스로 돌릴 때
 # DataLoader 멀티프로세싱 워커 생성이 멈추는 문제가 있어 워커 없이 진행.
 weights: yolov8l-pose.pt
 imgsz: 640
 epochs: 200
-batch: -1
+batch: 8
 patience: 30
 optimizer: auto
 lr0: 0.01

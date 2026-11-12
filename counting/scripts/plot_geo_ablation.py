@@ -1,9 +1,9 @@
-"""Bar chart of the Geo ablation (run_geo_ablation.ps1) Stage 2 results.
+"""Bar chart of the Geo ablation (run_geo_ablation.ps1) Stage 2 results on 000.
 
 Usage:
     python scripts/plot_geo_ablation.py                       # outputs/eval/geo_ablation
     python scripts/plot_geo_ablation.py --root <folder> --out <png>
-Left: visiting F1 (higher = better). Right: per-frame count error (lower = better).
+Left: per-frame visiting count error (lower = better). Right: total visiting count error (%).
 """
 import argparse
 import csv
@@ -28,31 +28,33 @@ for key, label in VARIANTS:
     if not f.exists():
         continue
     r = next(x for x in csv.DictReader(open(f, encoding="utf-8-sig")) if x["method"] == "geo")
-    rows.append((label, float(r["visiting_F1"]), float(r["count_MAE"]), float(r["count_bias"])))
+    rows.append((label, float(r["count_MAE"]), float(r["count_bias"]), float(r["total_error_pct"])))
 
 labels = [r[0] for r in rows]
 blue, grey = "#2a78d6", "#b9b8b0"
 fig, (a1, a2) = plt.subplots(1, 2, figsize=(13, 4.6))
 
-f1 = [r[1] for r in rows]
-best = max(range(len(f1)), key=f1.__getitem__)
-b = a1.bar(labels, f1, color=[blue if i == best else grey for i in range(len(f1))])
-a1.bar_label(b, fmt="%.3f", padding=3)
-a1.set_ylim(0, 1)
-a1.set_title("visiting F1 (higher = better)")
-
-mae = [r[2] for r in rows]
+mae = [r[1] for r in rows]
 best = min(range(len(mae)), key=mae.__getitem__)
-b = a2.bar(labels, mae, color=[blue if i == best else grey for i in range(len(mae))])
-a2.bar_label(b, labels=[f"{m:.2f}\n(bias {bi:+.2f})" for _, _, m, bi in rows], padding=3)
-a2.set_ylim(0, max(mae) * 1.35)
-a2.set_title("count error per frame, pigs (lower = better)")
+b = a1.bar(labels, mae, color=[blue if i == best else grey for i in range(len(mae))])
+a1.bar_label(b, labels=[f"{m:.2f}\n(bias {bi:+.2f})" for _, m, bi, _ in rows], padding=3)
+a1.set_ylim(0, max(mae) * 1.35 or 1)
+a1.set_title("count error per frame, pigs (lower = better)")
+
+tot = [r[3] for r in rows]
+best = min(range(len(tot)), key=lambda i: abs(tot[i]))
+b = a2.bar(labels, tot, color=[blue if i == best else grey for i in range(len(tot))])
+a2.bar_label(b, labels=[f"{t:+.1f}%" for t in tot], padding=3)
+lim = max(abs(t) for t in tot) * 1.35 or 1
+a2.set_ylim(-lim, lim)
+a2.axhline(0, color="#888780", lw=0.8)
+a2.set_title("total visiting count error, % (closer to 0 = better)")
 
 for ax in (a1, a2):
     ax.grid(axis="y", color="#e1e0d9")
     ax.set_axisbelow(True)
     ax.spines[["top", "right"]].set_visible(False)
-fig.suptitle("Geo rule conditions - eval 50 images (CH010), model keypoints")
+fig.suptitle("Geo rule conditions - 000 (1-min sample video, 86 imgs), model keypoints")
 fig.tight_layout()
 out = Path(a.out) if a.out else root / "geo_ablation.png"
 fig.savefig(out, dpi=130)

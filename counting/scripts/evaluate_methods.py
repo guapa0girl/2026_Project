@@ -52,7 +52,7 @@ import pandas as pd
 import yaml
 from scipy.optimize import linear_sum_assignment
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import StratifiedGroupKFold
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -185,16 +185,34 @@ def new_rf(seed: int) -> RandomForestClassifier:
 # metrics
 # --------------------------------------------------------------------------
 
-def metrics(y, p) -> dict:
-    y, p = np.asarray(y), np.asarray(p)
-    tn, fp, fn, tp = confusion_matrix(y, p, labels=[0, 1]).ravel()
-    return {"n": len(y), "n_visiting": int(y.sum()),
-            "visiting_F1": f1_score(y, p, zero_division=0),
-            "precision": precision_score(y, p, zero_division=0),
-            "recall": recall_score(y, p, zero_division=0),
-            "macro_F1": f1_score(y, p, average="macro", zero_division=0),
-            "accuracy": float((y == p).mean()),
-            "TP": int(tp), "FP": int(fp), "FN": int(fn), "TN": int(tn)}
+COUNT_COLS = ["n_frames", "count_MAE", "count_bias", "exact_rate", "within1_rate",
+              "total_model", "total_human", "total_error_pct", "over_frames", "under_frames"]
+
+
+def count_metrics(human, model) -> dict:
+    """Per-frame visiting COUNT agreement -- the quantity the occupancy graph uses.
+    MAE and bias must be read together: over- and under-counted frames cancel in bias / total."""
+    h, m = np.asarray(human, float), np.asarray(model, float)
+    e = m - h
+    return {"n_frames": len(h),
+            "count_MAE": float(np.abs(e).mean()),
+            "count_bias": float(e.mean()),
+            "exact_rate": float((e == 0).mean()),
+            "within1_rate": float((np.abs(e) <= 1).mean()),
+            "total_model": int(m.sum()), "total_human": int(h.sum()),
+            "total_error_pct": float((m.sum() - h.sum()) / h.sum() * 100) if h.sum() else float("nan"),
+            "over_frames": int((e > 0).sum()), "under_frames": int((e < 0).sum())}
+
+
+def pig_errors(y, p) -> dict:
+    """Per-pig diagnosis only (why a count is off): visiting pigs missed / other pigs counted."""
+    tn, fp, fn, tp = confusion_matrix(np.asarray(y), np.asarray(p), labels=[0, 1]).ravel()
+    return {"missed_visiting": int(fn), "wrong_visiting": int(fp)}
+
+
+def frame_index(stem: str) -> int | None:
+    m = re.search(r"frame_(\d+)$", stem)
+    return int(m.group(1)) if m else None
 
 
 def fmt_table(df: pd.DataFrame) -> str:
@@ -228,18 +246,24 @@ def run_stage1(df: pd.DataFrame, out: Path, n_splits: int, seed: int) -> tuple[l
         for m, feats in METHOD_FEATURES.items():
             clf = new_rf(seed).fit(df.iloc[tr][feats], y[tr])
             df.iloc[te, df.columns.get_loc(f"pred_{m}")] = clf.predict(df.iloc[te][feats])
+        fr_te = df.iloc[te].groupby("image")
         for m in METHODS:
-            fold_rows.append({"fold": f, "method": m, "n_test": len(te),
-                              "visiting_F1": f1_score(y[te], df.iloc[te][f"pred_{m}"], zero_division=0)})
+            c = fr_te[["label", f"pred_{m}"]].sum()
+            fold_rows.append({"fold": f, "method": m, "n_frames": len(c),
+                              "count_MAE": float((c[f"pred_{m}"] - c["label"]).abs().mean())})
 
-    overall = pd.DataFrame([{"method": m, **metrics(y, df[f"pred_{m}"])} for m in METHODS]).set_index("method")
+    # per-image counts (each image falls in exactly one test fold -> out-of-fold counts)
+    pred_cols = [f"pred_{m}" for m in METHODS]
+    frames = df.groupby(["image", "camera"])[["label"] + pred_cols].sum().reset_index()
+    overall = pd.DataFrame([{"method": m, **count_metrics(frames["label"], frames[f"pred_{m}"]),
+                             **pig_errors(y, df[f"pred_{m}"])} for m in METHODS]).set_index("method")
     folds = pd.DataFrame(fold_rows)
-    fold_summary = folds.groupby("method")["visiting_F1"].agg(["mean", "std"]).rename(
-        columns={"mean": "fold_F1_mean", "std": "fold_F1_std"})
+    fold_summary = folds.groupby("method")["count_MAE"].agg(["mean", "std"]).rename(
+        columns={"mean": "fold_MAE_mean", "std": "fold_MAE_std"})
     overall = overall.join(fold_summary)
 
-    per_cam = pd.DataFrame([{"camera": c, "method": m, **metrics(g["label"], g[f"pred_{m}"])}
-                            for c, g in df.groupby("camera") for m in METHODS])
+    per_cam = pd.DataFrame([{"camera": c, "method": m, **count_metrics(g["label"], g[f"pred_{m}"])}
+                            for c, g in frames.groupby("camera") for m in METHODS])
 
     allf = METHOD_FEATURES["rf_geo_leg"]
     imp = pd.Series(new_rf(seed).fit(df[allf], y).feature_importances_, index=allf).sort_values(ascending=False)
@@ -254,11 +278,14 @@ def run_stage1(df: pd.DataFrame, out: Path, n_splits: int, seed: int) -> tuple[l
     imp.to_csv(out / "stage1_rf_geo_leg_importance.csv", header=["importance"], encoding="utf-8-sig")
     leg_summary.to_csv(out / "stage1_leg_feature_medians.csv", encoding="utf-8-sig")
 
+    frames.to_csv(out / "stage1_frames.csv", index=False, encoding="utf-8-sig")
     lines += [f"## Stage 1 — 사람 keypoint, 클립 단위 {k}-fold",
               f"개체 {len(df)} (visiting {int(y.sum())}), 이미지 {df.image.nunique()}, 클립 {n_groups}, "
               f"카메라 {', '.join(sorted(df.camera.unique()))}", "",
-              "```", fmt_table(overall[["n", "visiting_F1", "precision", "recall", "macro_F1", "accuracy",
-                                         "fold_F1_mean", "fold_F1_std", "TP", "FP", "FN", "TN"]]), "```", "",
+              "사진당 visiting 마릿수 (out-of-fold):",
+              "```", fmt_table(overall[COUNT_COLS + ["fold_MAE_mean", "fold_MAE_std",
+                                                      "missed_visiting", "wrong_visiting"]]), "```", "",
+              "카메라별:", "```", fmt_table(per_cam.set_index(["camera", "method"])[COUNT_COLS]), "```", "",
               "geo 규칙이 놓친 이유(visiting인데 geo=0):",
               "```", df[(df.label == 1) & (df.pred_geo == 0)]["geo_reason"].value_counts().to_string(), "```", "",
               "RF+Geo+Leg 특징 중요도 (전체 데이터로 학습):", "```", imp.to_string(float_format=lambda v: f"{v:.3f}"), "```", "",
@@ -294,7 +321,8 @@ def match(gt: list[Detection], pred: list[Detection], thresh: float) -> list[tup
 
 
 def run_stage2(gt_rows: list[dict], images: dict[str, Path], cams: Cameras, stage1_df: pd.DataFrame | None,
-               out: Path, match_thresh: float, seed: int, exclude_shared_clips: bool = False) -> list[str]:
+               out: Path, match_thresh: float, seed: int, exclude_shared_clips: bool = False,
+               n_bins: int = 6) -> list[str]:
     import cv2
     from feeding_monitor.pose_tracker import PoseTracker, _parse_detections
 
@@ -369,16 +397,40 @@ def run_stage2(gt_rows: list[dict], images: dict[str, Path], cams: Cameras, stag
         return ["## Stage 2 — 이미지를 하나도 찾지 못해 건너뜀"]
 
     avail = [m for m in METHODS if (inst_df[f"pred_{m}"] >= 0).all()]
-    table = pd.DataFrame([{"method": m, **metrics(inst_df["label"], inst_df[f"pred_{m}"])} for m in avail]).set_index("method")
-    cnt = pd.DataFrame([{"method": m,
-                         "count_MAE": (fr_df[f"count_{m}"] - fr_df.human_visiting).abs().mean(),
-                         "count_bias": (fr_df[f"count_{m}"] - fr_df.human_visiting).mean(),
-                         "exact_count_rate": (fr_df[f"count_{m}"] == fr_df.human_visiting).mean(),
-                         "extra_visiting_total": fr_df[f"extra_visiting_{m}"].sum()} for m in avail]).set_index("method")
+    vis = inst_df[inst_df.label == 1]
+    rows_m = []
+    for m in avail:
+        rec = {"method": m, **count_metrics(fr_df.human_visiting, fr_df[f"count_{m}"])}
+        rec["missed_visiting_undetected"] = int((~vis.matched).sum())          # pose model never found the pig
+        rec["missed_visiting_judged"] = int((vis.matched & (vis[f"pred_{m}"] == 0)).sum())  # found, judged other
+        rec["wrong_visiting"] = int(((inst_df.label == 0) & (inst_df[f"pred_{m}"] == 1)).sum())
+        rec["extra_visiting"] = int(fr_df[f"extra_visiting_{m}"].sum())         # unmatched detections counted
+        rows_m.append(rec)
+    table = pd.DataFrame(rows_m).set_index("method")
+
+    # time bins: frame-index range split into n_bins equal parts (1-min video, 6 bins ~ 10 s each)
+    fr_df["frame_idx"] = fr_df.image.map(frame_index)
+    bin_lines, bins_df = [], None
+    if fr_df.frame_idx.notna().all() and n_bins > 1:
+        lo, hi = fr_df.frame_idx.min(), fr_df.frame_idx.max() + 1
+        fr_df["bin"] = ((fr_df.frame_idx - lo) * n_bins // (hi - lo)).astype(int)
+        agg = fr_df.groupby("bin").agg(n_frames=("image", "size"), human_mean=("human_visiting", "mean"),
+                                       **{f"{m}_mean": (f"count_{m}", "mean") for m in avail})
+        bins_df = agg
+        bt = pd.DataFrame([{"method": m,
+                            "bin_MAE": float((agg[f"{m}_mean"] - agg.human_mean).abs().mean()),
+                            "bin_bias": float((agg[f"{m}_mean"] - agg.human_mean).mean()),
+                            "bin_max_abs_err": float((agg[f"{m}_mean"] - agg.human_mean).abs().max())}
+                           for m in avail]).set_index("method")
+        table = table.join(bt)
+        agg.to_csv(out / "stage2_bins.csv", encoding="utf-8-sig")
+        bin_lines = [f"구간 집계 (프레임 번호 기준 {n_bins}등분, 구간별 평균 visiting 마릿수 비교):",
+                     "```", fmt_table(agg), "```", "",
+                     "```", fmt_table(bt), "```", ""]
 
     inst_df.to_csv(out / "stage2_instances.csv", index=False, encoding="utf-8-sig")
     fr_df.to_csv(out / "stage2_frames.csv", index=False, encoding="utf-8-sig")
-    table.join(cnt).to_csv(out / "stage2_metrics.csv", encoding="utf-8-sig")
+    table.to_csv(out / "stage2_metrics.csv", encoding="utf-8-sig")
 
     n_gt, n_m = len(inst_df), int(inst_df.matched.sum())
     return [f"## Stage 2 — 평가용 {fr_df.image.nunique()}장, 모델 keypoint (학습 미사용 프레임)",
@@ -386,11 +438,15 @@ def run_stage2(gt_rows: list[dict], images: dict[str, Path], cams: Cameras, stag
             f"매칭 안 된 모델 검출 {int((fr_df.n_pred - fr_df.n_matched).sum())}개",
             "매칭 실패한 사람 개체는 '모델이 못 찾음 = other로 예측'으로 계산 (실제 운용과 동일)",
             (train_note or "RF 학습: Stage 1 전체"), "",
-            "개체 단위:", "```", fmt_table(table[["n", "visiting_F1", "precision", "recall", "macro_F1",
-                                                 "TP", "FP", "FN", "TN"]]), "```", "",
-            "프레임 단위 visiting 마릿수 (그래프에 실제로 쓰이는 값):",
-            "```", fmt_table(cnt), "```",
-            "count_bias > 0 이면 과대 집계, extra_visiting = 사람 라벨에 없는 검출(중복·오검출)을 visiting으로 센 수"]
+            "사진당 visiting 마릿수 (그래프에 실제로 쓰이는 값):",
+            "```", fmt_table(table[COUNT_COLS]), "```",
+            "count_bias > 0 이면 과대 집계. MAE와 bias를 같이 볼 것 (많이 센 사진과 적게 센 사진은 bias·total에서 상쇄됨)", "",
+            *bin_lines,
+            "오차 원인 (개체 단위):",
+            "```", fmt_table(table[["missed_visiting_undetected", "missed_visiting_judged",
+                                     "wrong_visiting", "extra_visiting"]]), "```",
+            "missed_undetected = 포즈 모델이 못 찾은 visiting, missed_judged = 찾았지만 other로 판정, "
+            "wrong = other를 visiting으로, extra = 사람 라벨에 없는 검출(중복·오검출)을 visiting으로 셈"]
 
 
 # --------------------------------------------------------------------------
@@ -406,6 +462,7 @@ def main():
     ap.add_argument("--n-splits", type=int, default=5)
     ap.add_argument("--match-thresh", type=float, default=0.25, help="keypoint 평균거리/박스대각선 허용치")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--bins", type=int, default=6, help="Stage 2 구간 집계 수 (프레임 번호 기준 등분; 1분 영상 6 = 약 10초)")
     ap.add_argument("--stage2-exclude-shared-clips", action="store_true",
                     help="Stage 2용 RF 학습에서 평가 프레임과 같은 영상 클립의 Stage 1 개체를 뺀다 (엄격한 평가)")
     ap.add_argument("--out", default="outputs/eval")
@@ -414,7 +471,7 @@ def main():
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     cams = Cameras(a.cameras)
-    report = ["# 판정 방법 비교 (Geo 규칙 / RF / RF+Geo / RF+Geo+Leg)", ""]
+    report = ["# 판정 방법 비교 (Geo 규칙 / RF / RF+Geo / RF+Geo+Leg) — 사진당 visiting 마릿수 기준", ""]
 
     s1 = None
     if a.stage1_xml:
@@ -444,7 +501,7 @@ def main():
         rows = [r for r in rows if cams.has(r["camera"])]
         print(f"[stage2] 평가 개체 {len(rows)} (이미지 {len({r['image'] for r in rows})})")
         report += run_stage2(rows, find_images(Path(a.stage2_images)), cams, s1, out, a.match_thresh, a.seed,
-                             exclude_shared_clips=a.stage2_exclude_shared_clips)
+                             exclude_shared_clips=a.stage2_exclude_shared_clips, n_bins=a.bins)
 
     (out / "summary.md").write_text("\n".join(report) + "\n", encoding="utf-8")
     print("\n".join(report))

@@ -26,9 +26,9 @@ counting/
 │   ├── evaluate_methods.py   Stage 1·2 평가 (Geo / RF / RF+Geo / RF+Geo+Leg)
 │   ├── run_geo_ablation.ps1  Geo 조건 5종 Stage 2 평가 (000)
 │   ├── apply_methods.py      _dets.csv에 모든 방법 적용 → 방법별 10분 그래프 (YOLO 재실행 없음)
-│   ├── plot_methods.py / plot_geo_ablation.py / plot_compare_runs.py   평가 결과 그림
-│   ├── extract_dm_frames.py  DM 정답지용 구간 사진(1초 1장) + 기록 시트 추출 (모델과 같은 프레임)
-│   ├── make_dm_examples.py   DM 라벨링 기준 예시 사진 (사람 라벨 기준)
+│   ├── plot_methods.py / plot_geo_ablation.py   평가 결과 그림 (사진당 마릿수 오차, 총 점유량 오차)
+│   ├── extract_dm_frames.py  구간 사진(1초 1장) + 기록 시트 추출 (이번 연구에서는 사용 안 함)
+│   ├── make_dm_examples.py   라벨링 기준 예시 사진 (이번 연구에서는 사용 안 함)
 │   ├── calibrate_feeder.py   사진·영상 한 프레임에서 사료통 원 좌표 잡기
 │   └── make_circle_zone.py   사료통 원 → 다각형 구역 yaml
 ├── src/feeding_monitor/
@@ -93,7 +93,7 @@ cd counting
 | 3 | 목→코 방향이 사료통 중심을 향함 | `direction_angle_max_deg: 60` |
 | 4 | 옆으로 누운 자세가 아님 | `posture_enabled: false` (CH010 라벨로 확인 전까지 꺼 둠) |
 
-Geo / RF / RF+Geo / RF+Geo+Leg 네 방법의 비교와 결과는 [루트 README의 연구 계획](../README.md#연구-계획--섭취visiting-판정-방법-비교)과 [PROGRESS.md](../PROGRESS.md) 참고.
+Geo / RF / RF+Geo / RF+Geo+Leg 네 방법의 비교와 결과는 [루트 README](../README.md)와 [PROGRESS.md](../PROGRESS.md) 참고.
 
 사료통 좌표를 다시 잡을 때:
 

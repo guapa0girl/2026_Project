@@ -3,7 +3,7 @@ human State labels (CVAT), in two stages.
 
   Stage 1 -- method comparison on HUMAN-CORRECTED keypoints
       Data : CVAT for images 1.1 XML(s) with skeletons + State attribute
-             (e.g. the 287 pose-training frames, State labeled on top).
+             (final study: tasks 001 CH005 + 002 CH010, the pose-training frames).
       Why  : the pose model never enters, so it doesn't matter that these
              frames were used to train it. Isolates "which classifier is
              better given good keypoints".
@@ -11,8 +11,8 @@ human State labels (CVAT), in two stages.
              RF / RF+Geo are trained on the other folds (out-of-fold preds).
 
   Stage 2 -- end-to-end on HELD-OUT frames with MODEL keypoints
-      Data : the 50 eval frames (training/eval_frames.txt, never seen by the
-             pose model) + their images.
+      Data : held-out labeled frames the pose model never saw + their images
+             (final study: task 000, the 1-minute sample video, 86 imgs).
       How  : run the pose model, match each detection to a human skeleton
              (Hungarian on keypoint distance), then apply Geo rule and the
              RF / RF+Geo models trained on ALL stage-1 rows.
@@ -31,11 +31,9 @@ Methods
 Usage (from counting/):
   ..\\.venv\\Scripts\\python scripts\\evaluate_methods.py ^
       --cameras configs\\eval_cameras.yaml ^
-      --stage1-xml data\\labels\\state_287.xml ^
-      --stage1-exclude ..\\training\\eval_frames.txt ^
-      --stage2-xml data\\labels\\ch010_eval50.xml ^
-      --stage2-images "D:\\CH010_frames" ^
-      --stage2-only-list ..\\training\\eval_frames.txt ^
+      --stage1-xml data\\labels\\state_001.xml data\\labels\\state_002.xml ^
+      --stage2-xml data\\labels\\state_000.xml ^
+      --stage2-images "<000 이미지 폴더>" ^
       --out outputs\\eval
   Either stage can be run alone (omit the other stage's args).
 """
@@ -401,10 +399,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cameras", required=True, help="카메라별 config/zones yaml (configs/eval_cameras.yaml)")
     ap.add_argument("--stage1-xml", nargs="*", default=[], help="CVAT for images 1.1 XML (사람 keypoint + State)")
-    ap.add_argument("--stage1-exclude", default=None, help="stage1에서 뺄 이미지 목록 (training/eval_frames.txt)")
+    ap.add_argument("--stage1-exclude", default=None, help="stage1에서 뺄 이미지 목록 (txt, 한 줄에 하나)")
     ap.add_argument("--stage2-xml", nargs="*", default=[], help="평가용 프레임 XML (State 라벨)")
     ap.add_argument("--stage2-images", default=None, help="평가용 프레임 원본 이미지 폴더")
-    ap.add_argument("--stage2-only-list", default=None, help="stage2에 쓸 이미지 목록만 남김 (eval_frames.txt)")
+    ap.add_argument("--stage2-only-list", default=None, help="stage2에 쓸 이미지 목록만 남김 (txt, 한 줄에 하나)")
     ap.add_argument("--n-splits", type=int, default=5)
     ap.add_argument("--match-thresh", type=float, default=0.25, help="keypoint 평균거리/박스대각선 허용치")
     ap.add_argument("--seed", type=int, default=42)

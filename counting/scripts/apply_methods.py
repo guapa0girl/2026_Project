@@ -11,8 +11,7 @@ Usage (from counting/):
   ..\\.venv\\Scripts\\python scripts\\apply_methods.py outputs\\ch010_20260716_day ^
       --config configs\\farm_ch010.yaml --zones configs\\zones\\feeder_zones_ch010.yaml ^
       --geo dir60=configs\\ablation\\farm_ch010_dir60.yaml --geo dir90=configs\\ablation\\farm_ch010_dir90.yaml ^
-      --cameras configs\\eval_cameras.yaml --stage1-xml data\\labels\\state_000.xml data\\labels\\state_001.xml data\\labels\\state_002.xml ^
-      --stage1-exclude ..\\training\\eval_frames.txt
+      --cameras configs\\eval_cameras.yaml --stage1-xml data\\labels\\state_001.xml data\\labels\\state_002.xml
   (no --stage1-xml -> geo variants only)
 
 Outputs in the same folder:

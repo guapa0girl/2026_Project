@@ -73,11 +73,10 @@ def main():
     parser.add_argument("--test", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--hardlink", action="store_true", help="복사 대신 하드링크로 배치(같은 드라이브에서 용량 절약)")
+    parser.add_argument("--test-zip", default=None,
+                        help="이 zip(data/raw/data/<task>.zip)의 이미지를 통째로 test로 고정. "
+                             "나머지는 --valid 비율만 valid, 나머지 train (--train/--test 무시)")
     args = parser.parse_args()
-
-    ratio_sum = args.train + args.valid + args.test
-    if abs(ratio_sum - 1.0) > 1e-6:
-        raise ValueError(f"train+valid+test 비율의 합은 1.0 이어야 합니다 (현재 {ratio_sum})")
 
     pairs, skipped = find_pairs()
     if not pairs:
@@ -87,16 +86,34 @@ def main():
         )
 
     rng = random.Random(args.seed)
-    shuffled = pairs[:]
-    rng.shuffle(shuffled)
+    if args.test_zip:
+        import zipfile
+        from pathlib import Path
+        # ingest_raw_zips.py names raw files "<task>__<stem>" (task = top folder in the zip)
+        test_stems = {f"{n.split('/')[0]}__{Path(n).stem}" for n in zipfile.ZipFile(args.test_zip).namelist()
+                      if "/img/" in n and Path(n).suffix.lower() in IMAGE_EXTS}
+        test_pairs = [p for p in pairs if p[0].stem in test_stems]
+        rest = [p for p in pairs if p[0].stem not in test_stems]
+        if len(test_pairs) != len(test_stems):
+            raise SystemExit(f"--test-zip 이미지 {len(test_stems)}장 중 raw에서 찾은 것 {len(test_pairs)}장 — ingest부터 다시 확인")
+        rng.shuffle(rest)
+        n_valid = round(len(rest) * args.valid)
+        valid_pairs, train_pairs = rest[:n_valid], rest[n_valid:]
+        n_total = len(pairs)
+    else:
+        ratio_sum = args.train + args.valid + args.test
+        if abs(ratio_sum - 1.0) > 1e-6:
+            raise ValueError(f"train+valid+test 비율의 합은 1.0 이어야 합니다 (현재 {ratio_sum})")
+        shuffled = pairs[:]
+        rng.shuffle(shuffled)
 
-    n_total = len(shuffled)
-    n_train = round(n_total * args.train)
-    n_valid = round(n_total * args.valid)
+        n_total = len(shuffled)
+        n_train = round(n_total * args.train)
+        n_valid = round(n_total * args.valid)
 
-    train_pairs = shuffled[:n_train]
-    valid_pairs = shuffled[n_train:n_train + n_valid]
-    test_pairs = shuffled[n_train + n_valid:]
+        train_pairs = shuffled[:n_train]
+        valid_pairs = shuffled[n_train:n_train + n_valid]
+        test_pairs = shuffled[n_train + n_valid:]
 
     num_keypoints = load_pose_spec(DATA_YAML)["num_keypoints"]
 

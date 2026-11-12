@@ -1,20 +1,67 @@
-# 2026_Project — 돼지 사료 점유 마리 수 추정 (YOLO-Pose)
+# 2026_Project — 돼지 사료통 점유(visiting) 마리 수 추정
 
-돈방 CCTV 영상에서 **시간대별 사료통 점유율**을 추정하는 연구 코드.
-2026 MIX_Lab에서 학부연구생으로 진행하는 「육돈 사료통 점유 시간 계측 연구」 과제용.
+돈방 CCTV 영상에서 **시간대별 사료통 점유 마리 수**를 자동으로 세는 연구 코드.
+2026 MIX_Lab 학부연구생 「육돈 사료통 점유 시간 계측 연구」 과제용.
 
 ```
 2026_Project/
-├── training/      ① 돼지 18-keypoint 포즈 모델 학습 (CVAT 라벨 → YOLOv8-pose n/s/m/l)
-├── counting/      ② 학습된 모델로 영상 추론 → 판정 방법 평가 → 시간대별 집계 → DM 정답지 추출
-├── docs/figures/  PROGRESS.md에 쓰는 결과 그림
-└── PROGRESS.md    날짜별 진행 상황 (방법, 결과, 그림 설명)
+├── training/      ① 돼지 18-keypoint 포즈 모델 학습 (YOLOv8-pose n/s/m/l)
+├── counting/      ② 돼지마다 visiting 판정 (Geo / RF / RF+Geo / RF+Geo+Leg) → 평가 → 영상 집계 → DM 정답지 추출
+├── docs/figures/  PROGRESS.md 결과 그림
+└── PROGRESS.md    파이프라인 단계별 진행 상황 (방법, 결과, 그림 설명)
 ```
 
 | 폴더 | 하는 일 | 자세한 설명 |
 |---|---|---|
-| `training/` | CVAT export 병합 → train/valid/test 분할 → 학습 → mAP·PCK 평가 | [training/README.md](training/README.md) |
-| `counting/` | 클립별 1초 샘플링 추론(`count_day.py`) → 섭취 판정 → 1초/1분/10분 집계·그래프 | [counting/README.md](counting/README.md) |
+| `training/` | CVAT XML → YOLO-Pose 라벨 변환 → 분할 → 학습 → mAP·PCK 평가 | [training/README.md](training/README.md) |
+| `counting/` | 판정 방법 평가(Stage 1·2), 영상 1초 샘플링 추론, 1분/10분 집계, DM 정답지 추출 | [counting/README.md](counting/README.md) |
+
+---
+
+## 연구 설계
+
+### 파이프라인
+
+```
+CCTV 사진/영상 ─→ ① 포즈 추정 (YOLOv8-pose, 돼지마다 관절 18개)
+                ─→ ② 돼지마다 visiting / other 판정 (5가지 방법 비교)
+                ─→ ③ 사진(1초)마다 visiting 마릿수
+                ─→ ④ 1분 / 10분 집계 → 시간대별 섭식 패턴   (③·④ = DM 파트)
+```
+
+### 데이터
+
+| task | 카메라 | 사진 | 돼지 (visiting) | 용도 |
+|---|---|---|---|---|
+| 001 | CH005 (1920×1080) | 90 | 899 (136) | **학습** — 포즈 모델, RF 계열 |
+| 002 | CH010 (1920×1080) | 100 | 990 (179) | **학습** — 포즈 모델, RF 계열 |
+| 000 | 1분 샘플 영상 (960×720) | 86 | 860 (133) | **test** — 학습에 전혀 안 씀 |
+
+- 모든 사진에 사람이 CVAT로 스켈레톤(관절 18개)과 State(visiting / other)를 라벨링.
+- test(000)는 학습(CH005·CH010)과 **다른 카메라** → 처음 보는 화면에서의 성능을 잼.
+
+### 비교하는 판정 방법 (②)
+
+| 방법 | 어떻게 판정 | 학습 | 담당 |
+|---|---|---|---|
+| **Geo (규칙 기반)** | 코·목 신뢰도 ≥ 0.5, 코가 사료통 원 안, 목→코 방향이 사료통 중심에서 60° 이내 → visiting | 없음 | |
+| **RF** | 자세 특징 6개 → RandomForest | 001+002 | |
+| **RF+Geo** | RF 특징 + Geo 값 5개(코-사료통 거리 ÷ r, 머리 방향 각도 등) | 001+002 | |
+| **RF+Geo+Leg** | RF+Geo + 다리 모양 누움 특징 5개(다리-척추 각도, 다리 길이, 발 쏠림 등) | 001+002 | |
+| **YOLO** | 포즈 없이 YOLO가 돼지를 visiting / other로 바로 검출 | 001+002 | 수아 |
+
+- 특징 정의: `counting/src/feeding_monitor/` (`feeding_classifier.py`, `posture_features.py`, `leg_features.py`, `method_features.py`).
+- 사료통 원(cx, cy, r)은 카메라마다 따로 잡음(`counting/configs/eval_cameras.yaml` — CH005, CH010, SAMPLE).
+  특징은 r·몸통 길이로 나눈 비율이나 각도라 카메라 높이·사료통 크기 차이에 영향을 덜 받음.
+
+### 평가
+
+| | Stage 1 | Stage 2 (최종 test) |
+|---|---|---|
+| 데이터 | 001+002 | 000 |
+| 관절 | 사람이 찍은 관절 | **포즈 모델이 찍은 관절** (실제 운용과 같음) |
+| 학습/시험 | 클립 단위 교차검증 (같은 클립 사진이 학습·시험에 나뉘지 않게) | 001+002 전체로 학습 → 000에 적용 |
+| 지표 | visiting F1 (precision, recall) | visiting F1 + 사진당 마릿수 오차(MAE)·치우침(bias) |
 
 ---
 
@@ -32,110 +79,20 @@ python -m venv .venv
 
 ---
 
-## 전체 흐름
+## 현재 상태
 
-### ① 포즈 모델 학습 (`training/` 폴더에서)
+| 단계 | 상태 |
+|---|---|
+| ① 포즈 모델 학습 (n/s/m/l × epoch 100·200) | 🔄 진행 중 |
+| ② 판정 방법 학습·평가 (Geo / RF / RF+Geo / RF+Geo+Leg) | ⏳ 포즈 모델 선택 후 |
+| ② YOLO 직접 판정 | ⏳ 수아 진행 |
+| ③·④ 영상 집계, DM 정답지 | ⏳ |
 
-```powershell
-cd training
-# CVAT export zip (<task>/img + <task>/label 구조)을 data\raw\data\ 바로 아래에 둠
-# 라벨만 export한 경우: scripts\build_raw_zip.py 로 원본 이미지와 묶어서 만듦
-..\.venv\Scripts\python scripts\ingest_raw_zips.py
-..\.venv\Scripts\python scripts\split_dataset.py --train 0.8 --valid 0.1 --test 0.1
-..\.venv\Scripts\python scripts\train.py --sizes n s m --epochs 100
-```
-
-- **`eval_frames.txt`**: 섭취 판정 평가용 50장 목록. 이 50장은 **pose 학습에 절대 섞으면 안 됨.**
-  `build_raw_zip.py --exclude eval_frames.txt`가 걸러 냄.
-- 학습 결과 지표는 `training/reports/metrics/<size>/`, 비교표는 `training/reports/comparison/`에 저장.
-
-### ② 영상 추론 (`counting/` 폴더에서)
-
-```powershell
-cd counting
-# 가중치를 models\pig_pose_ch010_m_best.pt 로 둠 (configs\farm_ch010.yaml 의 weights:)
-..\.venv\Scripts\python scripts\count_day.py --config configs\farm_ch010.yaml --videos "<영상폴더>" `
-    --out-dir outputs\ch010_<날짜> --bin-sec 600 --save-dets
-..\.venv\Scripts\python scripts\plot_1min.py outputs\ch010_<날짜>\<클립>_1s.csv   # 1분 단위 그래프
-```
-
----
-
-## 연구 계획 — 섭취(visiting) 판정 방법 비교
-
-같은 포즈 모델 출력(keypoint)을 두고, 돼지 한 마리가 사료통을 **visiting** 중인지 판정하는 네 가지 방법을 비교.
-
-| 방법 | 입력 | 설명 |
-|---|---|---|
-| **Geo 단독 (ROI 규칙)** | 코·목 keypoint + 사료통 원 | 규칙 기반. 코·목 신뢰도 ≥ 0.5, 코가 사료통 뚜껑 원 안, 목→코 방향이 중심에서 **60° 이내**이면 visiting (`feeding_classifier.py`). 학습 없음 |
-| **RF 단독** | keypoint 기반 자세 특징 6개 | RandomForest 분류기 (`posture_features.py`) |
-| **RF + Geo feature** | RF 특징 + Geo 값 5개(코-사료통 거리 ÷ r, 머리 방향 각도 등) | Geo 규칙의 값을 특징으로 넣어 RF가 함께 학습 |
-| **RF + Geo + Leg** | RF + Geo 특징 + 다리 모양 누움 특징 5개 | 다리-척추 각도, 다리 길이, 발이 한쪽에 몰린 정도 등 관절 **위치**로 "옆으로 누운 자세"를 구분 (`leg_features.py`) |
-
-- **Geo 설정**: 방향 조건 **60°로 확정** (평가 50장에서 마릿수 오차가 가장 작고 치우침이 거의 없음. 90°는 F1이 조금 높지만 사진당 0.5마리 과대 집계).
-- **정답**: 사람이 CVAT에서 붙인 State 라벨(visiting / other). 라벨러 일치도: 수아가 라벨링한 20장을 검토자가 확인해 **100% 일치**.
-- **카메라**: 빨간 원형 사료통이 화면에 통째로 보이는 채널만 사용 — CH010, CH005, 1분 샘플(SAMPLE). CH002는 급이기가 화면에서 잘려 제외.
-  사료통 원(cx, cy, r)은 채널마다 `calibrate_feeder.py`로 잡아 `counting/configs/eval_cameras.yaml`에 연결.
-  특징은 r·몸통 길이로 나눈 비율이나 각도라 카메라 높이·사료통 크기 차이에 영향을 덜 받음.
-- **평가 2단계** (`counting/scripts/evaluate_methods.py`):
-  - **Stage 1** — 사람이 찍은 keypoint + State 라벨로 방법 비교. 같은 클립의 프레임이 train/test에 나뉘지 않도록 **클립 단위 StratifiedGroupKFold**.
-  - **Stage 2** — pose 학습에서 제외한 **평가 50장**(`training/eval_frames.txt`)에서 **포즈 모델이 실제로 낸 keypoint**로 평가(실제 운용 성능).
-    모델 검출과 사람 라벨은 개체 단위로 매칭(헝가리안). RF는 Stage 1 라벨 전체로 학습.
-- **지표**: **visiting F1** (보조: precision, recall) + 그래프에 쓰이는 **사진당 마릿수 오차(MAE)와 치우침(bias)**.
-- 영상에는 `count_day.py --save-dets`로 모든 검출의 keypoint를 저장해 두므로, 네 방법 모두 YOLO 재실행 없이 다시 계산(`apply_methods.py`).
-
-### 현재 결과 요약 — Stage 1 라벨 수에 따른 비교
-
-| 방법 | Stage 1 F1<br>90장 → 226장 | Stage 2 F1<br>90장 / 226장 / 226장 strict | Stage 2 사진당 마릿수 오차 (bias)<br>90장 / 226장 / 226장 strict |
-|---|---|---|---|
-| Geo (60°) | 0.772 → 0.782 | 0.675 / 0.675 / 0.675 | 0.56 (+0.04) / 0.56 (+0.04) / 0.56 (+0.04) |
-| RF | 0.930 → 0.876 | 0.685 / 0.749 / 0.685 | 1.24 (+1.20) / 0.82 (+0.70) / 1.24 (+1.20) |
-| RF+Geo | 0.930 → 0.933 | 0.698 / 0.859 / 0.762 | 1.12 (+1.04) / 0.34 (+0.18) / 0.72 (+0.56) |
-| **RF+Geo+Leg** | 0.949 → **0.986** | **0.900 / 0.892 / 0.899** | **0.22 (−0.02) / 0.26 (+0.10) / 0.22 (−0.06)** |
-
-- **90장**: 수아 라벨 001(CH005) 90장, 클립 4개. **226장**: 000·001·002(1분 샘플·CH005·CH010) 226장(실제 사용 219장), 클립 16개.
-- **strict**: Stage 2용 RF 학습에서 평가 50장과 같은 클립의 사진을 뺀 결과(누수 확인용).
-- RF·RF+Geo는 사료통 옆에 **누워 있는 돼지**를 visiting으로 세어 과대 집계하고, 다리 특징(Leg)을 넣으면 이 오류가 거의 사라짐.
-- RF+Geo+Leg는 CH005 90장만으로도 CH010에서 잘 동작했고, 라벨을 늘리거나 같은 클립을 빼도 결과가 거의 그대로.
-  RF+Geo의 226장 개선분은 strict에서 상당 부분 사라져, 같은 클립 장면을 미리 본 효과로 보임.
-- 날짜별 진행·그림·해석은 [PROGRESS.md](PROGRESS.md) 참고.
-
----
-
-## 현재 결과 — pose 모델 (n/s/m 2026-11-05, large 2026-11-10)
-
-데이터는 CVAT task 4개(000\~003)에서 287장, 평가용 50장은 제외.
-채널 구성은 CH005 90장 · CH010 50장 · CH002 61장 · 채널 미표기 86장.
-분할은 train 230 / valid 29 / test 28장. YOLOv8-pose를 COCO 사전학습에서 시작해 100 epoch, imgsz 640으로 학습.
-
-| 모델 | test pose mAP50 | test pose mAP50-95 | test box mAP50-95 | test PCK@0.1 | test PCK@0.2 |
-|---|---|---|---|---|---|
-| nano | 0.703 | 0.377 | 0.836 | 0.800 | 0.923 |
-| small | 0.790 | 0.420 | 0.861 | 0.808 | 0.923 |
-| medium | **0.795** | 0.436 | 0.870 | 0.828 | 0.934 |
-| large | 0.778 | **0.437** | **0.874** | **0.831** | **0.938** |
-
-- 추론에는 **medium** 사용(`counting/configs/farm_ch010.yaml`). large는 medium과 차이가 0.001\~0.004(pose mAP50은 medium이 0.017 높음)로
-  오차 범위이고 더 무거워서 바꾸지 않음. 굵은 값 = 지표별 1등.
-- test가 28장이라 사이즈 간 차이 0.01\~0.02는 오차 범위.
-
-## 현재 결과 — CH010 추론 (2026-07-16 10:26\~13:32 KST, 클립 8개, 약 3시간)
-
-- 1초 샘플 11,063개, 클립당 4\~12분 처리. 실패 클립 없음.
-- 1초 평균 visiting 마릿수: Geo(60°) 1.19 · RF+Geo+Leg 0.71마리(90장 학습) / 0.74마리(226장 학습). 11:30\~11:40에는 모든 방법이 3마리 안팎으로 일치.
-- 11:40\~12:40에는 Geo가 사료통 옆에서 자는 돼지까지 세어 RF+Geo+Leg보다 1마리 이상 많음(장면 확인).
-- 시간대별 마릿수 자체는 사람 정답이 없는 **추정치**이고, 정확도는 평가 50장으로 간접 확인. 실측값은 DM 프로젝트에서 측정 필요.
+진행 내용과 결과는 [PROGRESS.md](PROGRESS.md) 참고.
 
 ---
 
 ## 이 레포에 없는 것
 
-- **이미지·라벨 데이터, 원본 영상**: 농장 데이터라 올리지 않음. 각 폴더의 `data/`는 빈 구조(`.gitkeep`)만 있음.
-- **가중치·추론 결과·학습 산출물**: [Releases](../../releases)에 첨부.
-
-| Release 파일 | 받은 뒤 놓을 위치 |
-|---|---|
-| `pig_pose_ch010_m_best.pt` | `counting/models/` |
-| `CH010.20260716012647-20260716015128.avi` | 아무 영상 폴더 (원래 이름 `[CH010] 20260716012647-20260716015128.avi`) |
-| `ch010_20260716.zip` | `counting/outputs/` 에 압축 해제 |
-| `results.zip` | `training/models/` 에 압축 해제 (n/s/m 학습 산출물 + 가중치) |
+- **사진·라벨·원본 영상**: 농장 데이터라 올리지 않음. 각 폴더의 `data/`는 빈 구조(`.gitkeep`)만 있음.
+- **가중치·추론 결과·학습 산출물**: 용량이 커서 git 제외(필요하면 Releases에 첨부).

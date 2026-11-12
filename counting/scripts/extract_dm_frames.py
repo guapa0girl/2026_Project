@@ -10,7 +10,7 @@ Frame rule (same as count_full_video.py):
 Usage (from counting/):
     python scripts/extract_dm_frames.py --videos data/raw/CH010_20260716 \
         --start "2026-07-16 10:30:00" --minutes 10 --name A --out <folder> \
-        --labeled ../training/eval_frames.txt ../training/data/raw/data/002.zip
+        --labeled ../training/data/raw/data/002.zip
 
 Output (<out>/<name>/):
     images/HH_MM_SS.jpg      one per second (missing if the frame could not be read)
@@ -66,7 +66,7 @@ def main():
     ap.add_argument("--minutes", type=int, default=10)
     ap.add_argument("--name", required=True, help="section name, e.g. A")
     ap.add_argument("--out", required=True)
-    ap.add_argument("--labeled", nargs="*", default=[], help="eval_frames.txt / CVAT export zips to flag")
+    ap.add_argument("--labeled", nargs="*", default=[], help="pose-training frames to flag: raw/data zips or image-name lists (txt)")
     ap.add_argument("--overlap-min", type=int, default=1, help="first N minutes: both labelers count")
     ap.add_argument("--assignees", default="진홍,경태", help="two names; 1st half / 2nd half")
     ap.add_argument("--quality", type=int, default=92)

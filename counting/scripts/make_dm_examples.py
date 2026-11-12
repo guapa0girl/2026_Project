@@ -3,8 +3,8 @@
 the feeder circle (e.g. lying with the head on the lid -> do NOT count).
 
 Usage (from counting/):
-    python scripts/make_dm_examples.py --xml data/labels/ch010_eval50.xml \
-        --images data/labels/eval50_img --config configs/farm_ch010.yaml --out <folder> --n 4
+    python scripts/make_dm_examples.py --xml data/labels/state_002.xml \
+        --images <002 이미지 폴더> --config configs/farm_ch010.yaml --out <folder> --n 4
 """
 import argparse
 import math

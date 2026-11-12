@@ -3,7 +3,8 @@
 
 CVAT 무료 플랜은 이미지 포함 export가 막혀 있어서, 라벨 zip과 PC에 있는 원본 이미지를
 짝지어 ingest_raw_zips.py 가 요구하는 구조를 직접 만든다.
-평가용 프레임(자세 판정 라벨 50장, eval_frames.txt)은 pose 학습에서 반드시 제외한다.
+--exclude 목록의 프레임(pose 학습에 넣으면 안 되는 평가용 사진)은 빼고 묶는다.
+(CVAT "for images 1.1" XML + 이미지 export는 cvat_xml_to_raw_zip.py 를 쓴다.)
 
 제외 매칭은 (1) 파일명 완전 일치, 또는 (2) 파일명 속 "[CH010] <영상>_f<프레임>" 부분
 일치로 판단한다. task마다 "frame_0001__" 같은 접두어가 다르게 붙어도 같은 프레임이면
@@ -11,7 +12,7 @@ CVAT 무료 플랜은 이미지 포함 export가 막혀 있어서, 라벨 zip과
 
 사용법 (training 폴더에서):
   python scripts/build_raw_zip.py --labels-zip "CVAT_export.zip" --images "원본이미지폴더" \
-      --exclude eval_frames.txt --task CH010_431 --out data/raw/data/CH010_431.zip
+      --exclude <제외목록.txt> --task CH010_431 --out data/raw/data/CH010_431.zip
 
 CVAT task가 여러 개면 task마다 한 번씩 실행 (--task 이름은 서로 다르게).
 """

@@ -14,7 +14,7 @@ counting/
 │   ├── eval_cameras.yaml               평가용 채널 → 설정·구역 연결 (CH010, CH005, SAMPLE; CH002 제외)
 │   ├── ablation/                       Geo 조건 비교용 설정 5종 (방향 60°/90°/끔, 누움 조건)
 │   └── zones/feeder_zones_*.yaml       같은 사료통 원을 48각형으로 만든 구역 (RF 특징용)
-├── models/          가중치 (pig_pose_ch010_m_best.pt, git 제외 — Releases)
+├── models/          가중치 (pig_pose_best.pt = 001+002로 학습한 포즈 모델 중 고른 것, git 제외)
 ├── data/raw/        원본 영상 (git 제외)
 ├── data/labels/     CVAT 라벨 XML·평가 이미지 (git 제외)
 ├── outputs/         추론·평가 결과 (git 제외)
@@ -25,7 +25,6 @@ counting/
 │   ├── plot_day.py           클립별 1초 CSV를 이어 붙여 시계 기준 10분 그래프
 │   ├── evaluate_methods.py   Stage 1·2 평가 (Geo / RF / RF+Geo / RF+Geo+Leg)
 │   ├── run_geo_ablation.ps1  Geo 조건 5종 Stage 2 평가
-│   ├── eval_split50.py       평가 50장을 클립 단위 40:10으로 나눠 4가지 방법 비교 (모델 keypoint)
 │   ├── apply_methods.py      _dets.csv에 모든 방법 적용 → 방법별 10분 그래프 (YOLO 재실행 없음)
 │   ├── plot_methods.py / plot_geo_ablation.py / plot_compare_runs.py   평가 결과 그림
 │   ├── extract_dm_frames.py  DM 정답지용 구간 사진(1초 1장) + 기록 시트 추출 (모델과 같은 프레임)

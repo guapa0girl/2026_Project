@@ -1,5 +1,13 @@
-"""이 프로젝트 전체에서 공유하는 경로 상수 모음."""
+"""이 프로젝트 전체에서 공유하는 경로 상수 모음.
+
+POSE_RUN 환경변수(예: ep100, ep200)를 주면 학습 결과·지표·비교표가 run별 하위 폴더
+(models/results/<run>/, reports/metrics/<run>/, reports/comparison/<run>/)에 따로 저장된다.
+같은 데이터로 설정만 바꾼 학습(예: epoch 100 vs 200)을 덮어쓰지 않고 나란히 비교하기 위함.
+"""
+import os
 from pathlib import Path
+
+RUN = os.environ.get("POSE_RUN", "").strip()
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -21,13 +29,13 @@ RESOLVED_DATA_YAML = CONFIGS_DIR / "_pig_pose.resolved.yaml"
 
 MODELS_DIR = ROOT / "models"
 PRETRAINED_DIR = MODELS_DIR / "pretrained"
-RESULTS_DIR = MODELS_DIR / "results"
+RESULTS_DIR = MODELS_DIR / "results" / RUN if RUN else MODELS_DIR / "results"
 
 PAST_TRAIN_DIR = ROOT / "past_train"
 
 REPORTS_DIR = ROOT / "reports"
-METRICS_DIR = REPORTS_DIR / "metrics"
-COMPARISON_DIR = REPORTS_DIR / "comparison"
+METRICS_DIR = REPORTS_DIR / "metrics" / RUN if RUN else REPORTS_DIR / "metrics"
+COMPARISON_DIR = REPORTS_DIR / "comparison" / RUN if RUN else REPORTS_DIR / "comparison"
 
 SIZES = ("n", "s", "m", "l")
 SIZE_LABELS = {"n": "nano", "s": "small", "m": "medium", "l": "large"}

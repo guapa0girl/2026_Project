@@ -10,7 +10,7 @@ growth_stage: TODO
 expected_pig_count: 10  # sanity check only
 
 model:
-  weights: models/pig_pose_ch010_m_best.pt # YOLOv8m-pose, 287 imgs (000~003), 100ep, 2026-11-05; eval_frames.txt 50 excluded
+  weights: models/pig_pose_best.pt # YOLOv8-pose trained on 001+002 (CH005+CH010, 190 imgs); copy the chosen size's best.pt here
   imgsz: 640
   conf: 0.4
   iou: 0.5

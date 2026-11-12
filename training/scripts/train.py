@@ -64,7 +64,7 @@ def ensure_pretrained_weight(size: str) -> Path:
     return weight_path
 
 
-def train_one_size(size: str, epochs_override, imgsz_override, batch_override, resume=False):
+def train_one_size(size: str, epochs_override, imgsz_override, batch_override, resume=False, patience_override=None):
     last_pt = RESULTS_DIR / size / "weights" / "last.pt"
 
     if resume and last_pt.exists():
@@ -94,7 +94,7 @@ def train_one_size(size: str, epochs_override, imgsz_override, batch_override, r
         epochs=epochs,
         imgsz=imgsz,
         batch=batch,
-        patience=cfg.get("patience", 30),
+        patience=cfg.get("patience", 30) if patience_override is None else patience_override,
         optimizer=cfg.get("optimizer", "auto"),
         lr0=cfg.get("lr0", 0.01),
         workers=cfg.get("workers", 8),
@@ -111,6 +111,8 @@ def main():
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--imgsz", type=int, default=None)
     parser.add_argument("--batch", type=int, default=None)
+    parser.add_argument("--patience", type=int, default=None,
+                        help="조기 종료 patience 덮어쓰기. 0 = 조기 종료 끔(지정한 epoch를 끝까지 학습, best.pt는 valid 기준)")
     parser.add_argument("--splits", nargs="+", default=list(SPLITS), choices=list(SPLITS))
     parser.add_argument("--skip-archive", action="store_true", help="이전 결과 자동 이동을 생략(디버깅용)")
     parser.add_argument(
@@ -130,7 +132,8 @@ def main():
     spec = load_pose_spec(DATA_YAML)
 
     for size in args.sizes:
-        model = train_one_size(size, args.epochs, args.imgsz, args.batch, resume=size in resumable)
+        model = train_one_size(size, args.epochs, args.imgsz, args.batch, resume=size in resumable,
+                               patience_override=args.patience)
 
         print(f"----- [{SIZE_LABELS[size]}] train/valid/test 평가 -----")
         summary = {}
@@ -141,7 +144,7 @@ def main():
             )
         save_summary(size, summary)
 
-    print("\n===== 세 모델(n/s/m) 성능 비교 리포트 생성 =====")
+    print("\n===== 사이즈별 성능 비교 리포트 생성 =====")
     compare_main()
 
 

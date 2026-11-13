@@ -69,7 +69,8 @@ python scripts\split_dataset.py --test-zip data\raw\data\000.zip --valid 0.15 --
 # 3) 학습 + 평가 + 비교 (run 이름별로 결과 폴더가 나뉨)
 $env:POSE_RUN = "ep100"; python scripts\train.py --sizes n s m l --epochs 100 --patience 0
 $env:POSE_RUN = "ep200"; python scripts\train.py --sizes n s m l --epochs 200 --patience 0
-python scripts\compare_runs.py --runs ep100 ep200
+$env:POSE_RUN = "ep300"; python scripts\train.py --sizes n s m l --epochs 300 --patience 0
+python scripts\compare_runs.py --runs ep100 ep200 ep300
 # 진행률: $env:POSE_RUN = "ep100"; python scripts\training_status.py
 ```
 
@@ -89,13 +90,14 @@ test(000) 기준. 배치 nano 16 / small 16 / medium 8 / large 8, 조기 종료 
 
 | 사이즈 | epoch | 학습(분) | test pose mAP50-95 | test PCK@0.1 | test PCK@0.2 |
 |---|---|---|---|---|---|
-| nano | 100 / 200 | 3.3 / 6.2 | 0.079 / 0.101 | 0.667 / 0.685 | 0.861 / 0.867 |
-| small | 100 / 200 | 4.6 / 8.6 | 0.060 / 0.103 | 0.701 / 0.689 | 0.850 / 0.856 |
-| medium | 100 / 200 | 7.9 / 15.3 | 0.091 / 0.100 | 0.684 / **0.710** | 0.865 / **0.870** |
-| large | 100 / 200 | 16.1 / 31.5 | 0.059 / **0.107** | 0.673 / 0.668 | 0.866 / 0.834 |
+| nano | 100 / 200 / 300 | 3.3 / 6.2 / 8.8 | 0.079 / 0.101 / 0.059 | 0.667 / 0.685 / 0.628 | 0.861 / 0.867 / 0.857 |
+| small | 100 / 200 / 300 | 4.6 / 8.6 / 12.7 | 0.060 / 0.103 / 0.084 | 0.701 / 0.689 / 0.655 | 0.850 / 0.856 / **0.871** |
+| medium | 100 / 200 / 300 | 7.9 / 15.3 / 22.7 | 0.091 / 0.100 / **0.132** | 0.684 / **0.710** / **0.710** | 0.865 / 0.870 / 0.857 |
+| large | 100 / 200 / 300 | 16.1 / 31.5 / 45.0 | 0.059 / 0.107 / 0.110 | 0.673 / 0.668 / 0.687 | 0.866 / 0.834 / 0.869 |
 
-- epoch 200이 전 사이즈에서 mAP 향상, PCK 차이는 작음. 사용 모델: **medium ep200**.
-- 전체 표·그림: `reports/comparison/runs_ep100_vs_ep200.csv` / `.png`. 해석은 [PROGRESS.md](../PROGRESS.md) 2장.
+- 100 → 200: 전 사이즈에서 mAP 향상. 200 → 300: valid는 계속 오르지만 test(000)는 사이즈마다 엇갈림.
+- 사용 모델: **medium ep200** (ep300은 visiting 판정 결과가 나아지지 않음).
+- 전체 표·그림: `reports/comparison/runs_ep100_vs_ep200_vs_ep300.csv` / `.png`. 해석은 [PROGRESS.md](../PROGRESS.md) 2장.
 
 ### 지표
 

@@ -4,8 +4,8 @@ Reads reports/metrics/<run>/<size>/summary.json and models/results/<run>/<size>/
 (written when train.py ran with POSE_RUN=<run>).
 
 Usage (from training/):
-    python scripts/compare_runs.py --runs ep100 ep200
--> reports/comparison/runs_<a>_vs_<b>.csv / .png
+    python scripts/compare_runs.py --runs ep100 ep200 ep300
+-> reports/comparison/runs_<a>_vs_<b>[_vs_<c>...].csv / .png
 """
 import argparse
 import csv
@@ -51,11 +51,11 @@ def run_info(run, size):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--runs", nargs=2, required=True)
+    ap.add_argument("--runs", nargs="+", required=True)
     a = ap.parse_args()
     out_dir = ROOT / "reports" / "comparison"
     out_dir.mkdir(parents=True, exist_ok=True)
-    stem = out_dir / f"runs_{a.runs[0]}_vs_{a.runs[1]}"
+    stem = out_dir / ("runs_" + "_vs_".join(a.runs))
 
     rows = []
     for size, label in SIZES:
@@ -81,12 +81,14 @@ def main():
     fig, axes = plt.subplots(1, len(METRICS), figsize=(4.2 * len(METRICS), 4.4))
     labels = [l for _, l in SIZES]
     x = np.arange(len(labels))
-    colors = ["#8fb8ea", "#2a78d6"]
+    palette = ["#b9d3f2", "#8fb8ea", "#2a78d6", "#174a8c"]
+    colors = palette[-len(a.runs):] if len(a.runs) <= len(palette) else None
+    w = 0.8 / len(a.runs)
     for ax, (m, title) in zip(axes, METRICS):
         for i, run in enumerate(a.runs):
             vals = [next((r["test_" + m] for r in rows if r["size"] == l and r["run"] == run), np.nan) for l in labels]
-            b = ax.bar(x + (i - 0.5) * 0.38, vals, 0.38, label=run, color=colors[i])
-            ax.bar_label(b, fmt="%.3f", padding=2, fontsize=7)
+            b = ax.bar(x + (i - (len(a.runs) - 1) / 2) * w, vals, w, label=run, color=colors[i] if colors else None)
+            ax.bar_label(b, fmt="%.2f", padding=2, fontsize=6)
         ax.set_xticks(x, labels)
         ax.set_title(f"test {title}", fontsize=10)
         ax.set_ylim(0, 1.05)
@@ -94,7 +96,7 @@ def main():
         ax.set_axisbelow(True)
         ax.spines[["top", "right"]].set_visible(False)
     axes[0].legend(fontsize=8, loc="lower right")
-    fig.suptitle(f"YOLOv8-pose {a.runs[0]} vs {a.runs[1]} — test = 000 (1-min sample, 86 imgs, not in training)")
+    fig.suptitle(f"YOLOv8-pose {' vs '.join(a.runs)} — test = 000 (1-min sample, 86 imgs, not in training)")
     fig.tight_layout()
     fig.savefig(str(stem) + ".png", dpi=130)
     print("saved", str(stem) + ".csv", str(stem) + ".png")

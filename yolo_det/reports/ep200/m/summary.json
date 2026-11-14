@@ -1,0 +1,34 @@
+{
+  "method": "YOLO",
+  "run": "ep200",
+  "size": "m",
+  "weights": "best.pt",
+  "conf_threshold": 0.55,
+  "conf_threshold_from": "valid 28장에서 사진당 MAE 최소",
+  "nms": "agnostic, iou 0.7",
+  "test": {
+    "n_frames": 86,
+    "count_MAE": 0.19767441860465115,
+    "count_bias": -0.1511627906976744,
+    "exact_rate": 0.8023255813953488,
+    "within1_rate": 1.0,
+    "total_model": 120,
+    "total_human": 133,
+    "total_error_pct": -9.774436090225564,
+    "over_frames": 2,
+    "under_frames": 15,
+    "bin_MAE": 0.15040998217468804,
+    "bin_bias": -0.10049910873440286,
+    "bin_max_abs_err": 0.48,
+    "missed_visiting_undetected": 8,
+    "missed_visiting_judged": 11,
+    "wrong_visiting": 2,
+    "extra_visiting": 4
+  },
+  "box_map_test": {
+    "box_mAP50": 0.8880357579082626,
+    "box_mAP50-95": 0.6012312906718408,
+    "box_mAP50-95_other": 0.6439231247407469,
+    "box_mAP50-95_visiting": 0.5585394566029346
+  }
+}

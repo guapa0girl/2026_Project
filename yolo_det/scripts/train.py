@@ -5,6 +5,8 @@ pose 실험(training/scripts/train.py, PROGRESS.md 2장)과 조건을 맞춤:
     / optimizer auto / batch n·s 16, m·l 8 / best.pt = valid 성능 최고 epoch
 
 결과: yolo_det/models/<run>/<size>/weights/best.pt  (run 이름으로 설정별 결과를 나란히 보관)
+기록: yolo_det/models/<run>/<size>/env.json   (라이브러리 버전·GPU·git 커밋·시작 가중치 해시·학습 설정)
+      yolo_det/models/<run>/<size>/split.json (분할 방식·valid 목록)
 
 사용법 (레포 루트에서, prepare_data.py 먼저):
     python yolo_det/scripts/train.py --sizes m                    # medium만
@@ -20,7 +22,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import MODELS_DIR, RESOLVED_YAML, SIZE_BATCH  # noqa: E402
+import json  # noqa: E402
+import shutil  # noqa: E402
+
+from datetime import datetime  # noqa: E402
+
+from common import MODELS_DIR, RESOLVED_YAML, SIZE_BATCH, SPLIT_JSON, env_info, sha256_16  # noqa: E402
 
 
 def check_init_size(init: str, size: str):
@@ -58,8 +65,13 @@ def main():
         if a.run == "ep200":
             raise SystemExit("--init 결과가 COCO 결과(models/ep200)를 덮어쓰지 않게 --run 을 따로 주세요: 예) --run ep200_poseinit")
 
-    if not RESOLVED_YAML.exists():
-        raise SystemExit(f"{RESOLVED_YAML} 가 없음 — 먼저 python yolo_det/scripts/prepare_data.py 실행")
+    if not RESOLVED_YAML.exists() or not SPLIT_JSON.exists():
+        raise SystemExit(f"{RESOLVED_YAML} 또는 {SPLIT_JSON.name} 가 없음 — 먼저 python yolo_det/scripts/prepare_data.py 실행")
+    split = json.loads(SPLIT_JSON.read_text(encoding="utf-8"))["split"]
+    print(f"[train] 데이터 분할 = {split}")
+    if a.init and split != "random":
+        raise SystemExit("서인 pose 가중치는 random(seed 42) 분할로 학습됨 → 다른 분할과 같이 쓰면 valid 누수. "
+                         "--init 없이(COCO 시작) 돌리거나 pose를 같은 분할로 다시 학습하세요")
 
     from ultralytics import YOLO
 
@@ -70,6 +82,9 @@ def main():
             YOLO(str(last)).train(resume=True)
             continue
 
+        (MODELS_DIR / a.run / size).mkdir(parents=True, exist_ok=True)
+        shutil.copy(SPLIT_JSON, MODELS_DIR / a.run / size / "split.json")   # 어떤 분할로 학습했는지 기록
+
         if a.init:
             check_init_size(a.init, size)
             print(f"\n===== yolov8{size} ({a.run}) {a.init} 에서 시작해 학습 =====")
@@ -78,6 +93,16 @@ def main():
         else:
             print(f"\n===== yolov8{size} ({a.run}) COCO 사전학습에서 처음부터 학습 =====")
             model = YOLO(f"yolov8{size}.pt")       # 없으면 Ultralytics가 자동 다운로드
+        init_path = Path(a.init) if a.init else Path(getattr(model, "ckpt_path", None) or f"yolov8{size}.pt")
+        env = {**env_info(), "started": datetime.now().isoformat(timespec="seconds"), "run": a.run, "size": size,
+               "init": "pose" if a.init else "coco", "init_weights": str(init_path),
+               "init_sha256_16": sha256_16(init_path) if init_path.exists() else "파일 못 찾음",
+               "split": split, "epochs": a.epochs, "patience": a.patience, "imgsz": a.imgsz,
+               "batch": a.batch or SIZE_BATCH[size], "seed": a.seed}
+        (MODELS_DIR / a.run / size / "env.json").write_text(json.dumps(env, ensure_ascii=False, indent=2),
+                                                           encoding="utf-8")
+        print("[train] 환경 기록: " + ", ".join(f"{k}={env[k]}" for k in
+              ("python", "torch", "cuda", "ultralytics", "gpu", "git_commit", "init_sha256_16")))
         model.train(
             data=str(RESOLVED_YAML),
             epochs=a.epochs,

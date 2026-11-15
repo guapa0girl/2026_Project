@@ -24,7 +24,7 @@ counting/outputs/**
 !counting/outputs/.gitkeep
 
 # yolo_det: 데이터·가중치·평가 상세 결과는 커밋하지 않고, 지표 요약(reports/)만 남긴다
-yolo_det/data/
+yolo_det/data*/
 yolo_det/models/
 yolo_det/outputs/
 

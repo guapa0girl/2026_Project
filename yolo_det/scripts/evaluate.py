@@ -32,7 +32,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import (CLASS_NAMES, CLS_VISITING, DATA_DIR, GT_COUNTS_CSV, IMAGE_EXTS, MODELS_DIR,  # noqa: E402
-                    OUTPUTS_DIR, REPO, REPORTS_DIR, RESOLVED_YAML)
+                    OUTPUTS_DIR, REPO, REPORTS_DIR, RESOLVED_YAML, SPLIT_JSON, sha256_16)
 
 
 def load_count_metrics():
@@ -166,6 +166,21 @@ def main():
     weights = Path(a.weights) if a.weights else MODELS_DIR / a.run / a.size / "weights" / "best.pt"
     if not weights.exists():
         raise SystemExit(f"{weights} 가 없음 — 먼저 train.py 실행")
+    # 학습 때와 지금 data/의 분할이 같은지 확인 (다르면 valid 임계값 선택에 학습 사진이 섞임)
+    now = json.loads(SPLIT_JSON.read_text(encoding="utf-8")) if SPLIT_JSON.exists() else None
+    rec_path = MODELS_DIR / a.run / a.size / "split.json"
+    if a.weights is None and rec_path.exists():
+        rec = json.loads(rec_path.read_text(encoding="utf-8"))
+        if now is None or rec["valid_images"] != now["valid_images"]:
+            raise SystemExit(f"{a.run}은 split={rec['split']}로 학습했는데 지금 data/는 "
+                             f"{now and now['split']} → prepare_data.py --split {rec['split']} 로 다시 만든 뒤 평가하세요")
+        split = rec["split"]
+    else:
+        split = now["split"] if now else "random"
+        print(f"[evaluate][경고] {rec_path} 가 없음(분할 기록 전 학습) → 지금 data/ 분할({split})로 평가. "
+              "ep200·ep200_poseinit은 random으로 학습함")
+    print(f"[evaluate] 데이터 분할 = {split}")
+
     gt = pd.read_csv(GT_COUNTS_CSV, dtype={"task": str})
     count_metrics = load_count_metrics()
 
@@ -203,14 +218,28 @@ def main():
     if agg is not None:
         agg.to_csv(out / "test_bins.csv", encoding="utf-8-sig")
 
-    summary = {"method": "YOLO", "run": a.run, "size": a.size, "weights": weights.name,
+    env_path = MODELS_DIR / a.run / a.size / "env.json"
+    env = json.loads(env_path.read_text(encoding="utf-8")) if env_path.exists() else {}
+    from ultralytics import __version__ as ul_now
+    env_eval = {"ultralytics_at_eval": ul_now}
+    if not env:
+        print(f"[evaluate][경고] {env_path} 가 없음(기록 기능 전 학습) → best.pt 안의 기록만 사용")
+    try:
+        import torch
+        ck = torch.load(weights, map_location="cpu", weights_only=False)
+        env_eval.update(ckpt_ultralytics=ck.get("version"), ckpt_date=ck.get("date"))
+    except Exception as e:  # noqa: BLE001
+        env_eval["ckpt_read_error"] = str(e)
+
+    summary = {"method": "YOLO", "run": a.run, "size": a.size, "weights": weights.name, "split": split,
+               "weights_sha256_16": sha256_16(weights), "env_train": env, "env_eval": env_eval,
                "conf_threshold": thr, "conf_threshold_from": thr_note, "nms": f"agnostic, iou {a.iou}",
                "test": {**metrics, **bins, **diag}, "box_map_test": mp}
     (rep / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
     m = summary["test"]
     md = [f"# YOLO 직접 판정 — {a.run} / {a.size} (test = 000, 사진 {m['n_frames']}장)", "",
-          f"- 가중치: `models/{a.run}/{a.size}/weights/{weights.name}`, visiting conf ≥ {thr:.2f} ({thr_note}), "
+          f"- 분할: {split}, 가중치: `models/{a.run}/{a.size}/weights/{weights.name}`, visiting conf ≥ {thr:.2f} ({thr_note}), "
           f"NMS {summary['nms']}", "",
           "| 방법 | 사진당 MAE (bias) | 정확 일치 | ±1 이내 | 총 점유량 오차 | 구간 평균 오차 |",
           "|---|---|---|---|---|---|",
@@ -221,6 +250,11 @@ def main():
           f"- 진단(IoU ≥ 0.5): 못 찾은 visiting {m['missed_visiting_undetected']}, "
           f"찾았지만 other로 판정 {m['missed_visiting_judged']}, other를 visiting으로 {m['wrong_visiting']}, "
           f"사람 라벨에 없는 박스를 visiting으로 {m['extra_visiting']}"]
+    e = {**env_eval, **env}
+    md.append(f"- 버전: ultralytics {e.get('ultralytics') or e.get('ckpt_ultralytics')}, torch {e.get('torch', '?')}, "
+              f"CUDA {e.get('cuda', '?')}, GPU {e.get('gpu', '?')}, 학습 {e.get('started') or e.get('ckpt_date', '?')}, "
+              f"git {e.get('git_commit', '?')}, 시작 가중치 {e.get('init', '?')} ({e.get('init_sha256_16', '?')}), "
+              f"best.pt {summary['weights_sha256_16']}")
     if mp:
         md.append("- 참고 box mAP (test): " + ", ".join(f"{k} {v:.3f}" for k, v in mp.items()))
     (rep / "summary.md").write_text("\n".join(md) + "\n", encoding="utf-8")

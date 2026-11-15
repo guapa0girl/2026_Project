@@ -107,7 +107,7 @@ python yolo_det\scripts\evaluate.py --run ep200 --size m
 
 - **버전 기록**: train.py가 `models/<run>/<size>/env.json`에 python·torch·CUDA·ultralytics 버전, GPU, git 커밋,
   시작 가중치 sha256(앞 16자리), 학습 설정을 저장 → evaluate.py가 `summary.json`(`env_train`, `env_eval`)과
-  `summary.md`의 "버전" 줄에 옮겨 적음. 기록 기능 전 run(ep200, ep200_poseinit)은 best.pt 안의 ultralytics 버전·학습 날짜만 남음.
+  `summary.md`의 "버전" 줄에 옮겨 적음. 기록 기능 전 run(ep200, ep200_poseinit)은 나중에 같은 형식으로 채워 넣음(`"backfilled": true`).
 
 ---
 
@@ -144,14 +144,15 @@ conf 임계값은 각 run의 valid에서 사진당 MAE가 가장 작은 값(000�
 
 | run | 총 visiting (YOLO / 사람) | 많이 센 / 적게 센 사진 | 못 찾음 | 찾았지만 other로 판정 | other를 visiting으로 | 라벨 없는 박스를 visiting으로 | best.pt sha256 앞 16자리 |
 |---|---|---|---|---|---|---|---|
-| `ep200` | 120 / 133 | 2 / 15 | 8 | 11 | 2 | 4 | — |
-| `ep200_poseinit` | 126 / 133 | 4 / 11 | 11 | 4 | 5 | 3 | — |
+| `ep200` | 120 / 133 | 2 / 15 | 8 | 11 | 2 | 4 | b6b947b0dc7b8d0a |
+| `ep200_poseinit` | 126 / 133 | 4 / 11 | 11 | 4 | 5 | 3 | 913752abc90a46e8 |
 | `ep300` | 134 / 133 | 10 / 9 | 4 | 6 | 7 | 4 | 32ecf88b1eba6b36 |
 | `ep300_poseinit` | 123 / 133 | 3 / 14 | 4 | 11 | 1 | 4 | 8bd3bd14697680ee |
 | `ep200_sorted` | 119 / 133 | 1 / 15 | 14 | 3 | 2 | 1 | f31b9b631ddd4ec3 |
 | `ep300_sorted` | 134 / 133 | 10 / 9 | 10 | 5 | 9 | 7 | c2dfceed51502b00 |
 
-`ep200`, `ep200_poseinit`은 버전 기록 기능 전 학습이라 best.pt 해시가 요약에 없음(학습 2026-11-14 22:50 / 22:49, ultralytics 8.4.108 — best.pt 안 기록).
+`ep200`, `ep200_poseinit`은 버전 기록 기능 전(11/14 22:50 / 22:49) 학습 → 11/15에 `env.json`·`split.json`을 채워 넣고 다시 평가(결과 숫자 동일).
+학습 설정(epoch 200, batch 8, seed 42)과 ultralytics 버전은 best.pt 안 기록에서, 환경은 같은 서버·같은 .venv 기준. git 커밋만 추정(학습 직후 커밋 323b212).
 
 ### 시간대 5-fold (`ep200_k5_f0`~`f4`, COCO 시작, epoch 200)
 

@@ -322,12 +322,12 @@ def match(gt: list[Detection], pred: list[Detection], thresh: float) -> list[tup
 
 def run_stage2(gt_rows: list[dict], images: dict[str, Path], cams: Cameras, stage1_df: pd.DataFrame | None,
                out: Path, match_thresh: float, seed: int, exclude_shared_clips: bool = False,
-               n_bins: int = 6) -> list[str]:
+               n_bins: int = 6, train_note: str | None = None) -> list[str]:
     import cv2
     from feeding_monitor.pose_tracker import PoseTracker, _parse_detections
 
     models = {}
-    train_note = ""
+    train_note = train_note or ""
     if stage1_df is not None and exclude_shared_clips:
         eval_clips = {r["clip"] for r in gt_rows}
         n_before = len(stage1_df)
@@ -465,12 +465,23 @@ def main():
     ap.add_argument("--bins", type=int, default=6, help="Stage 2 구간 집계 수 (프레임 번호 기준 등분; 1분 영상 6 = 약 10초)")
     ap.add_argument("--stage2-exclude-shared-clips", action="store_true",
                     help="Stage 2용 RF 학습에서 평가 프레임과 같은 영상 클립의 Stage 1 개체를 뺀다 (엄격한 평가)")
+    ap.add_argument("--stage2-train-split", default=None,
+                    help="분할 목록 json(training/data/splits/<name>.json). Stage 2용 RF를 그 'train' 사진으로만 학습 "
+                         "(포즈 모델·YOLO와 같은 학습 사진; valid·5-fold 경계 사진은 RF 학습에서 뺌)")
+    ap.add_argument("--pose-weights", default=None,
+                    help="모든 카메라 설정의 model.weights 대신 쓸 포즈 가중치 (분할별 포즈 모델 비교용)")
     ap.add_argument("--out", default="outputs/eval")
     a = ap.parse_args()
 
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     cams = Cameras(a.cameras)
+    if a.pose_weights:
+        if not Path(a.pose_weights).exists():
+            raise SystemExit(f"--pose-weights 파일 없음: {a.pose_weights}")
+        for c in cams.cfg.values():
+            c.model.weights = str(a.pose_weights)
+        print(f"[pose] 가중치 = {a.pose_weights}")
     report = ["# 판정 방법 비교 (Geo 규칙 / RF / RF+Geo / RF+Geo+Leg) — 사진당 visiting 마릿수 기준", ""]
 
     s1 = None
@@ -500,8 +511,20 @@ def main():
             rows = [r for r in rows if r["image"] in only]
         rows = [r for r in rows if cams.has(r["camera"])]
         print(f"[stage2] 평가 개체 {len(rows)} (이미지 {len({r['image'] for r in rows})})")
-        report += run_stage2(rows, find_images(Path(a.stage2_images)), cams, s1, out, a.match_thresh, a.seed,
-                             exclude_shared_clips=a.stage2_exclude_shared_clips, n_bins=a.bins)
+        s2_train, note = s1, None
+        if a.stage2_train_split is not None and s1 is not None:
+            import json
+            lists = json.loads(Path(a.stage2_train_split).read_text(encoding="utf-8"))
+            keep = {s.split("__", 1)[1] for s in lists["train"]}       # "<task>__<원래 stem>" → 원래 stem
+            s2_train = s1[s1["image"].isin(keep)]
+            n_img = s2_train["image"].nunique()
+            if n_img != len(keep):
+                raise SystemExit(f"--stage2-train-split train {len(keep)}장 중 Stage 1 XML에서 찾은 것 {n_img}장")
+            note = (f"RF 학습: 분할 {Path(a.stage2_train_split).stem}의 train {n_img}장 "
+                    f"(개체 {len(s2_train)}, visiting {int(s2_train.label.sum())})")
+            print(f"[stage2] {note}")
+        report += run_stage2(rows, find_images(Path(a.stage2_images)), cams, s2_train, out, a.match_thresh, a.seed,
+                             exclude_shared_clips=a.stage2_exclude_shared_clips, n_bins=a.bins, train_note=note)
 
     (out / "summary.md").write_text("\n".join(report) + "\n", encoding="utf-8")
     print("\n".join(report))

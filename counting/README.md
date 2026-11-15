@@ -18,12 +18,16 @@ counting/
 ├── data/raw/        원본 영상 (git 제외)
 ├── data/labels/     CVAT 라벨 XML·평가 이미지 (git 제외)
 ├── outputs/         추론·평가 결과 (git 제외)
+├── reports/split_comparison/  분할 방식별 5가지 방법 비교 (md / csv / png, git에 올림)
 ├── scripts/
 │   ├── count_day.py          폴더의 클립 전체를 순서대로 추론 (클립마다 KST 시작 시각 자동 계산, 이어하기 가능)
 │   ├── count_full_video.py   클립 1개를 1초 샘플링으로 추론 → 1초 CSV + 집계 CSV/그래프 (+ _dets.csv)
 │   ├── plot_1min.py          1초 CSV → 1분 평균/최대 CSV + 그래프
 │   ├── plot_day.py           클립별 1초 CSV를 이어 붙여 시계 기준 10분 그래프
 │   ├── evaluate_methods.py   Stage 1·2 평가 (Geo / RF / RF+Geo / RF+Geo+Leg)
+│   │                         --stage2-train-split: RF를 분할의 train 사진으로만 학습, --pose-weights: 포즈 가중치 바꾸기
+│   ├── run_split_eval.ps1    분할 7개(랜덤, 시간대, 5-fold ×5) Stage 2 평가 → compare_splits.py
+│   ├── compare_splits.py     분할 3가지 × 5가지 방법(YOLO 포함) 비교표·그림 → reports/split_comparison/
 │   ├── run_geo_ablation.ps1  Geo 조건 5종 Stage 2 평가 (000)
 │   ├── apply_methods.py      _dets.csv에 모든 방법 적용 → 방법별 10분 그래프 (YOLO 재실행 없음)
 │   ├── plot_methods.py / plot_geo_ablation.py   평가 결과 그림 (사진당 마릿수 오차, 총 점유량 오차)
@@ -47,6 +51,20 @@ counting/
 
 ## 2. 실행
 
+### 분할 방식별 판정 비교 (Geo / RF / RF+Geo / RF+Geo+Leg / YOLO)
+
+```powershell
+# 먼저 training/에서 make_study_splits.py, run_split_study.ps1 (분할별 포즈 모델), yolo_det/ 결과(reports/) 필요
+cd counting
+powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1   # → outputs/eval/split_<분할>/, reports/split_comparison/
+```
+
+- 분할마다 그 분할의 포즈 모델(`training/models/results/ep200[_<분할>]/m`)과 그 분할 train 사진으로 학습한 RF로 000을 평가.
+- YOLO는 `yolo_det/reports/ep200[_sorted|_k5_f<i>]/m/summary.json`을 읽어 같은 표에 넣음.
+- 결과 해석: [PROGRESS.md](../PROGRESS.md) 3장 결과 4.
+
+### 영상 추론
+
 ```powershell
 cd counting
 # 테스트: 첫 클립 1개만
@@ -61,8 +79,8 @@ cd counting
 ..\.venv\Scripts\python scripts\plot_1min.py outputs\ch010_20260716\<클립>_1s.csv
 ```
 
-- **시각**: DVR 파일명(`[CH010] 20260716012647-20260716015128.avi`)의 시각은 UTC. `count_day.py`가 +9시간 해서
-  KST로 기록.
+- **시각**: DVR 파일명(`[CH010] 20260716012647-20260716015128.avi`)의 시각은 실제보다 9시간 느림(UTC).
+  `count_day.py`가 +9시간 해서 KST로 기록(예: 위 파일은 실제 7/16 10:26:47 시작).
 - **fps**: CH010 AVI는 헤더와 상관없이 200fps로 계산(`--fps 200`, 기본값).
 - 추론 중에는 Geo 규칙으로만 셈. RF 계열은 `--save-dets`로 저장한 `_dets.csv`에 `apply_methods.py`로 나중에 적용.
 - 오래 돌릴 때는 Windows 절전 모드를 꺼 둘 것.

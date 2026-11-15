@@ -126,6 +126,9 @@ def split_like_pose(items, test_task: str, valid_ratio: float, seed: int):
 # 원래 이름 예: "0088_frame_0088__[CH005] 20260707222421-20260707224411_min018"
 #              "0098_0098_frame_0045__frame_0043__[CH010] 20260716091255-20260716093200_f0111200_novinf"
 # → (영상 시작 시각, 영상 안 위치: min 번호 또는 프레임 번호)
+# ※ 이름의 시각은 실제 촬영 시각보다 9시간 느림(실제 KST = 이름 시각 + 9시간, 예: 002 "20260716012647" → 10:26:47).
+#   여기서는 정렬에만 쓰고 모든 사진에 같은 9시간이 더해지므로 순서·분할 결과는 그대로.
+#   실제 시각으로 본 분포는 training/scripts/time_distribution.py (training/reports/data/time_distribution.md)
 _TIME_RE = re.compile(r"\] (\d{14})-\d{14}_(?:min(\d+)|f(\d+))")
 
 

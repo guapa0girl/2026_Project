@@ -42,3 +42,7 @@ venv/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# 분할 목록(make_study_splits.py가 다시 만듦)·분할 학습 로그
+data/splits/
+train_split_study.log

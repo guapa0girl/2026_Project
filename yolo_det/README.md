@@ -73,6 +73,9 @@ python yolo_det\scripts\evaluate.py --run ep200 --size m
   - 서인 pose 가중치는 random 분할로 학습됐으므로 `--split sorted` 상태에서 `--init`을 주면 train.py가 멈춤(valid 누수 방지).
   - 분할 방식은 `data/split.json`에 기록되고 train.py가 `models/<run>/<size>/split.json`으로 복사함.
     evaluate.py는 지금 `data/`가 학습 때와 다른 분할이면 멈춤 → 예전 random run을 다시 평가하려면 `--split random`으로 다시 준비.
+- **사진 이름의 시각 = 실제 촬영 시각 − 9시간** (실제 KST = 이름 시각 + 9시간. 예: 002 `20260716012647` → 실제 10:26:47,
+  001 `20260707211528` → 실제 7/8 06:15:28). 분할은 이름 시각을 정렬에만 쓰므로 결과 영향 없음.
+  task별 실제 시간대 분포와 분할별 valid 위치: `training/reports/data/time_distribution.md` / `.png`.
 - **시간대 5-fold (`--split kfold`)**: 001·002를 각각 시간순으로 5개 연속 구간으로 나누고 fold마다 한 구간이 valid
   (경계는 가까운 클립 경계에 맞추고, 클립 중간에서 잘리면 valid와 붙은 사진 1장을 train에서 뺌). test는 모든 fold에서 000.
   fold마다 데이터 폴더를 따로 써서(`YOLO_DET_DATA=data_k5f<i>`) GPU 여러 개로 동시에 돌려도 안전.
@@ -178,10 +181,23 @@ conf 임계값은 각 run의 valid에서 사진당 MAE가 가장 작은 값(000�
 - **흔들림의 원인은 판정·임계값.** box mAP50-95는 fold 사이에 안정적(±0.016)인데 conf 임계값은 valid에 따라
   0.25~0.85로 크게 바뀌고, 오류 대부분이 visiting/other 혼동(other로 판정 평균 11, other→visiting 평균 8 vs 못 찾음 평균 5).
 
+### Geo / RF 계열과 같은 분할로 비교
+
+Geo·RF 계열도 이 분할 3가지(같은 사진 목록, `training/scripts/make_study_splits.py`가 이 폴더의 분할 함수를 그대로 씀)로 다시 학습함.
+포즈 모델과 RF를 각 분할의 train으로만 학습. 결과는 `counting/reports/split_comparison/`, 해석은 [PROGRESS.md](../PROGRESS.md) 3장 결과 4.
+
+| 분할 | Geo | RF | RF+Geo | RF+Geo+Leg | YOLO |
+|---|---|---|---|---|---|
+| 랜덤 | 0.279 | 0.105 | 0.105 | **0.093** | 0.198 |
+| 시간대 | 0.279 | **0.093** | 0.151 | 0.140 | 0.186 |
+| 시간대 5-fold | 0.288 ± 0.013 | 0.140 ± 0.022 | 0.142 ± 0.021 | **0.119 ± 0.030** | 0.223 ± 0.048 |
+
+(사진당 visiting 마릿수 MAE, test = 000) → 같은 조건에서도 YOLO는 RF 계열보다 나쁨. 5-fold 기준 fold 5개 중 4개에서 RF+Geo+Leg가 앞섬.
+
 ### 주의 / 남은 일
 
 - 임계값 안정화: 5-fold valid 예측을 모아 임계값 하나로 고르거나 고정값(예: 0.5)으로 재평가.
 - pose vs COCO 확정: 랜덤 분할에서 seed를 바꿔 반복(pose 가중치가 seed 42 random 분할로 학습돼서 시간대 분할에서는
   `--init`을 쓸 수 없음 → 쓰려면 서인이 같은 분할로 pose 재학습).
-- RF 계열도 같은 방식의 변동 폭(교차검증)을 확인해야 같은 기준의 비교가 됨.
+- ~~RF 계열도 같은 방식의 변동 폭(교차검증)을 확인해야 같은 기준의 비교가 됨.~~ → 완료(위 "Geo / RF 계열과 같은 분할로 비교"). RF 계열 5-fold 표준편차 ±0.02\~0.03, YOLO ±0.05.
 - 메모의 "8/1/1 분할" 의미(000 포함 여부) 확인 필요.

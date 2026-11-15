@@ -1,0 +1,169 @@
+{
+  "folds": [
+    {
+      "fold": 0,
+      "split": "kfold_k5_f0",
+      "conf": 0.65,
+      "n_frames": 86,
+      "count_MAE": 0.1511627906976744,
+      "count_bias": -0.10465116279069768,
+      "exact_rate": 0.8488372093023255,
+      "within1_rate": 1.0,
+      "total_model": 124,
+      "total_human": 133,
+      "total_error_pct": -6.7669172932330826,
+      "over_frames": 2,
+      "under_frames": 11,
+      "bin_MAE": 0.1188948306595365,
+      "bin_bias": -0.08859180035650623,
+      "bin_max_abs_err": 0.36363636363636354,
+      "missed_visiting_undetected": 6,
+      "missed_visiting_judged": 9,
+      "wrong_visiting": 5,
+      "extra_visiting": 1,
+      "box_mAP50-95": 0.6027664910480056
+    },
+    {
+      "fold": 1,
+      "split": "kfold_k5_f1",
+      "conf": 0.5,
+      "n_frames": 86,
+      "count_MAE": 0.27906976744186046,
+      "count_bias": -0.046511627906976744,
+      "exact_rate": 0.7325581395348837,
+      "within1_rate": 0.9883720930232558,
+      "total_model": 129,
+      "total_human": 133,
+      "total_error_pct": -3.007518796992481,
+      "over_frames": 10,
+      "under_frames": 13,
+      "bin_MAE": 0.175779514603044,
+      "bin_bias": -0.02179624297271356,
+      "bin_max_abs_err": 0.31999999999999995,
+      "missed_visiting_undetected": 5,
+      "missed_visiting_judged": 15,
+      "wrong_visiting": 14,
+      "extra_visiting": 2,
+      "box_mAP50-95": 0.6099154341250734
+    },
+    {
+      "fold": 2,
+      "split": "kfold_k5_f2",
+      "conf": 0.35,
+      "n_frames": 86,
+      "count_MAE": 0.23255813953488372,
+      "count_bias": -0.06976744186046512,
+      "exact_rate": 0.7674418604651163,
+      "within1_rate": 1.0,
+      "total_model": 127,
+      "total_human": 133,
+      "total_error_pct": -4.511278195488721,
+      "over_frames": 7,
+      "under_frames": 13,
+      "bin_MAE": 0.10374331550802136,
+      "bin_bias": -0.053832442067736186,
+      "bin_max_abs_err": 0.2727272727272727,
+      "missed_visiting_undetected": 3,
+      "missed_visiting_judged": 14,
+      "wrong_visiting": 10,
+      "extra_visiting": 1,
+      "box_mAP50-95": 0.5833019924877623
+    },
+    {
+      "fold": 3,
+      "split": "kfold_k5_f3",
+      "conf": 0.25,
+      "n_frames": 86,
+      "count_MAE": 0.2441860465116279,
+      "count_bias": -0.05813953488372093,
+      "exact_rate": 0.7558139534883721,
+      "within1_rate": 1.0,
+      "total_model": 128,
+      "total_human": 133,
+      "total_error_pct": -3.7593984962406015,
+      "over_frames": 8,
+      "under_frames": 13,
+      "bin_MAE": 0.09707664884135471,
+      "bin_bias": -0.04716577540106953,
+      "bin_max_abs_err": 0.2727272727272727,
+      "missed_visiting_undetected": 5,
+      "missed_visiting_judged": 11,
+      "wrong_visiting": 7,
+      "extra_visiting": 4,
+      "box_mAP50-95": 0.5852797198934364
+    },
+    {
+      "fold": 4,
+      "split": "kfold_k5_f4",
+      "conf": 0.7,
+      "n_frames": 86,
+      "count_MAE": 0.20930232558139536,
+      "count_bias": -0.046511627906976744,
+      "exact_rate": 0.7906976744186046,
+      "within1_rate": 1.0,
+      "total_model": 129,
+      "total_human": 133,
+      "total_error_pct": -3.007518796992481,
+      "over_frames": 7,
+      "under_frames": 11,
+      "bin_MAE": 0.06060606060606059,
+      "bin_bias": -0.06060606060606059,
+      "bin_max_abs_err": 0.36363636363636354,
+      "missed_visiting_undetected": 8,
+      "missed_visiting_judged": 5,
+      "wrong_visiting": 6,
+      "extra_visiting": 3,
+      "box_mAP50-95": 0.621456887450489
+    }
+  ],
+  "mean_std": {
+    "conf": {
+      "mean": 0.49,
+      "std": 0.19170289512680813
+    },
+    "count_MAE": {
+      "mean": 0.22325581395348837,
+      "std": 0.047518178469075696
+    },
+    "count_bias": {
+      "mean": -0.06511627906976744,
+      "std": 0.02411214110852061
+    },
+    "exact_rate": {
+      "mean": 0.7790697674418604,
+      "std": 0.044277750615487825
+    },
+    "within1_rate": {
+      "mean": 0.9976744186046511,
+      "std": 0.0052001580872088225
+    },
+    "total_error_pct": {
+      "mean": -4.2105263157894735,
+      "std": 1.559130928821633
+    },
+    "bin_MAE": {
+      "mean": 0.11122007404360343,
+      "std": 0.0419658790130998
+    },
+    "missed_visiting_undetected": {
+      "mean": 5.4,
+      "std": 1.816590212458495
+    },
+    "missed_visiting_judged": {
+      "mean": 10.8,
+      "std": 4.024922359499621
+    },
+    "wrong_visiting": {
+      "mean": 8.4,
+      "std": 3.646916505762094
+    },
+    "extra_visiting": {
+      "mean": 2.2,
+      "std": 1.3038404810405297
+    },
+    "box_mAP50-95": {
+      "mean": 0.6005441050009533,
+      "std": 0.01628187009916586
+    }
+  }
+}

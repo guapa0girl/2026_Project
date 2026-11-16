@@ -1,0 +1,5 @@
+# YOLO detect 클래스 정의 (원본). 경로는 prepare_data.py가 data/_pig_det.resolved.yaml에 머신별 절대경로로 채움.
+# 클래스 번호는 counting/scripts/evaluate_methods.py 의 STATE_MAP(visiting=1, other=0)과 같은 규칙.
+names:
+  0: other
+  1: visiting

@@ -26,7 +26,8 @@ training/
 ├── data/
 │   ├── raw/data/        학습용 zip (000.zip, 001.zip, 002.zip — cvat_xml_to_raw_zip.py가 만듦)
 │   ├── raw/img, label/  (자동) ingest_raw_zips.py가 zip에서 꺼내 모은 이미지/라벨 (<task>__<이름>)
-│   └── processed/       (자동) split_dataset.py가 만든 train/valid/test
+│   ├── processed/       (자동) split_dataset.py가 만든 train/valid/test
+│   └── splits/          (자동) make_study_splits.py가 만든 분할 목록 json (random, sorted, k5_f0~f4)
 ├── configs/
 │   ├── pig_pose.yaml          18개 keypoint 이름 / 스켈레톤 / flip_idx
 │   ├── cvat_skeleton_raw.json CVAT skeleton 원본 (pig_pose.yaml의 출처)
@@ -37,11 +38,15 @@ training/
 ├── past_train/                같은 run을 다시 학습할 때 이전 결과 자동 보관 (git 제외)
 ├── reports/
 │   ├── metrics/<run>/<size>/  split별 지표 json
-│   └── comparison/            사이즈 비교(<run>/), run 간 비교(runs_<a>_vs_<b>)
+│   ├── comparison/            사이즈 비교(<run>/), run 간 비교(runs_<a>_vs_<b>)
+│   └── data/                  task별 촬영 시간대 분포 (time_distribution.md / .png)
 ├── scripts/
 │   ├── cvat_xml_to_raw_zip.py CVAT XML + 사진 zip → data/raw/data/<task>.zip (YOLO-Pose 라벨)
 │   ├── ingest_raw_zips.py     data/raw/data/*.zip → data/raw/{img,label}
-│   ├── split_dataset.py       raw → train/valid/test (--test-zip 으로 test task 고정)
+│   ├── split_dataset.py       raw → train/valid/test (--test-zip 으로 test task 고정, --split-file 로 목록 그대로)
+│   ├── make_study_splits.py   분할 3가지 목록 생성 (yolo_det과 같은 분할 함수 사용)
+│   ├── run_split_study.ps1    시간대·5-fold 분할로 medium ep200 재학습 (끝나면 랜덤 분할로 복구)
+│   ├── time_distribution.py   task별 촬영 시간대 분포 + 분할별 valid 위치 (실제 시각 = 이름 + 9시간)
 │   ├── train.py               학습 + 평가 + 사이즈 비교를 한 번에
 │   ├── evaluate.py            split별 mAP·PCK 평가
 │   ├── compare_models.py      사이즈 비교 리포트
@@ -72,6 +77,10 @@ $env:POSE_RUN = "ep200"; python scripts\train.py --sizes n s m l --epochs 200 --
 $env:POSE_RUN = "ep300"; python scripts\train.py --sizes n s m l --epochs 300 --patience 0
 python scripts\compare_runs.py --runs ep100 ep200 ep300
 # 진행률: $env:POSE_RUN = "ep100"; python scripts\training_status.py
+# 4) 분할 방식 비교 (YOLO 직접 판정과 같은 사진 목록)
+python scripts\make_study_splits.py                 # data/splits/{random,sorted,k5_f0..f4}.json
+powershell -ExecutionPolicy Bypass -File scripts\run_split_study.ps1   # → models/results/ep200_<분할>/m
+python scripts\time_distribution.py                 # → reports/data/time_distribution.md / .png
 ```
 
 - **CVAT XML → YOLO-Pose 변환 규칙**: 박스 = 스켈레톤 점들의 최소·최대 범위, v = 2 보임 / 1 가려짐 / 0 화면 밖.
@@ -98,6 +107,16 @@ test(000) 기준. 배치 nano 16 / small 16 / medium 8 / large 8, 조기 종료 
 - 100 → 200: 전 사이즈에서 mAP 향상. 200 → 300: valid는 계속 오르지만 test(000)는 사이즈마다 엇갈림.
 - 사용 모델: **medium ep200** (ep300은 visiting 판정 결과가 나아지지 않음).
 - 전체 표·그림: `reports/comparison/runs_ep100_vs_ep200_vs_ep300.csv` / `.png`. 해석은 [PROGRESS.md](../PROGRESS.md) 2장.
+
+분할 방식별 medium ep200 (test = 000):
+
+| 분할 | train / valid | pose mAP50-95 | PCK@0.1 | PCK@0.2 |
+|---|---|---|---|---|
+| 랜덤 (`ep200`) | 162 / 28 | 0.100 | 0.710 | 0.870 |
+| 시간대 (`ep200_sorted`) | 159 / 31 | 0.079 | 0.652 | 0.839 |
+| 시간대 5-fold (`ep200_k5_f0`\~`f4`) 평균 | 148\~155 / 34\~42 | 0.108 (0.089\~0.127) | 0.696 (0.674\~0.725) | 0.859 (0.847\~0.867) |
+
+- train 사진 몇 장 차이로 PCK@0.1이 0.65\~0.73까지 흔들림. 판정까지 비교한 결과는 [PROGRESS.md](../PROGRESS.md) 3장 결과 4.
 
 ### 지표
 

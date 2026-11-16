@@ -45,6 +45,9 @@ def clear_processed():
             for f in d.iterdir():
                 if f.name != ".gitkeep":
                     f.unlink()
+        cache = PROCESSED_DIR / split / "labels.cache"   # Ultralytics 라벨 캐시 (분할이 바뀌면 다시 만들게)
+        if cache.exists():
+            cache.unlink()
 
 
 def place(pairs, split_name, use_hardlink, num_keypoints):
@@ -76,6 +79,9 @@ def main():
     parser.add_argument("--test-zip", default=None,
                         help="이 zip(data/raw/data/<task>.zip)의 이미지를 통째로 test로 고정. "
                              "나머지는 --valid 비율만 valid, 나머지 train (--train/--test 무시)")
+    parser.add_argument("--split-file", default=None,
+                        help="분할 목록 json(make_study_splits.py가 만든 data/splits/<name>.json) 그대로 배치. "
+                             "목록에 없는 사진은 쓰지 않음(5-fold 경계에서 뺀 사진). 다른 비율 옵션은 무시")
     args = parser.parse_args()
 
     pairs, skipped = find_pairs()
@@ -86,7 +92,16 @@ def main():
         )
 
     rng = random.Random(args.seed)
-    if args.test_zip:
+    if args.split_file:
+        import json
+        lists = json.loads(open(args.split_file, encoding="utf-8").read())
+        by_stem = {p[0].stem: p for p in pairs}
+        missing = [s for k in ("train", "valid", "test") for s in lists[k] if s not in by_stem]
+        if missing:
+            raise SystemExit(f"--split-file 의 사진 {len(missing)}장이 raw에 없음 (예: {missing[:3]})")
+        train_pairs, valid_pairs, test_pairs = ([by_stem[s] for s in lists[k]] for k in ("train", "valid", "test"))
+        n_total = len(train_pairs) + len(valid_pairs) + len(test_pairs)
+    elif args.test_zip:
         import zipfile
         from pathlib import Path
         # ingest_raw_zips.py names raw files "<task>__<stem>" (task = top folder in the zip)

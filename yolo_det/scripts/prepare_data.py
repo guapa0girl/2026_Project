@@ -13,7 +13,7 @@
     * sorted: 시간대 분할. train task마다 시간순(영상 시작 시각 → 영상 안 위치)으로 정렬하고
       마지막 영상 클립들을 통째로 valid로 뗌. 떼는 클립 수는 valid 장수가 round(N × valid)에 가장 가깝게.
       클립 경계에서 자르므로 같은 클립의 비슷한 사진이 train과 valid에 갈리지 않음.
-      ※ 서인 pose 가중치(--init)는 random 분할로 학습됐으므로 sorted와 같이 쓰면 valid 누수 → COCO 시작만 사용
+      ※ 돼지 포즈 모델 가중치(--init)는 random 분할로 학습됐으므로 sorted와 같이 쓰면 valid 누수 → COCO 시작만 사용
     * kfold: 시간대 K-fold. train task마다 시간순으로 정렬해 K개 연속 구간으로 나누고, --fold 번째 구간이 valid.
       구간 경계는 근처(±n/(4K)장)에 클립 경계가 있으면 거기에 맞춤. 클립 중간에서 잘리면 valid와 붙어 있는
       같은 클립 사진 --gap 장을 train에서 뺌(바로 옆 사진이 거의 같아서). test(000)는 모든 fold에서 같음.

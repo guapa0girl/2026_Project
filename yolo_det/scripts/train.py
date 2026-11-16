@@ -14,7 +14,7 @@ pose 실험(training/scripts/train.py, PROGRESS.md 2장)과 조건을 맞춤:
     python yolo_det/scripts/train.py --sizes m --resume           # 끊긴 학습 이어서
     python yolo_det/scripts/train.py --sizes n --epochs 1 --run smoke --device cpu   # 동작 확인용
 
-    # 서인 pose 가중치에서 시작 (backbone·neck만 옮기고 detect head는 새로 학습). 크기가 같아야 함.
+    # 돼지 포즈 모델 가중치에서 시작 (backbone·neck만 옮기고 detect head는 새로 학습). 크기가 같아야 함.
     python yolo_det/scripts/train.py --sizes m --run ep200_poseinit --init yolo_det/pig_pose_best.pt --device 0
 """
 import argparse
@@ -53,7 +53,7 @@ def main():
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--resume", action="store_true", help="models/<run>/<size>/weights/last.pt 에서 이어서")
     ap.add_argument("--init", default=None,
-                    help="시작 가중치 (예: 서인 pose best.pt). 없으면 COCO yolov8<size>.pt. "
+                    help="시작 가중치 (예: pig_pose_best.pt). 없으면 COCO yolov8<size>.pt. "
                          "모양이 맞는 층(backbone·neck)만 옮기고 head는 새로 학습")
     a = ap.parse_args()
 
@@ -70,7 +70,7 @@ def main():
     split = json.loads(SPLIT_JSON.read_text(encoding="utf-8"))["split"]
     print(f"[train] 데이터 분할 = {split}")
     if a.init and split != "random":
-        raise SystemExit("서인 pose 가중치는 random(seed 42) 분할로 학습됨 → 다른 분할과 같이 쓰면 valid 누수. "
+        raise SystemExit("돼지 포즈 모델 가중치는 random(seed 42) 분할로 학습됨 → 다른 분할과 같이 쓰면 valid 누수. "
                          "--init 없이(COCO 시작) 돌리거나 pose를 같은 분할로 다시 학습하세요")
 
     from ultralytics import YOLO

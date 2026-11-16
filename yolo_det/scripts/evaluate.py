@@ -36,7 +36,7 @@ from common import (CLASS_NAMES, CLS_VISITING, DATA_DIR, GT_COUNTS_CSV, IMAGE_EX
 
 
 def load_count_metrics():
-    """서인 평가 코드의 count_metrics를 그대로 사용 (지표 정의를 한 곳에서만 관리)."""
+    """counting/ 평가 코드의 count_metrics를 그대로 사용 (지표 정의를 한 곳에서만 관리)."""
     path = REPO / "counting" / "scripts" / "evaluate_methods.py"
     spec = importlib.util.spec_from_file_location("evaluate_methods", path)
     mod = importlib.util.module_from_spec(spec)

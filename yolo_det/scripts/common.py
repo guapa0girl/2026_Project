@@ -63,7 +63,7 @@ MODELS_DIR = ROOT / "models"
 OUTPUTS_DIR = ROOT / "outputs"
 REPORTS_DIR = ROOT / "reports"
 
-# 원본: 서인 레포 규칙 그대로 counting/data/labels/source/<task>_sorted.zip (CVAT for images 1.1)
+# 원본: 레포 공통 규칙 그대로 counting/data/labels/source/<task>_sorted.zip (CVAT for images 1.1)
 DEFAULT_SOURCE_DIR = REPO / "counting" / "data" / "labels" / "source"
 
 SPLITS = ("train", "valid", "test")

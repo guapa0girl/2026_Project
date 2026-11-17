@@ -185,7 +185,7 @@ def new_rf(seed: int) -> RandomForestClassifier:
 # metrics
 # --------------------------------------------------------------------------
 
-COUNT_COLS = ["n_frames", "count_MAE", "count_bias", "exact_rate", "within1_rate",
+COUNT_COLS = ["n_frames", "count_MAE", "count_RMSE", "count_bias", "exact_rate", "within1_rate",
               "total_model", "total_human", "total_error_pct", "over_frames", "under_frames"]
 
 
@@ -196,6 +196,7 @@ def count_metrics(human, model) -> dict:
     e = m - h
     return {"n_frames": len(h),
             "count_MAE": float(np.abs(e).mean()),
+            "count_RMSE": float(np.sqrt((e ** 2).mean())),
             "count_bias": float(e.mean()),
             "exact_rate": float((e == 0).mean()),
             "within1_rate": float((np.abs(e) <= 1).mean()),
@@ -468,6 +469,9 @@ def main():
     ap.add_argument("--stage2-train-split", default=None,
                     help="분할 목록 json(training/data/splits/<name>.json). Stage 2용 RF를 그 'train' 사진으로만 학습 "
                          "(포즈 모델·YOLO와 같은 학습 사진; valid·5-fold 경계 사진은 RF 학습에서 뺌)")
+    ap.add_argument("--stage2-eval-part", choices=["test", "valid"], default="test",
+                    help="valid: --stage2-xml 사진 중 --stage2-train-split json의 'valid' 사진만 평가 "
+                         "(001+002 XML·사진을 넣고 분할의 valid로 평가할 때)")
     ap.add_argument("--pose-weights", default=None,
                     help="모든 카메라 설정의 model.weights 대신 쓸 포즈 가중치 (분할별 포즈 모델 비교용)")
     ap.add_argument("--out", default="outputs/eval")
@@ -509,6 +513,15 @@ def main():
         rows = [r for x in a.stage2_xml for r in parse_cvat_xml(x)]
         if only:
             rows = [r for r in rows if r["image"] in only]
+        if a.stage2_eval_part == "valid":
+            import json
+            if not a.stage2_train_split:
+                raise SystemExit("--stage2-eval-part valid 에는 --stage2-train-split 이 필요")
+            lists = json.loads(Path(a.stage2_train_split).read_text(encoding="utf-8"))
+            vkeep = {s.split("__", 1)[1] for s in lists["valid"]}
+            rows = [r for r in rows if r["image"] in vkeep]
+            if len({r["image"] for r in rows}) != len(vkeep):
+                raise SystemExit(f"valid {len(vkeep)}장 중 --stage2-xml에서 찾은 것 {len({r['image'] for r in rows})}장")
         rows = [r for r in rows if cams.has(r["camera"])]
         print(f"[stage2] 평가 개체 {len(rows)} (이미지 {len({r['image'] for r in rows})})")
         s2_train, note = s1, None

@@ -1,8 +1,11 @@
-# 분할 방식별 포즈 모델(medium, epoch 200) 학습: 시간대(sorted) + 시간대 5-fold(k5_f0~f4).
-# 랜덤 분할은 기존 ep200 run을 그대로 씀. 끝나면 data/processed를 랜덤 분할로 되돌림.
-# 사용법 (training/ 에서):  powershell -File scripts\run_split_study.ps1 [-Python <python.exe>]
+# 분할 방식별 포즈 모델(medium, epoch 200, batch 8, imgsz 640, seed 42, best.pt = valid pose mAP50-95 최고) 학습.
+# 끝나면 data/processed를 랜덤 분할로 되돌림.
+# 사용법 (training/ 에서):
+#   powershell -File scripts\run_split_study.ps1 [-Python <python.exe>]                        # 시간대 + 시간대 5-fold
+#   powershell -File scripts\run_split_study.ps1 -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4
 param([string]$Python = "python", [string[]]$Splits = @("sorted", "k5_f0", "k5_f1", "k5_f2", "k5_f3", "k5_f4"))
 $ErrorActionPreference = "Stop"
+$Splits = $Splits | ForEach-Object { $_ -split "," } | Where-Object { $_ }   # -File 로 넘기면 "a,b"가 문자열 하나로 옴
 & $Python scripts\make_study_splits.py
 foreach ($s in $Splits) {
     Write-Host "===== split $s ====="

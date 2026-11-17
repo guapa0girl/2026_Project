@@ -37,6 +37,16 @@ from utils.paths import (
 )
 from utils.skeleton import load_pose_spec, resolve_data_yaml
 
+SEED = 42   # yolo_det/scripts/train.py와 같은 seed (통일 기준)
+
+
+def use_pose_map_as_fitness():
+    """best.pt 선택 기준 = valid pose mAP50-95 최고 (통일 기준).
+    Ultralytics 기본값은 pose mAP50-95 + box mAP50-95 합이라, box 성능이 섞이지 않게 pose만 쓰도록 바꿈."""
+    from ultralytics.utils.metrics import PoseMetrics
+    PoseMetrics.fitness = property(lambda self: self.pose.fitness())
+
+
 SIZE_CONFIG_FILE = {
     "n": CONFIGS_DIR / "train_nano.yaml",
     "s": CONFIGS_DIR / "train_small.yaml",
@@ -98,6 +108,7 @@ def train_one_size(size: str, epochs_override, imgsz_override, batch_override, r
         optimizer=cfg.get("optimizer", "auto"),
         lr0=cfg.get("lr0", 0.01),
         workers=cfg.get("workers", 8),
+        seed=SEED,
         project=str(RESULTS_DIR),
         name=size,
         exist_ok=True,
@@ -121,6 +132,8 @@ def main():
              "(세션/환경이 끊겨 학습이 중단됐을 때 복구용, 새 데이터 파인튜닝 용도 아님)",
     )
     args = parser.parse_args()
+    use_pose_map_as_fitness()
+    print(f"[train] seed {SEED}, best.pt 기준 = valid pose mAP50-95 최고")
 
     resumable = {
         s for s in args.sizes

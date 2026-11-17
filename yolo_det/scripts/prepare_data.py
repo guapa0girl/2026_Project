@@ -18,6 +18,8 @@
       구간 경계는 근처(±n/(4K)장)에 클립 경계가 있으면 거기에 맞춤. 클립 중간에서 잘리면 valid와 붙어 있는
       같은 클립 사진 --gap 장을 train에서 뺌(바로 옆 사진이 거의 같아서). test(000)는 모든 fold에서 같음.
       ※ pose 가중치(--init)와는 같이 못 씀(누수)
+    * rkfold: 랜덤 K-fold. task마다 seed로 섞고, fold마다 valid·train 장수를 시간대 K-fold와 똑같이 맞춤
+      (split_random_kfold). 랜덤 vs 시간대 차이가 '사진을 고르는 방식'에서만 나오게 하려는 것.
 - 분할 기록: data/split.json (방식, valid 사진 목록). train.py가 models/<run>/<size>/에 복사하고
   evaluate.py가 지금 data/와 같은 분할인지 확인함.
 - 사람 정답 마릿수(clip 전, XML 기준)를 data/gt_counts.csv 로 따로 저장 → evaluate.py가 사용.
@@ -27,6 +29,7 @@
     python yolo_det/scripts/prepare_data.py --train-tasks 001 002 --test-task 000 --valid 0.15 --seed 42
     python yolo_det/scripts/prepare_data.py --split sorted        # 시간대 분할
     YOLO_DET_DATA=data_k5f0 python yolo_det/scripts/prepare_data.py --split kfold --k 5 --fold 0   # 시간대 5-fold의 0번
+    YOLO_DET_DATA=data_rk5f0 python yolo_det/scripts/prepare_data.py --split rkfold --k 5 --fold 0  # 랜덤 5-fold의 0번
 """
 import argparse
 import csv
@@ -196,15 +199,51 @@ def split_kfold(items, test_task: str, k: int, fold: int, gap: int):
     return {"train": train, "valid": valid, "test": test}, notes
 
 
+def split_random_kfold(items, test_task: str, k: int, fold: int, gap: int, seed: int):
+    """랜덤 K-fold. 시간대 K-fold(split_kfold)와 장수를 완전히 맞춤 (차이는 '어떤 사진을 고르느냐'뿐).
+    - task마다 이름순 정렬 → random.Random(seed) 로 섞음 (task 순서대로 같은 rng 사용)
+    - fold f의 valid 장수 = 같은 task·같은 fold의 시간대 K-fold valid 장수 → 섞인 순서에서 연속 구간을 valid로
+      (fold 0~K-1의 valid가 겹치지 않고 task 전체를 한 번씩 덮음)
+    - train 장수도 시간대 K-fold와 같게: 시간대 쪽이 클립 경계라 뺀 장수만큼, 섞인 순서에서 valid 바로 뒤 사진을 뺌
+    """
+    import contextlib
+    import io
+    test = sorted([it for it in items if it["task"] == test_task], key=lambda it: Path(it["name"]))
+    rng = random.Random(seed)
+    train, valid, notes = [], [], []
+    with contextlib.redirect_stdout(io.StringIO()):
+        time_folds = [split_kfold(items, test_task, k, f, gap)[0] for f in range(k)]
+    for task in sorted({it["task"] for it in items} - {test_task}):
+        its = sorted([it for it in items if it["task"] == task], key=lambda it: Path(it["name"]))
+        rng.shuffle(its)
+        n = len(its)
+        n_valid = [sum(it["task"] == task for it in tf["valid"]) for tf in time_folds]
+        n_train = sum(it["task"] == task for it in time_folds[fold]["train"])
+        if sum(n_valid) != n:
+            raise SystemExit(f"{task}: 시간대 {k}-fold valid 합 {sum(n_valid)} ≠ 사진 {n}")
+        lo = sum(n_valid[:fold])
+        hi = lo + n_valid[fold]
+        rest = its[hi:] + its[:lo]                       # valid 바로 뒤부터 (빼는 사진은 앞에서)
+        n_drop = len(rest) - n_train
+        v, t = its[lo:hi], rest[n_drop:]
+        print(f"[split] {task}: 랜덤 섞음(seed {seed}) → fold {fold}: valid {len(v)}장 [{lo}:{hi}], train {len(t)}장, "
+              f"시간대 {k}-fold와 장수 맞추려고 뺀 사진 {n_drop}장")
+        notes.append({"task": task, "valid_sizes": n_valid, "dropped": n_drop})
+        train += t
+        valid += v
+    return {"train": train, "valid": valid, "test": test}, notes
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--source-dir", default=str(DEFAULT_SOURCE_DIR), help="<task>_sorted.zip 이 있는 폴더")
     ap.add_argument("--train-tasks", nargs="+", default=["001", "002"])
     ap.add_argument("--test-task", default="000")
     ap.add_argument("--valid", type=float, default=0.15)
-    ap.add_argument("--seed", type=int, default=42, help="random 분할에만 쓰임")
-    ap.add_argument("--split", choices=["random", "sorted", "kfold"], default="random",
-                    help="random: pose 실험과 같은 seed 분할 / sorted: 시간대(클립 단위) 분할 / kfold: 시간대 K-fold")
+    ap.add_argument("--seed", type=int, default=42, help="random·rkfold 분할에만 쓰임")
+    ap.add_argument("--split", choices=["random", "sorted", "kfold", "rkfold"], default="random",
+                    help="random: pose 실험과 같은 seed 분할 / sorted: 시간대(클립 단위) 분할 / kfold: 시간대 K-fold / "
+                         "rkfold: 랜덤 K-fold (장수는 시간대 K-fold와 같음)")
     ap.add_argument("--k", type=int, default=5, help="kfold: 구간 수")
     ap.add_argument("--fold", type=int, default=None, help="kfold: valid로 쓸 구간 번호 (0 ~ K-1)")
     ap.add_argument("--gap", type=int, default=1, help="kfold: 클립 중간 경계에서 train에서 뺄 장수")
@@ -223,15 +262,17 @@ def main():
         items += task_items
 
     notes = None
-    if a.split == "kfold" and (a.fold is None or not 0 <= a.fold < a.k):
-        raise SystemExit(f"--split kfold 에는 --fold 0~{a.k - 1} 이 필요")
+    if a.split in ("kfold", "rkfold") and (a.fold is None or not 0 <= a.fold < a.k):
+        raise SystemExit(f"--split {a.split} 에는 --fold 0~{a.k - 1} 이 필요")
     if a.split == "random":
         splits = split_like_pose(items, a.test_task, a.valid, a.seed)
     elif a.split == "sorted":
         splits = split_sorted(items, a.test_task, a.valid)
-    else:
+    elif a.split == "kfold":
         splits, notes = split_kfold(items, a.test_task, a.k, a.fold, a.gap)
-    split_name = f"kfold_k{a.k}_f{a.fold}" if a.split == "kfold" else a.split
+    else:
+        splits, notes = split_random_kfold(items, a.test_task, a.k, a.fold, a.gap, a.seed)
+    split_name = f"{a.split}_k{a.k}_f{a.fold}" if a.split in ("kfold", "rkfold") else a.split
 
     # data/ 를 새로 채움 (이전 결과 삭제)
     for s in SPLITS:
@@ -263,8 +304,8 @@ def main():
         w.writerows(rows)
 
     SPLIT_JSON.write_text(json.dumps({
-        "split": split_name, "valid_ratio": a.valid if a.split != "kfold" else None,
-        "seed": a.seed if a.split == "random" else None, "kfold": notes and {"k": a.k, "fold": a.fold, "gap": a.gap,
+        "split": split_name, "valid_ratio": a.valid if a.split in ("random", "sorted") else None,
+        "seed": a.seed if a.split in ("random", "rkfold") else None, "kfold": notes and {"k": a.k, "fold": a.fold, "gap": a.gap,
                                                                           "tasks": notes},
         "train_tasks": a.train_tasks, "test_task": a.test_task,
         "valid_images": sorted(Path(it["name"]).stem for it in splits["valid"])},

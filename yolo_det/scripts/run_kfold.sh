@@ -5,16 +5,20 @@
 #   bash yolo_det/scripts/run_kfold.sh <GPU> <fold...>        예) GPU 0에서 fold 0 1 2
 #   bash yolo_det/scripts/run_kfold.sh 0 0 1 2
 #   bash yolo_det/scripts/run_kfold.sh 1 3 4
-# 환경변수: K(기본 5), EPOCHS(기본 200), RUN_PREFIX(기본 ep<EPOCHS>_k<K>)
+# 환경변수: SPLIT(kfold=시간대 기본 / rkfold=랜덤), K(기본 5), EPOCHS(기본 200),
+#           RUN_PREFIX(기본 시간대 ep<EPOCHS>_k<K>, 랜덤 ep<EPOCHS>_rk<K>)
+#   랜덤 5-fold:  SPLIT=rkfold bash yolo_det/scripts/run_kfold.sh 0 0 1 2 3 4
 # 다 끝나면: python yolo_det/scripts/summarize_folds.py --prefix ep200_k5 --k 5
 set -euo pipefail
 GPU=$1; shift
-K=${K:-5}; EPOCHS=${EPOCHS:-200}; PREFIX=${RUN_PREFIX:-ep${EPOCHS}_k${K}}
+SPLIT=${SPLIT:-kfold}; K=${K:-5}; EPOCHS=${EPOCHS:-200}
+case "$SPLIT" in kfold) TAG=k ;; rkfold) TAG=rk ;; *) echo "SPLIT=$SPLIT (kfold|rkfold)"; exit 1 ;; esac
+PREFIX=${RUN_PREFIX:-ep${EPOCHS}_${TAG}${K}}
 for f in "$@"; do
-  export YOLO_DET_DATA=data_k${K}f${f}
+  export YOLO_DET_DATA=data_${TAG}${K}f${f}
   RUN=${PREFIX}_f${f}
   echo "===== fold ${f}/${K} → run ${RUN}, data ${YOLO_DET_DATA}, GPU ${GPU} ====="
-  python yolo_det/scripts/prepare_data.py --split kfold --k "$K" --fold "$f"
+  python yolo_det/scripts/prepare_data.py --split "$SPLIT" --k "$K" --fold "$f"
   python yolo_det/scripts/train.py --sizes m --run "$RUN" --epochs "$EPOCHS" --device "$GPU"
   python yolo_det/scripts/evaluate.py --run "$RUN" --size m --device "$GPU"
 done

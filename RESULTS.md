@@ -281,6 +281,14 @@ fold별 값은 [fold_study.md 8장](counting/reports/fold_study/fold_study.md).
 - fold별 값은 [fold_study.md 6장](counting/reports/fold_study/fold_study.md).
 - 000 사진별 카운트 csv: `counting/reports/fold_study/per_frame_000/<geo|rf|rf_geo|rf_geo_leg|yolo>.csv`. 열은 frame_idx, image, gt, k5_f0\~f4, rk5_f0\~f4로 수아 `000_per_frame_counts.csv`와 같은 형식임.
 
+**test 사진별 카운트 (모델 × 사진 86장, GT와 함께)**: [per_image_000.md](counting/reports/fold_study/per_image/per_image_000.md) (`counting/scripts/per_image_000.py`로 생성)
+- 모델별 csv · 그래프: `counting/reports/fold_study/per_image/by_model/<geo|rf|rf_geo|rf_geo_leg|yolo>.csv` · `.png` (칸 숫자 = 센 마릿수, 칸 색 = 오차, 맨 위 = GT)
+- 전체 csv: `per_image_000_long.csv`(사진 × 분할 × fold × 방법 한 줄씩), `per_image_000_wide.csv`(사진 한 줄)
+- 공통으로 틀리는 사진: 56\~58번(GT 2, 대부분 모델이 1로 셈), 34번 · 65번(GT 1, RF 계열이 2로 셈). Geo는 54\~61번 · 64\~74번에서 계속 덜 셈.
+
+![사진별 카운트 (방법별)](counting/reports/fold_study/per_image/graph_E_per_image_counts.png)
+![사진별 오차 (모델 50개)](counting/reports/fold_study/per_image/graph_F_per_image_error_heatmap.png)
+
 ![fold별 총 마릿수](counting/reports/fold_study/graph_C_total_counts.png)
 ![000 사진별 마릿수](counting/reports/fold_study/graph_A_frame_counts_000.png)
 

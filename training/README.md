@@ -13,7 +13,8 @@ pose mAP·PCK로 비교. **bbox보다 포즈(keypoint) 성능을 우선 지표**
 | 002 | CH010 (1920×1080) | 100 | 990 | 학습 (train/valid) |
 | 000 | 1분 샘플 영상 (960×720) | 86 | 860 | **test 전용** (학습에 안 씀) |
 
-- 001+002 190장을 seed 42로 섞어 **train 162 / valid 28**(valid 15%), 000 86장은 통째로 **test**.
+- 기본 분할(`split_dataset.py`): 001+002 190장을 seed 42로 섞어 **train 162 / valid 28**(valid 15%), 000 86장은 통째로 **test**. 사이즈 · epoch 비교에 사용.
+- **최종 비교(11/16 통일 기준)**: 시간대 5-fold `k5_f0~f4` + 랜덤 5-fold `rk5_f0~f4`(fold마다 train 148\~155 / valid 34\~42, 두 분할 장수 동일)로 medium ep200을 fold마다 학습 → [RESULTS.md](../RESULTS.md).
 - test가 학습에 없는 다른 카메라라, test 점수 = 처음 보는 화면에서의 성능.
 - 원본: CVAT "for images 1.1" export(`<task>_sorted.zip` = 사진 + `annotations.xml`, 스켈레톤 + State 라벨).
 
@@ -27,7 +28,7 @@ training/
 │   ├── raw/data/        학습용 zip (000.zip, 001.zip, 002.zip — cvat_xml_to_raw_zip.py가 만듦)
 │   ├── raw/img, label/  (자동) ingest_raw_zips.py가 zip에서 꺼내 모은 이미지/라벨 (<task>__<이름>)
 │   ├── processed/       (자동) split_dataset.py가 만든 train/valid/test
-│   └── splits/          (자동) make_study_splits.py가 만든 분할 목록 json (random, sorted, k5_f0~f4)
+│   └── splits/          (자동) make_study_splits.py가 만든 분할 목록 json (random, sorted, k5_f0~f4, rk5_f0~f4)
 ├── configs/
 │   ├── pig_pose.yaml          18개 keypoint 이름 / 스켈레톤 / flip_idx
 │   ├── cvat_skeleton_raw.json CVAT skeleton 원본 (pig_pose.yaml의 출처)
@@ -122,7 +123,7 @@ test(000) 기준. 배치 nano 16 / small 16 / medium 8 / large 8, 조기 종료 
 
 - 랜덤 · 시간대는 seed 0 · best.pt = pose + box 합(재학습 전 방식), 5-fold 10개는 seed 42 · best.pt = pose mAP50-95.
 - 재학습 전 시간대 5-fold 평균은 pose mAP50-95 0.108, PCK@0.1 0.696, PCK@0.2 0.859 ([PROGRESS.md](../PROGRESS.md) 2장 결과 4).
-- train 사진 몇 장 차이로 PCK@0.1이 0.65\~0.73까지 흔들림. 판정까지 비교한 결과는 [RESULTS.md](../RESULTS.md) 6장.
+- train 사진 몇 장 차이로 PCK@0.1이 0.65\~0.73까지 흔들림. 판정까지 비교한 결과는 [RESULTS.md](../RESULTS.md) 4장.
 
 ### 지표
 

@@ -23,8 +23,7 @@ test = 000(1분 샘플 영상 86장, 사람 visiting 133마리). 11/16 통일 �
 
 - RF 계열 3가지가 가장 좋음. RF best(5-fold 평균 val MAE 최소)는 두 분할 모두 RF+Geo+Leg이고, Geo · YOLO보다 test 사진 단위로 유의하게 좋음(Wilcoxon p ≤ 0.007). RF 계열 3가지 사이 차이는 유의하지 않음(p > 0.3).
 - YOLO는 랜덤 5-fold에서 fold마다 크게 흔들림(MAE 0.174\~0.477). Geo는 test에서 약 18% 적게 셈.
-- 이전(통일 기준 전) 결과와 비교 과정: [RESULTS.md](RESULTS.md) 4\~5장, 통일 기준 결과 · 조건 · 한계점: [RESULTS.md 6\~8장](RESULTS.md), 표 전체: [fold_study.md](counting/reports/fold_study/fold_study.md), 논문용 지표: [paper_metrics.md](counting/reports/fold_study/paper/paper_metrics.md).
-- 데이터, train / valid 비율, 진행 방법, 분할별 결과: **[RESULTS.md](RESULTS.md)**
+- 분할 · 조건 · 결과 · 추론 시간 · 한계점: **[RESULTS.md](RESULTS.md)** (통일 기준 전 결과는 부록 A), 표 전체: [fold_study.md](counting/reports/fold_study/fold_study.md), 논문용 지표: [paper_metrics.md](counting/reports/fold_study/paper/paper_metrics.md), test 사진별 카운트: [per_image_000.md](counting/reports/fold_study/per_image/per_image_000.md).
 - 진행 과정 전체 기록: [PROGRESS.md](PROGRESS.md)
 
 ## 데이터

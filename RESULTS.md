@@ -313,3 +313,68 @@ fold별 값은 [fold_study.md 8장](counting/reports/fold_study/fold_study.md).
 - Geo는 val · test 모두 약 11\~19% 적게 셈.
 
 결과 파일: `counting/reports/fold_study/` (`fold_study.md`, `fold_metrics.csv`, `fold_summary.csv`, `pose_folds.csv`, `pose_keypoints.csv`, `fold_composition.csv`, `frames/ep200_<split>/<방법>_<val|test>.csv`, 그래프 A\~D). 명령: `training/scripts/run_split_study.ps1`, `counting/scripts/run_split_eval.ps1 -Valid`.
+
+---
+
+## 7. 추론 시간 (end-to-end, 사진 1장)
+
+`counting/scripts/benchmark_speed.py` (11/16 통일 조건: 같은 장비 한 대, batch 1, imgsz 640, 예열 5장 제외, 000 86장 × 3회, 중앙값 · p95). 사진 읽기부터 마릿수까지. 포즈 = `ep200_k5_f0` best.pt, RF = 같은 분할 train 사진으로 학습. 측정 중 센 마릿수가 평가 결과(`per_frame_000`)와 86장 모두 같음을 확인함.
+
+장비: GPU NVIDIA GeForce RTX 5060 (8GB), CPU AMD Ryzen 5 7500F, torch 2.11.0+cu128, ultralytics 8.4.108.
+
+| 장비 | 방법 | 중앙값 (ms) | p95 (ms) | 사진 읽기 | 포즈 추론 | 특징 계산 | 판정 | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |
+|---|---|---|---|---|---|---|---|---|---|
+| GPU | Geo | 20.7 | 22.6 | 8.7 | 11.3 | 0.6 | 0.00 | ✅ | ✅ |
+| GPU | RF | 26.2 | 28.6 | 8.7 | 11.3 | 0.6 | 5.33 | ✅ | ✅ |
+| GPU | RF+Geo | 26.0 | 28.9 | 8.7 | 11.3 | 0.6 | 5.12 | ✅ | ✅ |
+| GPU | RF+Geo+Leg | 26.0 | 28.7 | 8.7 | 11.3 | 0.6 | 5.08 | ✅ | ✅ |
+| CPU | Geo | 151.4 | 171.3 | 10.2 | 140.4 | 0.8 | 0.00 | ✅ | ❌ |
+| CPU | RF | 158.5 | 178.6 | 10.2 | 140.4 | 0.8 | 7.31 | ✅ | ❌ |
+| CPU | RF+Geo | 158.2 | 178.2 | 10.2 | 140.4 | 0.8 | 7.01 | ✅ | ❌ |
+| CPU | RF+Geo+Leg | 158.2 | 178.4 | 10.2 | 140.4 | 0.8 | 6.95 | ✅ | ❌ |
+
+- 단계별 칸은 중앙값(ms). 실시간 판정은 p95 기준.
+- **시간 대부분은 포즈 추론**(GPU 11 ms, CPU 140 ms). RF 판정은 사진당 5\~7 ms(나무 100개, 그 사진의 돼지 전부를 한 번에), Geo 판정 · 특징 계산은 1 ms 미만.
+- 사진 읽기 8.7 ms는 000이 PNG라서임(디코딩). 영상 스트림에서 프레임을 받으면 이 시간은 줄어듦.
+- **YOLO**: 수아 측정 RTX 6000 Ada 중앙값 21.3\~22.3 ms, p95 22.4\~24.3 ms. 장비가 달라 위 표와 직접 비교하지 않음. 같은 장비 비교는 같은 스크립트에 `--yolo-weights <best.pt> --yolo-conf <그 fold conf>`를 주고 한 장비에서 다시 재야 함.
+
+결과 파일: `counting/reports/speed/NVIDIA_GeForce_RTX_5060/` (`speed.md`, `speed_summary.csv`, `speed_raw.csv`).
+
+---
+
+## 8. 한계점 근거 (11/18 재학습 결과 기준)
+
+**데이터 규모와 fold 간 분산**
+- 학습 + valid 190장(001 90 + 002 100)뿐이라 train 사진이 조금만 바뀌어도 결과가 흔들림. test MAE의 fold 간 범위(최소\~최대):
+
+| 방법 | 랜덤 5-fold | 시간대 5-fold |
+|---|---|---|
+| Geo | 0.256\~0.326 | 0.256\~0.314 |
+| RF | 0.093\~0.128 | 0.081\~0.163 |
+| RF+Geo | 0.093\~0.174 | 0.093\~0.140 |
+| RF+Geo+Leg | 0.070\~0.151 | 0.081\~0.140 |
+| YOLO | 0.174\~0.477 | 0.151\~0.279 |
+
+- val은 더 흔들림: 시간대 RF 0.400\~1.054, 시간대 RF+Geo+Leg 0.167\~0.441.
+- 포즈 test PCK@0.1: 랜덤 0.650\~0.726, 시간대 0.657\~0.719. val pose mAP50-95는 랜덤 0.287, 시간대 0.167 (못 본 시간대에서 크게 떨어짐).
+- RF / RF+Geo / RF+Geo+Leg 사이 차이(test MAE 0.01\~0.02)는 fold 간 범위보다 작고 Wilcoxon p > 0.3 → 셋의 순위는 확정할 수 없음.
+
+**test가 1분 영상 1개**
+- 000 86장, 학습에 없는 카메라(SAMPLE, 960×720). 장면 하나라 다양한 상황을 대표하지 못함.
+- 사진끼리 연속 프레임이라 독립이 아님 → 95% CI · p값은 낙관적(paper Table 3 · 4).
+
+**촬영 시간대 · 카메라 편중** ([time_distribution.md](training/reports/data/time_distribution.md))
+- 001 = CH005, 7/8 아침 06:15\~07:44(클립 4개, 약 1.5시간), 002 = CH010, 7/16 10:26\~18:32(클립 17개, 약 8시간).
+- 002는 클립 17개 중 11개가 사진 1\~4장이고, 17:34 클립 하나가 26장 → 사진 수가 클립마다 크게 다름. 밤 시간대와 다른 날짜는 없음.
+
+**가림 · 밀집 오차** ([error_cases.md](counting/reports/fold_study/error_cases/error_cases.md), `counting/scripts/error_cases.py`)
+- Geo · RF 계열의 남은 오차 상당 부분은 포즈 단계: test에서 사람 visiting 133마리 중 fold당 6.2\~8.6마리를 포즈 모델이 매칭하지 못함.
+- 가장 많이 놓친 사진은 56\~58번(사람 visiting 2마리, 10개 분할 모델 합 20개 중 11개 놓침). 사료통 급이 파이프 아래로 머리를 넣은 돼지는 검출 자체가 안 되고(no detection), 사료통 옆에 누운 · 겹친 돼지는 검출은 되지만 keypoint가 어긋나 매칭 실패(keypoints off).
+
+![가림 · 밀집 오차 사례](counting/reports/fold_study/error_cases/error_cases.png)
+
+**향후 계획 근거**
+- 데이터 추가: 다른 날짜 · 밤 시간대 · 다른 카메라 (val pose mAP 0.287 → 0.167, 시간대 val RF 0.632).
+- 검출 개선: 급이 파이프 가림 · 밀집 상황 (포즈 단계 미검출 fold당 6\~9마리).
+- YOLO conf 임계값 안정화: conf가 fold마다 0.25\~0.70으로 바뀌고 랜덤 rk5_f3는 152마리(+14.3%)로 과대 집계.
+- 실시간: GPU에서는 Geo · RF 계열 모두 30 fps 기준(p95 ≤ 33.3 ms) 통과, CPU는 1 fps만 통과 → 엣지 장비는 포즈 모델 경량화(n · s 크기) 필요.

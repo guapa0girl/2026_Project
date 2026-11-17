@@ -14,7 +14,8 @@
 지표 정의:
     사진 단위 — MAE, RMSE, ME(bias = 평균(pred − gt)), Acc(정확 일치율), Acc±1, TCE(총 마릿수 오차 %),
                 10초 구간 MAE (test만)
-    개체 단위 visiting (사람 박스와 매칭, evaluate_methods.py 오류 분류에서 계산)
+    개체 단위 visiting (오류 분류에서 계산. 사람 개체와 짝짓기: Geo · RF 계열 = 관절 평균 거리 ÷ 사람 박스 대각선
+        ≤ 0.25, YOLO = 박스 IoU ≥ 0.5, 둘 다 헝가리안)
         TP = 사람 visiting − 못 찾음 − other로 판정,  FP = other→visiting + 라벨 없는 검출→visiting,
         FN = 못 찾음 + other로 판정  →  Precision, Recall, F1
     95% CI — test 86장에서 사진을 복원추출(10,000회, seed 0), 사진별 |오차|는 fold 5개 평균
@@ -128,8 +129,10 @@ def main():
                 star = " †" if m == RF_BEST else ""
                 md.append(f"| {slab} | {mlab}{star} | " + " | ".join(ms(g[c], f, sc) for c, _, f, sc in use) + " |")
         md += ["", "† RF best (5-fold 평균 val MAE 최소). ME = 평균(예측 − 정답), TCE = 총 마릿수 오차 / 정답 총 마릿수. "
-               "Precision · Recall · F1 = visiting 개체 단위(사람 박스와 매칭)." +
-               (" YOLO val은 conf를 같은 valid에서 골라 낙관적임." if part == "val" else ""), ""]
+               "Precision · Recall · F1 = visiting 개체 단위(사람 개체와 짝짓기: Geo · RF 계열 = 관절 평균 거리 ÷ "
+               "사람 박스 대각선 ≤ 0.25, YOLO = 박스 IoU ≥ 0.5)." +
+               (" val은 모든 방법이 조금 낙관적임: 포즈 best.pt(Geo · RF 계열)와 YOLO best.pt · conf를 같은 valid로 골랐음."
+                if part == "val" else ""), ""]
 
     # 표 3: bootstrap 95% CI (test MAE)
     rng = np.random.default_rng(0)
@@ -214,7 +217,9 @@ def main():
         for part, plab in SETS:
             md.append(f"| {slab} | {plab} | " + " | ".join(ms(sub[f"{part}_{c}"]) for c in pcols) + " |")
     kp = pd.read_csv(FS / "pose_keypoints.csv", encoding="utf-8-sig")
-    md += ["", "PCK@α = 정답과 예측 keypoint 거리가 α × 박스 대각선 이하인 비율. keypoint별 PCK@0.1:", "",
+    md += ["", "PCK@α = 정답과 예측 keypoint 거리가 α × 정답 박스 긴 변(max(w, h)) 미만인 비율 "
+           "(`training/scripts/utils/pck.py`; 예측 conf 0.25, 사람 박스와 IoU ≥ 0.5로 짝지은 돼지만). "
+           "mAP는 Ultralytics val. best.pt = val pose mAP50-95 최고 epoch. keypoint별 PCK@0.1:", "",
            "| Keypoint | " + " | ".join(f"{s} {pl}" for _, s, _ in SCHEMES for _, pl in SETS) + " |",
            "|---|" + "---|" * 4]
     for name in kp.keypoint.drop_duplicates():

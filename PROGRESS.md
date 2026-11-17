@@ -6,7 +6,7 @@
 |---|---|---|
 | 1. 데이터 준비 | 001·002 학습용, 000 test용 정리 → YOLO-Pose 라벨 변환 → 분할 | ✅ 완료 |
 | 2. 포즈 추정 | YOLOv8-pose n/s/m/l × epoch 100·200·300 학습·비교 → 사용할 모델 선택 | ✅ 완료 — 300은 valid만 오르고 000에서는 이득 없음, medium ep200 사용 |
-| 3. visiting 판정 | Geo / RF / RF+Geo / RF+Geo+Leg 학습·평가, YOLO 직접 판정(수아), 분할 3가지(랜덤 / 시간대 / 시간대 5-fold)별 비교 | ✅ 완료 — 모든 분할에서 RF 계열 > YOLO > Geo, 5-fold 평균 RF+Geo+Leg 사진당 0.119마리 / YOLO 0.223 |
+| 3. visiting 판정 | Geo / RF / RF+Geo / RF+Geo+Leg 학습·평가, YOLO 직접 판정(수아), 분할 3가지(랜덤 / 시간대 / 시간대 5-fold)별 비교 | ✅ 완료 — (통일 기준 전) 세 분할 모두 RF 계열 > YOLO > Geo, 5-fold 평균 RF+Geo+Leg 사진당 0.119마리 / YOLO 0.223. (11/18 통일 기준 재학습, 랜덤 / 시간대 5-fold) RF+Geo+Leg 0.121 / 0.109, YOLO 0.300 / 0.223, Geo 0.293 / 0.293 → [RESULTS.md](RESULTS.md) 6\~8장 |
 
 **정답**: 000(1분 샘플 영상 86장)의 사람 라벨만 사용.
 
@@ -95,7 +95,8 @@
 | 입력 크기 | 640 |
 | epoch | 100 / 200 / 300 |
 | 조기 종료 | 끔(`--patience 0`) → 지정한 epoch를 끝까지 학습 |
-| best.pt | valid pose mAP50-95가 가장 높았던 epoch의 가중치 |
+| best.pt | Ultralytics 기본 = valid **pose mAP50-95 + box mAP50-95 합**이 가장 높았던 epoch (이 장의 모든 모델). 11/18 재학습 모델(`ep200_k5_f*`, `ep200_rk5_f*`)부터는 valid pose mAP50-95만 사용 |
+| seed | 0 (Ultralytics 기본, 이 장의 모든 모델). 11/18 재학습 모델부터 42 |
 | 옵티마이저 | `auto` → Ultralytics가 AdamW(lr 0.002) 선택 |
 | batch | nano 16 / small 16 / medium 8 / large 8 |
 | 장비 | RTX 5060 8GB |
@@ -214,6 +215,8 @@ medium ep200의 test 관절별 PCK (판정에 쓰는 관절 굵게):
 ### 결과 4 — 분할 방식별 포즈 모델 (medium, epoch 200)
 
 1장의 분할 3가지로 medium ep200을 각각 다시 학습(`training/scripts/run_split_study.ps1`, run 이름 `ep200_sorted`, `ep200_k5_f0`\~`f4`, 하나에 약 15분). 랜덤은 기존 `ep200`.
+
+> 아래 5-fold 값은 11/18 재학습 **전** 모델(seed 0, best.pt = pose + box 합)의 값임. 같은 run 이름(`ep200_k5_f*`)은 11/18에 통일 기준(seed 42, best.pt = pose mAP50-95)으로 다시 학습해 덮어씀 → 새 값은 [RESULTS.md](RESULTS.md) 6-4.
 
 | 분할 | train / valid | test pose mAP50-95 | test PCK@0.1 | test PCK@0.2 | test box mAP50-95 | 놓친 돼지 (박스 IoU 0.5) |
 |---|---|---|---|---|---|---|
@@ -414,6 +417,8 @@ Geo 규칙의 방향 조건 각도와 누움 조건(confidence 기반)을 바꿔
 
 ### 결과 4 — 분할 방식별 최종 비교: Geo / RF / RF+Geo / RF+Geo+Leg / YOLO ✅
 
+> 결과 4 · 5의 시간대 5-fold 값은 11/18 재학습 **전** 포즈 모델 기준임. 11/16 랩미팅 통일 기준(seed 42, best.pt = val pose mAP50-95, RF best = val MAE, 랜덤 5-fold 추가)으로 다시 돌린 결과는 [RESULTS.md](RESULTS.md) 6\~8장.
+
 결과 1\~3은 RF를 001+002 **전체 190장**으로 학습한 결과. 여기서는 YOLO와 조건을 똑같이 맞춤:
 
 | | Geo · RF 계열 | YOLO (수아) |
@@ -573,7 +578,8 @@ cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.
 
 ### 정리
 
-- 분할 방식(랜덤 / 시간대 / 시간대 5-fold)과 상관없이 성능은 **RF 계열 > YOLO > Geo(60°)** 순. 5-fold 평균 사진당 MAE는 RF+Geo+Leg 0.119, YOLO 0.223, Geo 0.288(결과 4).
+- 분할 방식(랜덤 / 시간대 / 시간대 5-fold)과 상관없이 성능은 **RF 계열 > YOLO > Geo(60°)** 순. 5-fold 평균 사진당 MAE는 RF+Geo+Leg 0.119, YOLO 0.223, Geo 0.288(결과 4, 재학습 전).
+  - 11/18 통일 기준 재학습 후: 시간대 5-fold는 같은 순서(RF+Geo+Leg 0.109, YOLO 0.223, Geo 0.293). 랜덤 5-fold에서는 YOLO 0.300이 Geo 0.293과 비슷해져 YOLO > Geo 순서가 성립하지 않음. RF 계열이 가장 좋은 것은 같음 → [RESULTS.md](RESULTS.md) 6장.
 - 최종 test(000)에서 **RF+Geo(+Leg)가 가장 좋음**: 사진당 0.093마리 오차, 86장 중 78장 정확, 1분 총 점유량 0%, 10초 구간 평균 오차 0.069마리.
 - Geo(60°)는 점유량을 18% 적게 셈. 각도를 90°로 넓히면 000에서는 RF 계열과 비슷해지지만 001+002에서는 반대로 16.5% 많이 셈 → 규칙은 카메라마다 다시 맞춰야 함.
 - Leg 특징은 사람 관절(Stage 1)에서 효과가 크고(MAE 0.205 → 0.079, CH010 과대 집계 해소), 모델 관절(000)에서는 RF+Geo와 같음 → 발 관절 정확도가 올라가야 효과가 나타날 것으로 보임.

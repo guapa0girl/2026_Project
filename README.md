@@ -11,18 +11,19 @@ CCTV 사진 ─→ 포즈 추정 (YOLOv8-pose, 관절 18개) ─→ 돼지마다
 
 ## 결과
 
-test = 000(1분 샘플 영상 86장), 시간대 5-fold 평균.
+test = 000(1분 샘플 영상 86장, 사람 visiting 133마리). 11/16 통일 기준(같은 train 사진 · seed 42 · val만으로 선택)으로 학습한 랜덤 / 시간대 5-fold의 fold 5개 평균 ± 표본 표준편차.
 
-| 방법 | 사진당 마릿수 MAE | 정확 일치 | 1분 총 점유량 오차 |
-|---|---|---|---|
-| Geo | 0.288 ± 0.013 | 72.3% | −17.4% |
-| RF | 0.140 ± 0.022 | 86.0% | −2.4% |
-| RF+Geo | 0.142 ± 0.021 | 85.8% | −4.4% |
-| **RF+Geo+Leg** | **0.119 ± 0.030** | **88.1%** | −3.8% |
-| YOLO | 0.223 ± 0.048 | 77.9% | −4.2% |
+| 방법 | 사진당 마릿수 MAE (랜덤) | MAE (시간대) | 정확 일치 (랜덤 / 시간대) | 1분 총 점유량 오차 (랜덤 / 시간대) |
+|---|---|---|---|---|
+| Geo | 0.293 ± 0.028 | 0.293 ± 0.022 | 71.9% / 71.9% | −18.6% / −17.7% |
+| RF | 0.114 ± 0.015 | 0.116 ± 0.032 | 88.8% / 88.4% | −2.3% / −1.2% |
+| RF+Geo | 0.133 ± 0.033 | 0.126 ± 0.019 | 86.7% / 87.4% | −4.4% / −3.3% |
+| **RF+Geo+Leg** (RF best) | 0.121 ± 0.033 | 0.109 ± 0.021 | 87.9% / 89.1% | −3.3% / −1.4% |
+| YOLO | 0.300 ± 0.137 | 0.223 ± 0.048 | 70.5% / 77.9% | −4.1% / −4.2% |
 
-- 모든 분할에서 오차 순서는 RF 계열 < YOLO < Geo. RF+Geo+Leg가 가장 좋고 안정적임.
-- 11/16 통일 기준(seed 42, best.pt = val pose mAP50-95, RF best = val MAE)으로 다시 학습한 랜덤 · 시간대 5-fold: test MAE (랜덤 / 시간대) RF+Geo+Leg 0.121 / 0.109, RF 0.114 / 0.116, RF+Geo 0.133 / 0.126, Geo 0.293 / 0.293, YOLO 0.300 / 0.223. 자세히는 [RESULTS.md 6장](RESULTS.md), [fold_study.md](counting/reports/fold_study/fold_study.md).
+- RF 계열 3가지가 가장 좋음. RF best(5-fold 평균 val MAE 최소)는 두 분할 모두 RF+Geo+Leg이고, Geo · YOLO보다 test 사진 단위로 유의하게 좋음(Wilcoxon p ≤ 0.007). RF 계열 3가지 사이 차이는 유의하지 않음(p > 0.3).
+- YOLO는 랜덤 5-fold에서 fold마다 크게 흔들림(MAE 0.174\~0.477). Geo는 test에서 약 18% 적게 셈.
+- 이전(통일 기준 전) 결과와 비교 과정: [RESULTS.md](RESULTS.md) 4\~5장, 통일 기준 결과 · 조건 · 한계점: [RESULTS.md 6\~8장](RESULTS.md), 표 전체: [fold_study.md](counting/reports/fold_study/fold_study.md), 논문용 지표: [paper_metrics.md](counting/reports/fold_study/paper/paper_metrics.md).
 - 데이터, train / valid 비율, 진행 방법, 분할별 결과: **[RESULTS.md](RESULTS.md)**
 - 진행 과정 전체 기록: [PROGRESS.md](PROGRESS.md)
 

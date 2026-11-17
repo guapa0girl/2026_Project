@@ -17,7 +17,7 @@ fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133�
 | Time 5-fold | RF+Geo+Leg † | 0.109 ± 0.021 | 0.329 ± 0.032 | -0.021 ± 0.022 | 89.1 ± 2.1 | 100.0 ± 0.0 | -1.4 ± 1.4 | 0.066 ± 0.008 | 0.951 ± 0.024 | 0.938 ± 0.029 | 0.945 ± 0.026 |
 | Time 5-fold | YOLO | 0.223 ± 0.048 | 0.475 ± 0.059 | -0.065 ± 0.024 | 77.9 ± 4.4 | 99.8 ± 0.5 | -4.2 ± 1.6 | 0.111 ± 0.042 | 0.917 ± 0.028 | 0.878 ± 0.019 | 0.897 ± 0.022 |
 
-† RF best (5-fold 평균 val MAE 최소). ME = 평균(예측 − 정답), TCE = 총 마릿수 오차 / 정답 총 마릿수. Precision · Recall · F1 = visiting 개체 단위(사람 박스와 매칭).
+† RF best (5-fold 평균 val MAE 최소). ME = 평균(예측 − 정답), TCE = 총 마릿수 오차 / 정답 총 마릿수. Precision · Recall · F1 = visiting 개체 단위(사람 개체와 짝짓기: Geo · RF 계열 = 관절 평균 거리 ÷ 사람 박스 대각선 ≤ 0.25, YOLO = 박스 IoU ≥ 0.5).
 
 ## Table 2. Counting performance — Validation
 
@@ -34,7 +34,7 @@ fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133�
 | Time 5-fold | RF+Geo+Leg † | 0.284 ± 0.104 | 0.552 ± 0.131 | +0.038 ± 0.061 | 73.3 ± 8.2 | 98.3 ± 2.6 | +2.7 ± 4.3 | 0.854 ± 0.087 | 0.876 ± 0.087 | 0.865 ± 0.086 |
 | Time 5-fold | YOLO | 0.347 ± 0.166 | 0.642 ± 0.213 | – | – | – | – | – | – | – |
 
-† RF best (5-fold 평균 val MAE 최소). ME = 평균(예측 − 정답), TCE = 총 마릿수 오차 / 정답 총 마릿수. Precision · Recall · F1 = visiting 개체 단위(사람 박스와 매칭). YOLO val은 conf를 같은 valid에서 골라 낙관적임.
+† RF best (5-fold 평균 val MAE 최소). ME = 평균(예측 − 정답), TCE = 총 마릿수 오차 / 정답 총 마릿수. Precision · Recall · F1 = visiting 개체 단위(사람 개체와 짝짓기: Geo · RF 계열 = 관절 평균 거리 ÷ 사람 박스 대각선 ≤ 0.25, YOLO = 박스 IoU ≥ 0.5). val은 모든 방법이 조금 낙관적임: 포즈 best.pt(Geo · RF 계열)와 YOLO best.pt · conf를 같은 valid로 골랐음.
 
 ## Table 3. Test MAE with 95% bootstrap CI (images resampled, 10,000×)
 
@@ -94,7 +94,7 @@ Geo · RF 계열은 같은 포즈 모델을 써서 'Missed (undetected)'가 같�
 | Time 5-fold | Test (000) | 0.884 ± 0.026 | 0.646 ± 0.023 | 0.274 ± 0.049 | 0.087 ± 0.010 | 0.373 ± 0.009 | 0.692 ± 0.024 | 0.865 ± 0.011 |
 | Time 5-fold | Validation | 0.960 ± 0.019 | 0.694 ± 0.024 | 0.548 ± 0.046 | 0.167 ± 0.020 | 0.406 ± 0.011 | 0.695 ± 0.025 | 0.871 ± 0.026 |
 
-PCK@α = 정답과 예측 keypoint 거리가 α × 박스 대각선 이하인 비율. keypoint별 PCK@0.1:
+PCK@α = 정답과 예측 keypoint 거리가 α × 정답 박스 긴 변(max(w, h)) 미만인 비율 (`training/scripts/utils/pck.py`; 예측 conf 0.25, 사람 박스와 IoU ≥ 0.5로 짝지은 돼지만). mAP는 Ultralytics val. best.pt = val pose mAP50-95 최고 epoch. keypoint별 PCK@0.1:
 
 | Keypoint | Random 5-fold Test (000) | Random 5-fold Validation | Time 5-fold Test (000) | Time 5-fold Validation |
 |---|---|---|---|---|

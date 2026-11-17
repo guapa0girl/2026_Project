@@ -44,8 +44,9 @@ training/
 │   ├── cvat_xml_to_raw_zip.py CVAT XML + 사진 zip → data/raw/data/<task>.zip (YOLO-Pose 라벨)
 │   ├── ingest_raw_zips.py     data/raw/data/*.zip → data/raw/{img,label}
 │   ├── split_dataset.py       raw → train/valid/test (--test-zip 으로 test task 고정, --split-file 로 목록 그대로)
-│   ├── make_study_splits.py   분할 3가지 목록 생성 (yolo_det과 같은 분할 함수 사용)
-│   ├── run_split_study.ps1    시간대·5-fold 분할로 medium ep200 재학습 (끝나면 랜덤 분할로 복구)
+│   ├── make_study_splits.py   분할 목록 생성: random, sorted, k5_f0~f4(시간대 5-fold), rk5_f0~f4(랜덤 5-fold)
+│   │                          (yolo_det과 같은 분할 함수, --export-images로 001+002 사진을 counting valid 평가용으로 꺼냄)
+│   ├── run_split_study.ps1    분할별 medium ep200 재학습 (-Splits로 분할 지정, 끝나면 랜덤 분할로 복구)
 │   ├── time_distribution.py   task별 촬영 시간대 분포 + 분할별 valid 위치 (실제 시각 = 이름 + 9시간)
 │   ├── train.py               학습 + 평가 + 사이즈 비교를 한 번에
 │   ├── evaluate.py            split별 mAP·PCK 평가
@@ -87,6 +88,8 @@ python scripts\time_distribution.py                 # → reports/data/time_dist
   CVAT 자체 YOLO export와 비교해 돼지 299마리에서 박스·표시가 완전히 같음을 확인.
 - **`POSE_RUN`**: 같은 데이터로 설정만 바꾼 학습을 덮어쓰지 않고 나란히 저장(`results/<run>/`, `metrics/<run>/`).
 - **`--patience 0`**: 조기 종료를 꺼서 지정한 epoch를 끝까지 학습. best.pt는 valid 성능 기준으로 저장됨.
+- **seed · best.pt 기준** (11/17부터 `train.py`): seed 42, best.pt = valid **pose mAP50-95** 최고 epoch(Ultralytics 기본인 pose + box mAP50-95 합 대신).
+  그 전에 학습한 모델(`ep100`, `ep200`, `ep300`, `ep200_sorted`, 사이즈 비교)은 seed 0(Ultralytics 기본), best.pt = pose + box 합 기준.
 - **데이터가 늘면 항상 처음부터 재학습**(COCO 사전학습에서 시작, 이전 가중치에서 이어 학습하지 않음).
 - **중간에 끊긴 학습**은 `--resume`으로 이어 감(같은 `POSE_RUN`으로).
 - 오래 걸리는 학습은 `python launch_detached.py -- train.py --sizes l`로 띄우면 터미널을 닫아도 계속 돎.
@@ -114,9 +117,12 @@ test(000) 기준. 배치 nano 16 / small 16 / medium 8 / large 8, 조기 종료 
 |---|---|---|---|---|
 | 랜덤 (`ep200`) | 162 / 28 | 0.100 | 0.710 | 0.870 |
 | 시간대 (`ep200_sorted`) | 159 / 31 | 0.079 | 0.652 | 0.839 |
-| 시간대 5-fold (`ep200_k5_f0`\~`f4`) 평균 | 148\~155 / 34\~42 | 0.108 (0.089\~0.127) | 0.696 (0.674\~0.725) | 0.859 (0.847\~0.867) |
+| 시간대 5-fold (`ep200_k5_f0`\~`f4`, 11/18 재학습) 평균 | 148\~155 / 34\~42 | 0.087 (0.076\~0.097) | 0.692 (0.657\~0.719) | 0.865 |
+| 랜덤 5-fold (`ep200_rk5_f0`\~`f4`, 11/18) 평균 | 148\~155 / 34\~42 | 0.111 (0.082\~0.139) | 0.691 (0.650\~0.726) | 0.865 |
 
-- train 사진 몇 장 차이로 PCK@0.1이 0.65\~0.73까지 흔들림. 판정까지 비교한 결과는 [PROGRESS.md](../PROGRESS.md) 3장 결과 4.
+- 랜덤 · 시간대는 seed 0 · best.pt = pose + box 합(재학습 전 방식), 5-fold 10개는 seed 42 · best.pt = pose mAP50-95.
+- 재학습 전 시간대 5-fold 평균은 pose mAP50-95 0.108, PCK@0.1 0.696, PCK@0.2 0.859 ([PROGRESS.md](../PROGRESS.md) 2장 결과 4).
+- train 사진 몇 장 차이로 PCK@0.1이 0.65\~0.73까지 흔들림. 판정까지 비교한 결과는 [RESULTS.md](../RESULTS.md) 6장.
 
 ### 지표
 

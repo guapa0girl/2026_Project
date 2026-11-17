@@ -120,6 +120,7 @@ test = 000(1분 샘플 영상 86장, 학습에 없는 카메라). 모든 run 공
 conf 임계값은 각 run의 valid에서 사진당 MAE가 가장 작은 값(000은 보지 않음). 요약: `reports/<run>/m/summary.md` / `.json`.
 환경(연구실 서버 RTX 6000 Ada): python 3.10.12, torch 2.11.0+cu128, CUDA 12.8, ultralytics 8.4.108. 학습 1회 ep200 약 8분, ep300 약 12~20분.
 서인 pose 가중치 `pig_pose_best.pt`(YOLOv8m-pose, ep200, seed 42 random 분할 train 162장으로 학습 — 서인 확인) sha256 앞 16자리 `5e23e8ccc106557a`.
+(seed 42는 **분할** seed임. 이 모델의 학습 seed는 0(Ultralytics 기본, `training/models/results/ep200/m/args.yaml`), best.pt는 valid pose + box mAP50-95 합 기준 — 11/18 서인 확인)
 `--init` 시 backbone·neck만 옮기고 detect head는 새로 학습(Transferred 469/475).
 
 ### 사진당 visiting 마릿수 (000)
@@ -193,6 +194,8 @@ Geo·RF 계열도 이 분할 3가지(같은 사진 목록, `training/scripts/mak
 | 시간대 5-fold | 0.288 ± 0.013 | 0.140 ± 0.022 | 0.142 ± 0.021 | **0.119 ± 0.030** | 0.223 ± 0.048 |
 
 (사진당 visiting 마릿수 MAE, test = 000) → 같은 조건에서도 YOLO는 RF 계열보다 나쁨. 5-fold 기준 fold 5개 중 4개에서 RF+Geo+Leg가 앞섬.
+
+> 위 표의 Geo · RF 계열 시간대 5-fold 값은 11/18 포즈 재학습 **전** 값임. 11/16 통일 기준(포즈 seed 42 · best.pt = val pose mAP50-95, 랜덤 5-fold 추가)으로 다시 돌린 비교: 시간대 / 랜덤 5-fold test MAE RF+Geo+Leg 0.109 / 0.121, RF 0.116 / 0.114, RF+Geo 0.126 / 0.133, Geo 0.293 / 0.293, YOLO 0.223 / 0.300 → [RESULTS.md](../RESULTS.md) 6장.
 
 ### 주의 / 남은 일
 

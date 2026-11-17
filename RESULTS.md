@@ -19,7 +19,7 @@
 
 ## 2. 분할 (train / valid / test)
 
-test는 세 분할 모두 **000 86장으로 고정**. 001+002 190장만 train / valid로 나눔.
+test는 모든 분할에서 **000 86장으로 고정**. 001+002 190장만 train / valid로 나눔.
 분할 목록은 YOLO 실험(`yolo_det/scripts/prepare_data.py`)과 같은 함수로 만들어(`training/scripts/make_study_splits.py`), 포즈 모델·RF·YOLO가 **한 장까지 같은 train 사진**으로 학습함.
 
 | 분할 | 나누는 방법 | train : valid (장) | 비율 |
@@ -27,6 +27,7 @@ test는 세 분할 모두 **000 86장으로 고정**. 001+002 190장만 train / 
 | 랜덤 | 001+002를 seed 42로 섞어 15%를 valid | 162 : 28 | 85 : 15 |
 | 시간대 | 001·002 각각 마지막 클립을 통째로 valid | 159 : 31 | 84 : 16 |
 | 시간대 5-fold | 001·002 각각 시간순 5구간, fold마다 한 구간이 valid (5번 학습) | 148\~155 : 34\~42 | 78\~82 : 18\~22 |
+| 랜덤 5-fold (6장) | 001·002 각각 seed 42로 섞고, fold마다 train · valid 장수를 시간대 5-fold와 task별로 똑같이 맞춤 | 148\~155 : 34\~42 | 78\~82 : 18\~22 |
 
 - 랜덤 분할은 같은 클립의 비슷한 사진이 train과 valid에 갈림. 시간대 분할은 이를 막으려고 클립 단위로 뗌.
 - **5-fold 평균을 최종 비교 기준으로 씀**: 모델 5개의 평균이라 train 사진에 따른 흔들림이 반영됨.
@@ -36,14 +37,16 @@ test는 세 분할 모두 **000 86장으로 고정**. 001+002 190장만 train / 
 | 모델 | train | valid | test (000) |
 |---|---|---|---|
 | 포즈 모델 (Geo · RF 계열이 사용) | 학습 | best.pt(가장 좋은 epoch) 선택 | 채점 |
-| RF 계열 | 학습 | **쓰지 않음** (고를 하이퍼파라미터가 없음) | 채점 |
+| RF 계열 | 학습 | RF 하나를 학습할 때는 **쓰지 않음** (고를 하이퍼파라미터가 없음). 6장에서는 RF 3종 중 RF best를 고를 때만 val MAE 사용 | 채점 |
 | YOLO | 학습 | best.pt 선택 + conf 임계값 선택 | 채점 |
 
 ## 3. 진행 방법
 
 ### 3-1. 포즈 모델 (YOLOv8-pose)
 
-Geo와 RF 계열은 돼지마다 찍힌 관절 좌표로 판정하므로 포즈 모델이 먼저 필요함. **분할마다 따로 학습**함(랜덤 1개, 시간대 1개, 5-fold 5개, 모두 7개).
+Geo와 RF 계열은 돼지마다 찍힌 관절 좌표로 판정하므로 포즈 모델이 먼저 필요함. **분할마다 따로 학습**함.
+- 4장: 랜덤 1개(`ep200`), 시간대 1개(`ep200_sorted`), 시간대 5-fold 5개(재학습 전 `ep200_k5_f*`, 지금은 6장 모델로 덮어씀).
+- 6장: 11/18 통일 기준으로 시간대 5-fold 5개(`ep200_k5_f*`) + 랜덤 5-fold 5개(`ep200_rk5_f*`)를 다시 학습.
 
 | 항목 | 값 |
 |---|---|
@@ -52,8 +55,9 @@ Geo와 RF 계열은 돼지마다 찍힌 관절 좌표로 판정하므로 포즈 
 | epoch | 200, 조기 종료 끔 (`--patience 0`) |
 | 입력 크기 / batch | 640 / 8 |
 | 옵티마이저 | `auto` → AdamW (lr 0.002) |
-| best.pt | valid pose mAP50-95가 가장 높은 epoch |
-| 추론 | 검출 conf 0.4, imgsz 640 |
+| seed | 6장 모델 42 / 4장 모델 0 (Ultralytics 기본, 당시 학습 코드에 seed 지정 없음) |
+| best.pt | 6장 모델: **valid pose mAP50-95 최고** epoch (10개 모두 `best.pt` 안의 지표 = `results.csv`의 pose mAP50-95 최댓값 epoch로 확인) / 4장 모델: Ultralytics 기본 = valid pose mAP50-95 + box mAP50-95 합 최고 |
+| 추론 | 검출 conf 0.4, NMS IoU 0.5, imgsz 640 (세 카메라 설정 동일) |
 
 - **medium · epoch 200을 고른 이유**: 랜덤 분할에서 nano / small / medium / large × epoch 100 / 200 / 300을 비교함. medium ep200이 test PCK@0.1(0.710)·PCK@0.2(0.870)·box mAP50-95(0.672)에서 가장 좋았음. epoch 300은 valid만 오르고 000에서는 이득이 없었음. 비교표는 [PROGRESS.md](PROGRESS.md) 2장.
 
@@ -63,10 +67,11 @@ Geo와 RF 계열은 돼지마다 찍힌 관절 좌표로 판정하므로 포즈 
 |---|---|---|---|---|---|
 | 랜덤 | 162 : 28 | 0.100 | 0.710 | 0.870 | 0.672 |
 | 시간대 | 159 : 31 | 0.079 | 0.652 | 0.839 | 0.657 |
-| 5-fold 평균 (f0\~f4) | 148\~155 : 34\~42 | 0.108 | 0.696 | 0.859 | 0.641 |
+| 시간대 5-fold 평균 (재학습 전 f0\~f4) | 148\~155 : 34\~42 | 0.108 | 0.696 | 0.859 | 0.641 |
 
-- PCK@0.1 / 0.2 = 찍은 관절이 정답에서 돼지 박스 긴 변의 10% / 20% 안에 들어온 비율.
-- 관절별로는 목·몸통이 가장 정확하고(PCK@0.2 0.95 이상), 코 0.87, 발이 가장 부정확함(앞발 PCK@0.1 약 0.27, 랜덤 분할 모델 기준).
+- 위 표는 4장 모델. 통일 기준으로 다시 학습한 10개 모델은 6-4.
+- PCK@0.1 / 0.2 = 찍은 관절이 정답에서 돼지 박스 긴 변(max(w, h))의 10% / 20% 안에 들어온 비율 (`training/scripts/utils/pck.py`). 학습 평가 스크립트 기준이라 검출 conf 0.25, 사람 박스와 IoU ≥ 0.5로 짝지은 돼지만 계산함(카운팅에 쓰는 conf 0.4와 다름).
+- 관절별로는 목·어깨·옆구리가 가장 정확하고(PCK@0.2 0.95 이상), 코 0.87, 발이 가장 부정확함(앞발 PCK@0.1 약 0.27, 랜덤 분할 모델 `ep200` 기준).
 
 ### 3-2. 판정 방법 5가지
 
@@ -104,9 +109,12 @@ Geo와 RF 계열은 돼지마다 찍힌 관절 좌표로 판정하므로 포즈 
 - 오차 원인은 개체 단위로 셈: 모델 돼지와 사람 돼지를 관절 거리로 짝지음(헝가리안, 기준 0.25). YOLO는 박스 IoU ≥ 0.5로 짝지음(헝가리안).
 
 ```powershell
-cd training; python scripts\make_study_splits.py                                   # 분할 목록
-powershell -ExecutionPolicy Bypass -File scripts\run_split_study.ps1              # 포즈 모델 (시간대, 5-fold)
-cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1  # Geo·RF 계열 평가 + YOLO와 합쳐 비교
+cd training; python scripts\make_study_splits.py --export-images ..\counting\data\raw\train_img   # 분할 목록 + valid 평가용 사진
+powershell -ExecutionPolicy Bypass -File scripts\run_split_study.ps1              # 포즈 모델 (4장: 시간대, 5-fold)
+powershell -ExecutionPolicy Bypass -File scripts\run_split_study.ps1 -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4   # 6장
+cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1  # 4장: Geo·RF 계열 평가 + YOLO와 합쳐 비교
+powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1 -Valid -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4   # 6장 (val + test → compare_folds.py)
+python scripts\paper_tables.py; python scripts\per_image_000.py; python scripts\error_cases.py; python scripts\benchmark_speed.py   # 논문 표 · 사진별 · 오차 사례 · 추론 시간
 ```
 
 YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
@@ -188,7 +196,9 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 
 ## 5. 결론
 
-- **오차 순서는 모든 분할에서 RF 계열 < YOLO < Geo.** 5-fold 평균 사진당 MAE는 RF+Geo+Leg 0.119, RF 0.140, RF+Geo 0.142, YOLO 0.223, Geo 0.288.
+> 5장은 4장(통일 기준 적용 전) 결과의 결론임. 통일 기준 재학습 결과의 결론은 6-5. 특히 랜덤 5-fold에서는 YOLO(0.300)가 Geo(0.293)와 비슷해져 아래 "RF 계열 < YOLO < Geo" 순서가 성립하지 않음.
+
+- **오차 순서는 4장의 세 분할(랜덤, 시간대, 시간대 5-fold)에서 RF 계열 < YOLO < Geo.** 5-fold 평균 사진당 MAE는 RF+Geo+Leg 0.119, RF 0.140, RF+Geo 0.142, YOLO 0.223, Geo 0.288.
 - **RF+Geo+Leg가 가장 좋고 안정적임.** 5-fold 평균 1위, 랜덤 1위, 시간대 2위. RF+Geo에 Leg를 더하면 나빠진 fold가 없음(4 / 1 / 0).
   - 다만 RF / RF+Geo와의 차이는 사진 1\~3장 수준(MAE 0.01\~0.03)임. 5-fold 표준편차(±0.02\~0.03)와 비슷해서 분할 하나만 보면 순위가 바뀜(시간대 분할에서는 RF가 1위).
 - **YOLO는 돼지를 찾는 능력은 비슷하지만 visiting / other 구분에서 많이 틀림.** 5-fold에서 판정 오류(찾았지만 other로 10.8 + other를 visiting으로 8.4)가 RF+Geo+Leg(3.0 + 2.4)의 약 3.5배임. 사료통 위치를 쓰지 않고 사진만 보고 판정하기 때문으로 보임. train 사진에 따른 흔들림도 가장 큼(±0.048).
@@ -222,9 +232,10 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 | 분할 목록 | `prepare_data.py --split kfold\|rkfold` | `make_study_splits.py` (같은 함수 import) | 정렬된 `<task>__<사진>` 목록의 SHA-256 앞 12자리, 10개 fold 모두 일치 |
 | test 정답 | 000 86장 | 000 86장 | 수아 000 사진별 csv의 gt가 우리 라벨과 86장 모두 일치 |
 | 모델 크기 · 시작 | YOLOv8m detect, COCO `yolov8m.pt` | YOLOv8m-pose, COCO `yolov8m-pose.pt` | 같은 크기, 둘 다 COCO에서 처음부터 |
-| epoch / 조기 종료 | 200 / 끔 | 200 / 끔 (`--patience 0`) | 학습 코드 기본값 |
-| imgsz / batch / seed / optimizer | 640 / 8 / 42 / auto | 640 / 8 / 42 / auto | 학습 코드 기본값 · `train_medium.yaml` |
-| val로만 고르는 것 | conf 임계값 (val MAE 최소) | best.pt (val pose mAP50-95 최고), RF best (5-fold 평균 val MAE 최소) | test는 선택에 미사용 |
+| epoch / 조기 종료 | 200 / 끔 | 200 / 끔 (`--patience 0`) | YOLO: `yolo_det/scripts/train.py` 기본값 · 수아 노션. 포즈: 10개 모델의 `args.yaml` 직접 확인 |
+| imgsz / batch / seed / optimizer | 640 / 8 / 42 / auto | 640 / 8 / 42 / auto | 〃 |
+| train 사진 | 그 fold train 목록 | 포즈 · RF 모두 그 fold train 목록 | 포즈 학습 개체 수(1470, 1541, …)가 RF 학습 개체 수와 10개 fold 모두 같음 |
+| val로만 고르는 것 | conf 임계값 (val MAE 최소) | best.pt (val pose mAP50-95 최고), RF best (5-fold 평균 val MAE 최소) | test는 선택에 미사용. 포즈 best.pt는 10개 모두 확인 |
 | 지표 | `count_metrics()` | `count_metrics()` | YOLO `evaluate.py`가 같은 함수를 import |
 | 라이브러리 | torch 2.11.0+cu128, ultralytics 8.4.108 | 같음 | |
 
@@ -234,9 +245,12 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 |---|---|---|
 | 판정에 쓰는 정보 | 사진만 | 포즈 관절 18개 + 카메라별 사료통 좌표 (`configs/eval_cameras.yaml`) |
 | 학습 라벨 | 스켈레톤 점의 최소 · 최대 좌표로 만든 박스 + visiting / other | 관절 18개 (포즈), visiting / other (RF). 같은 CVAT 라벨에서 만듦 |
-| 임계값 | conf를 val에서 고름 | 포즈 검출 conf 0.4, RF 기준 0.5 고정 |
-| best.pt 기준 | box (detect 기본) | pose mAP50-95 (box 제외) |
+| 판정기 학습 입력 | 사진 (학습 · test 같음) | RF는 train 사진의 **사람이 찍은 관절**로 학습하고, val · test에서는 **포즈 모델이 찍은 관절**에 적용 (학습과 적용 입력이 다름) |
+| 임계값 | conf를 val에서 고름 | 포즈 검출 conf 0.4, RF 기준 확률 0.5 고정 |
+| NMS | class-agnostic, IoU 0.7 (Ultralytics 기본) | IoU 0.5 (카메라 설정 파일, 클래스 1개) |
+| best.pt 기준 | box mAP50-95 최고 (Ultralytics detect 기본) | pose mAP50-95 최고 (box 제외하도록 바꿈) |
 | valid 사진 사용 | best.pt · conf 선택 | 포즈 best.pt 선택. RF는 train 사진으로만 학습 (나무 100개, balanced, seed 42) |
+| 개체 단위 오류 매칭 | 사람 박스와 IoU ≥ 0.5 (헝가리안) | 사람 관절과의 평균 거리 ÷ 사람 박스 대각선 ≤ 0.25 (헝가리안) |
 
 **실행 환경 (결과 비교에는 영향 거의 없음)**: YOLO는 RTX 6000 Ada · Python 3.10.12, 포즈 · RF는 RTX 5060 8GB · Python 3.14. GPU가 달라 seed가 같아도 비트 단위로 같은 결과는 아님. 추론 시간은 GPU가 달라 직접 비교하지 않음.
 
@@ -255,7 +269,8 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 | **RF+Geo+Leg** (RF best) | **0.209 ± 0.133** | 0.121 ± 0.033 | 0.345 ± 0.051 | 87.9 ± 3.3% | **0.284 ± 0.104** | **0.109 ± 0.021** | **0.329 ± 0.032** | **89.1 ± 2.1%** |
 | YOLO | 0.251 ± 0.128 | 0.300 ± 0.137 | 0.545 ± 0.125 | 70.5 ± 13.6% | 0.347 ± 0.166 | 0.223 ± 0.048 | 0.475 ± 0.059 | 77.9 ± 4.4% |
 
-- YOLO val은 conf를 같은 valid에서 골라 낙관적임. 랜덤 val MAE 0.251은 fold별 값(소수 3자리)의 평균이라 수아 노션 0.252와 반올림 차이.
+- val은 모든 방법이 조금씩 낙관적임: 포즈 best.pt(Geo · RF 계열)와 YOLO best.pt · conf를 같은 valid로 골랐음. test(000)는 어떤 선택에도 쓰지 않아 이 문제가 없음.
+- 랜덤 val MAE 0.251은 fold별 값(소수 3자리)의 평균이라 수아 노션 0.252와 반올림 차이.
 
 YOLO 검출 성능 (box, 평균 ± 표본 표준편차):
 

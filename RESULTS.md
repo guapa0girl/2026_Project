@@ -202,22 +202,50 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 
 ## 6. 랜덤 vs 시간대 5-fold — 11/16 통일 기준으로 재학습
 
-### 6-1. 조건
+### 6-1. 조건 — 5가지 방법을 어떻게 같은 조건으로 맞췄나
+
+**분할 (랜덤 · 시간대 공통)**
 
 | 항목 | 값 |
 |---|---|
-| 분할 | 시간대 `k5_f0~f4` (시간순 5구간 중 1구간이 valid), 랜덤 `rk5_f0~f4` (task마다 seed 42로 섞음) |
-| train / valid 장수 | 랜덤과 시간대가 fold마다 task별로 똑같음: f0 148 / 42, f1 155 / 34, f2 151 / 37, f3 151 / 37, f4 149 / 40 |
-| 포즈 모델 | v8m-pose, ep200, imgsz 640, batch 8, seed 42, best.pt = **val pose mAP50-95 최고** (box 제외) |
-| RF | 나무 100개, balanced, seed 42, 기준 0.5. 그 fold train 사진으로만 학습 |
-| RF best | RF / RF+Geo / RF+Geo+Leg 중 **5-fold 평균 val MAE 최소** (test는 보지 않음) → 두 분할 모두 **RF+Geo+Leg** |
-| 지표 | `count_metrics()` + RMSE, fold 5개 평균 ± 표본 표준편차 |
-| val / test | val = 그 fold의 valid 사진(001+002), test = 000 86장 |
+| 시간대 `k5_f0~f4` | 001 · 002를 각각 시간순 5구간으로 나눠 fold마다 한 구간이 valid |
+| 랜덤 `rk5_f0~f4` | task마다 seed 42로 섞고, fold마다 train · valid 장수를 `k5_f<i>`와 task별로 똑같이 맞춤 |
+| train / valid 장수 | f0 148 / 42, f1 155 / 34, f2 151 / 37, f3 151 / 37, f4 149 / 40 (두 분할 동일) |
+| test | 000 86장 (visiting 133마리) 고정. 학습 · 선택에 쓰지 않음 |
 
-- 분할 목록 해시(정렬된 `<task>__<사진>` 목록의 SHA-256 앞 12자리)로 YOLO와 같은 사진인지 확인함. 생성: `training/scripts/make_study_splits.py`, `yolo_det/scripts/prepare_data.py --split kfold|rkfold`.
-- YOLO(수아): YOLOv8m detect, COCO 시작, ep200, imgsz 640, batch 8, seed 42, agnostic NMS, conf = 그 fold valid에서 사진당 MAE 최소. 시간대 `ep200_k5_f*` 11/17 재평가, 랜덤 `ep200_rk5_f*` 11/17 학습·평가. 분할 목록 해시 10개 일치 확인됨. 값은 수아 노션 표와 000 사진별 카운트 csv(`counting/reports/fold_study/inputs/`)에서 가져옴.
+랜덤과 시간대는 **valid를 어떻게 고르는지만 다름**.
+
+**YOLO와 Geo · RF 계열이 같은 항목**
+
+| 항목 | YOLO (수아) | 포즈 모델 → Geo · RF 계열 (서인) | 확인 방법 |
+|---|---|---|---|
+| 분할 목록 | `prepare_data.py --split kfold\|rkfold` | `make_study_splits.py` (같은 함수 import) | 정렬된 `<task>__<사진>` 목록의 SHA-256 앞 12자리, 10개 fold 모두 일치 |
+| test 정답 | 000 86장 | 000 86장 | 수아 000 사진별 csv의 gt가 우리 라벨과 86장 모두 일치 |
+| 모델 크기 · 시작 | YOLOv8m detect, COCO `yolov8m.pt` | YOLOv8m-pose, COCO `yolov8m-pose.pt` | 같은 크기, 둘 다 COCO에서 처음부터 |
+| epoch / 조기 종료 | 200 / 끔 | 200 / 끔 (`--patience 0`) | 학습 코드 기본값 |
+| imgsz / batch / seed / optimizer | 640 / 8 / 42 / auto | 640 / 8 / 42 / auto | 학습 코드 기본값 · `train_medium.yaml` |
+| val로만 고르는 것 | conf 임계값 (val MAE 최소) | best.pt (val pose mAP50-95 최고), RF best (5-fold 평균 val MAE 최소) | test는 선택에 미사용 |
+| 지표 | `count_metrics()` | `count_metrics()` | YOLO `evaluate.py`가 같은 함수를 import |
+| 라이브러리 | torch 2.11.0+cu128, ultralytics 8.4.108 | 같음 | |
+
+**방법이 달라서 생기는 차이 (맞출 대상이 아님)**
+
+| 항목 | YOLO | Geo · RF 계열 |
+|---|---|---|
+| 판정에 쓰는 정보 | 사진만 | 포즈 관절 18개 + 카메라별 사료통 좌표 (`configs/eval_cameras.yaml`) |
+| 학습 라벨 | 스켈레톤 점의 최소 · 최대 좌표로 만든 박스 + visiting / other | 관절 18개 (포즈), visiting / other (RF). 같은 CVAT 라벨에서 만듦 |
+| 임계값 | conf를 val에서 고름 | 포즈 검출 conf 0.4, RF 기준 0.5 고정 |
+| best.pt 기준 | box (detect 기본) | pose mAP50-95 (box 제외) |
+| valid 사진 사용 | best.pt · conf 선택 | 포즈 best.pt 선택. RF는 train 사진으로만 학습 (나무 100개, balanced, seed 42) |
+
+**실행 환경 (결과 비교에는 영향 거의 없음)**: YOLO는 RTX 6000 Ada · Python 3.10.12, 포즈 · RF는 RTX 5060 8GB · Python 3.14. GPU가 달라 seed가 같아도 비트 단위로 같은 결과는 아님. 추론 시간은 GPU가 달라 직접 비교하지 않음.
+
+- YOLO 시간대 `ep200_k5_f*`는 11/14\~15 학습 후 11/17 재평가, 랜덤 `ep200_rk5_f*`는 11/17 학습 · 평가. 값은 수아 노션 표와 000 사진별 카운트 csv(`counting/reports/fold_study/inputs/`)에서 가져옴.
+- 확인 필요: 수아 노션 YOLO **val** 표에서 랜덤 f2 · f3 · f4의 MAE · RMSE가 시간대와 소수점까지 같음(conf · mAP는 다름). 옮겨 적다 생긴 실수로 보이며 test 값 · 결론에는 영향 없음.
 
 ### 6-2. 사진당 마릿수 MAE / RMSE
+
+> 논문용 지표 전체(MAE · RMSE · ME · Acc · Acc±1 · TCE · 10초 구간 MAE · visiting Precision / Recall / F1, test MAE 95% bootstrap CI, Wilcoxon 짝비교, 오류 분해, 포즈 box / pose mAP · PCK@0.05 / 0.1 / 0.2, YOLO 검출 지표)는 **[paper_metrics.md](counting/reports/fold_study/paper/paper_metrics.md)** (`counting/scripts/paper_tables.py`로 생성).
 
 | 방법 | 랜덤 val MAE | 랜덤 test MAE | 랜덤 test RMSE | 랜덤 test 정확 일치 | 시간대 val MAE | 시간대 test MAE | 시간대 test RMSE | 시간대 test 정확 일치 |
 |---|---|---|---|---|---|---|---|---|

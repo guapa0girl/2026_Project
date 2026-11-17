@@ -373,6 +373,13 @@ fold별 값은 [fold_study.md 8장](counting/reports/fold_study/fold_study.md).
 
 ![가림 · 밀집 오차 사례](counting/reports/fold_study/error_cases/error_cases.png)
 
+10개 분할 모델 나란히 (사료통 주변 확대, 위 = 시간대 f0\~f4, 아래 = 랜덤 f0\~f4):
+- #57: 파이프 아래 돼지는 **10개 모델 모두 검출 못 함**(no det.) → 10개 모두 1 / 2로 셈. 놓친 20개 중 11개 = 이 돼지 10 + k5_f0의 왼쪽 돼지 keypoint 어긋남 1. 분할 방식과 상관없는 포즈 모델 공통 한계.
+- #76: 10개 중 5개 모델이 keypoint 어긋남. 그중 4개(시간대 f0 · f3 · f4, 랜덤 f2)는 0 / 1로 틀리고, 랜덤 f0은 어긋난 검출을 visiting으로 세서 마릿수만 우연히 맞음.
+
+![#57 10개 모델](counting/reports/fold_study/error_cases/all_models_57.png)
+![#76 10개 모델](counting/reports/fold_study/error_cases/all_models_76.png)
+
 **향후 계획 근거**
 - 데이터 추가: 다른 날짜 · 밤 시간대 · 다른 카메라 (val pose mAP 0.287 → 0.167, 시간대 val RF 0.632).
 - 검출 개선: 급이 파이프 가림 · 밀집 상황 (포즈 단계 미검출 fold당 6\~9마리).

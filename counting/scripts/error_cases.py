@@ -6,7 +6,9 @@
    (visiting 진한 파랑, other 회색), 포즈 모델이 못 찾은 사람 visiting은 검정 점선 + "missed". 원 = 사료통 ROI.
    보여 주는 포즈 모델 = 그 사진에서 visiting을 놓친 첫 분할(시간대 우선).
 입력: outputs/eval/split_<split>/stage2_instances.csv (run_split_eval.ps1), data/labels/state_000.xml, data/raw/000_img
-출력: reports/fold_study/error_cases/ (missed_visiting_by_image.csv, error_cases.png, error_cases.md)
+3) 고른 사진마다 10개 분할 모델 결과를 나란히 (all_models_<no>.png, 사료통 주변 확대) + all_models_summary.csv
+출력: reports/fold_study/error_cases/ (missed_visiting_by_image.csv, error_cases.png, all_models_<no>.png,
+      all_models_summary.csv, error_cases.md)
 
 사용법 (counting/ 에서):  python scripts/error_cases.py [--images 57 76]
 """
@@ -100,6 +102,106 @@ def draw(ax_gt, ax_pr, img_path, gt_rows, split, cams):
     return len(gt_rows), n_vis, len(preds), int(np.sum(vis_pred)), kinds
 
 
+_POSE = {}
+
+
+def model_result(frame, split, cams):
+    """그 분할 포즈 모델 검출 + RF+Geo+Leg 판정 (평가와 같은 설정)."""
+    from ultralytics import YOLO
+    from feeding_monitor.pose_tracker import _parse_detections
+    cfg, zones = cams.cfg["SAMPLE"], cams.zones["SAMPLE"]
+    if split not in _POSE:
+        _POSE[split] = YOLO(str(REPO / "training" / "models" / "results" / f"ep200_{split}" / "m" / "weights" / "best.pt"))
+    res = _POSE[split].predict(frame, conf=cfg.model.conf, imgsz=cfg.model.imgsz, iou=cfg.model.iou, verbose=False)[0]
+    preds = _parse_detections(res, 0)
+    clf, fc = rf_model(split)
+    feats = pd.DataFrame([featurize_det(p, cfg, zones) for p in preds])
+    vis = clf.predict(feats[fc]) if len(feats) else np.array([])
+    return preds, vis
+
+
+def plot_all_models(no, stem, img_path, gt_rows, cams, out_path):
+    """한 사진 × 10개 분할 모델 나란히. 1열 = 사람 라벨, 2~6열 = f0~f4, 위 = 시간대, 아래 = 랜덤.
+    사료통 주변을 잘라서 보여 줌 (visiting 판정이 일어나는 곳)."""
+    import cv2
+    cfg = cams.cfg["SAMPLE"]
+    frame = cv2.imread(str(img_path))
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    H, W = rgb.shape[:2]
+    vis_boxes = [r["det"].box for r in gt_rows if r["label"] == 1]
+    xs = [cfg.feeder.cx - cfg.feeder.r, cfg.feeder.cx + cfg.feeder.r] + [b[0] for b in vis_boxes] + [b[2] for b in vis_boxes]
+    ys = [cfg.feeder.cy - cfg.feeder.r, cfg.feeder.cy + cfg.feeder.r] + [b[1] for b in vis_boxes] + [b[3] for b in vis_boxes]
+    m = 30
+    x0, x1 = max(0, min(xs) - m), min(W, max(xs) + m)
+    y0, y1 = max(0, min(ys) - m), min(H, max(ys) + m)
+    n_vis = sum(r["label"] for r in gt_rows)
+
+    def base(ax):
+        ax.imshow(rgb)
+        ax.add_patch(Circle((cfg.feeder.cx, cfg.feeder.cy), cfg.feeder.r, fill=False, ec="#ffffff", lw=1.0, ls=":"))
+        ax.set_xlim(x0, x1)
+        ax.set_ylim(y1, y0)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    fig, axes = plt.subplots(2, 6, figsize=(19, 7.2))
+    rows = [("Time", [f"k5_f{i}" for i in range(5)]), ("Random", [f"rk5_f{i}" for i in range(5)])]
+    summary = []
+    for r_i, (lab, splits) in enumerate(rows):
+        for c_i, split in enumerate(splits):
+            ax = axes[r_i, c_i + 1]
+            base(ax)
+            preds, vis = model_result(frame, split, cams)
+            pairs = em.match([g["det"] for g in gt_rows], preds, 0.25)
+            mg = {i for i, _ in pairs}
+            kinds = []
+            for i, g in enumerate(gt_rows):
+                if g["label"] == 1 and i not in mg:
+                    b = g["det"].box
+                    kind = "kpts off" if max((iou(b, p.box) for p in preds), default=0) >= 0.5 else "no det."
+                    kinds.append(kind)
+                    ax.add_patch(Rectangle((b[0], b[1]), b[2] - b[0], b[3] - b[1], fill=False, ec="#000000",
+                                           lw=2.0, ls="--"))
+                    ax.text(b[0] + 2, b[1] + 2, kind, va="top", fontsize=7, bbox=dict(fc="#ffffff", ec="none", pad=1))
+            for p, v in zip(preds, vis):
+                b = p.box
+                ax.add_patch(Rectangle((b[0], b[1]), b[2] - b[0], b[3] - b[1], fill=False,
+                                       ec=C_VIS if v else C_OTHER, lw=2.0 if v else 0.9))
+            cnt = int(np.sum(vis))
+            ok = cnt == n_vis                     # 빨강 = 센 마릿수가 틀림 (매칭 실패가 있어도 마릿수가 맞으면 검정)
+            note = "" if not kinds else (f"\nmissed {len(kinds)}" if not ok else
+                                         f"\nmissed {len(kinds)}, count right by chance")
+            ax.set_title(f"{lab} f{c_i}: counted {cnt} / GT {n_vis}" + note,
+                         fontsize=9, loc="left", color="#000000" if ok else "#b2182b",
+                         fontweight="normal" if ok else "bold")
+            summary.append({"image_no": no, "scheme": lab.lower(), "fold": f"f{c_i}", "split": split,
+                            "gt_visiting": n_vis, "counted_visiting": cnt, "detected_pigs": len(preds),
+                            "missed_no_detection": kinds.count("no det."), "missed_kpts_off": kinds.count("kpts off")})
+    for r_i in range(2):
+        ax = axes[r_i, 0]
+        base(ax)
+        for g in gt_rows:
+            b = g["det"].box
+            v = g["label"] == 1
+            ax.add_patch(Rectangle((b[0], b[1]), b[2] - b[0], b[3] - b[1], fill=False, ec="#000000" if v else "#ffffff",
+                                   lw=2.0 if v else 0.8, ls="--" if v else "-"))
+        ax.set_title(f"Human labels: {n_vis} visiting", fontsize=9, loc="left")
+        ax.set_ylabel(rows[r_i][0] + " 5-fold", fontsize=11, fontweight="bold")
+    from matplotlib.lines import Line2D
+    h = [Line2D([], [], color="#000000", lw=2.0, ls="--", label="Human visiting (missed by model if drawn on a model panel)"),
+         Line2D([], [], color=C_VIS, lw=2.0, label="Model: counted visiting (RF+Geo+Leg)"),
+         Line2D([], [], color=C_OTHER, lw=0.9, label="Model: other"),
+         Line2D([], [], color="#bbbbbb", lw=1.0, ls=":", label="Feeder ROI")]
+    fig.legend(handles=h, loc="lower center", ncol=4, frameon=False, fontsize=9)
+    n_wrong = sum(s["counted_visiting"] != n_vis for s in summary)
+    fig.suptitle(f"Test image #{no}: all 10 pose models (+ RF+Geo+Leg), cropped around the feeder — "
+                 f"count wrong in {n_wrong} of 10 (red titles)", fontsize=11)
+    fig.tight_layout(rect=(0, 0.04, 1, 0.97))
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+    return summary
+
+
 def iou(a, b):
     ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
     iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
@@ -174,7 +276,27 @@ def main():
     fig.tight_layout(rect=(0, 0.03, 1, 0.98))
     fig.savefig(OUT / "error_cases.png", dpi=150)
     plt.close(fig)
-    md += ["", "![error cases](error_cases.png)", ""]
+    md += ["", "![error cases](error_cases.png)", "",
+           "## 10개 분할 모델 나란히 (사료통 주변 확대)", "",
+           "1열 = 사람 라벨, 위 줄 = 시간대 5-fold f0~f4, 아래 줄 = 랜덤 5-fold f0~f4. 빨간 제목 = 센 마릿수가 GT와 다름. "
+           "모델 칸의 검정 점선 = 그 모델이 매칭하지 못한 사람 visiting (no det. = 검출 없음, kpts off = 검출은 됐지만 "
+           "keypoint가 어긋남).", "",
+           "| # | 분할 | f0 | f1 | f2 | f3 | f4 |", "|---|---|---|---|---|---|---|"]
+    allsum = []
+    for no in a.images:
+        stem = next(s for s in imgs if s.startswith(f"{no:04d}_"))
+        rows = [r for r in gt_all if r["image"] == stem]
+        s = plot_all_models(no, stem, imgs[stem], rows, cams, OUT / f"all_models_{no:02d}.png")
+        allsum += s
+        for sch in ("time", "random"):
+            cells = [f"{x['counted_visiting']}/{x['gt_visiting']}" +
+                     (f" (no det. {x['missed_no_detection']}, kpts off {x['missed_kpts_off']})"
+                      if x["missed_no_detection"] + x["missed_kpts_off"] else "")
+                     for x in s if x["scheme"] == sch]
+            md.append(f"| {no} | {'시간대' if sch == 'time' else '랜덤'} | " + " | ".join(cells) + " |")
+    pd.DataFrame(allsum).to_csv(OUT / "all_models_summary.csv", index=False, encoding="utf-8-sig")
+    md += ["", "칸 = 센 visiting / 사람 visiting (괄호 = 매칭 못 한 사람 visiting 종류별 수).", ""]
+    md += [f"![#{no} all models](all_models_{no:02d}.png)" for no in a.images] + [""]
     (OUT / "error_cases.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md))
 

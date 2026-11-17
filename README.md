@@ -22,6 +22,7 @@ test = 000(1분 샘플 영상 86장), 시간대 5-fold 평균.
 | YOLO | 0.223 ± 0.048 | 77.9% | −4.2% |
 
 - 모든 분할에서 오차 순서는 RF 계열 < YOLO < Geo. RF+Geo+Leg가 가장 좋고 안정적임.
+- 11/16 통일 기준(seed 42, best.pt = val pose mAP50-95, RF best = val MAE)으로 다시 학습한 랜덤 · 시간대 5-fold: test MAE (랜덤 / 시간대) RF+Geo+Leg 0.121 / 0.109, RF 0.114 / 0.116, RF+Geo 0.133 / 0.126, Geo 0.293 / 0.293, YOLO 0.300 / 0.223. 자세히는 [RESULTS.md 6장](RESULTS.md), [fold_study.md](counting/reports/fold_study/fold_study.md).
 - 데이터, train / valid 비율, 진행 방법, 분할별 결과: **[RESULTS.md](RESULTS.md)**
 - 진행 과정 전체 기록: [PROGRESS.md](PROGRESS.md)
 

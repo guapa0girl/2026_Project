@@ -1,4 +1,4 @@
-# 분할 방식별 포즈 모델(medium, epoch 200, batch 8, imgsz 640, seed 42, best.pt = valid pose mAP50-95 최고) 학습.
+﻿# 분할 방식별 포즈 모델(medium, epoch 200, batch 8, imgsz 640, seed 42, best.pt = valid pose mAP50-95 최고) 학습.
 # 끝나면 data/processed를 랜덤 분할로 되돌림.
 # 사용법 (training/ 에서):
 #   powershell -File scripts\run_split_study.ps1 [-Python <python.exe>]                        # 시간대 + 시간대 5-fold

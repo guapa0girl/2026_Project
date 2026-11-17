@@ -1,4 +1,4 @@
-# 분할별 Geo / RF / RF+Geo / RF+Geo+Leg 평가 → compare_splits.py / compare_folds.py로 YOLO와 같이 비교.
+﻿# 분할별 Geo / RF / RF+Geo / RF+Geo+Leg 평가 → compare_splits.py / compare_folds.py로 YOLO와 같이 비교.
 # 포즈 모델 = training/models/results/ep200[_<split>]/m (training/scripts/run_split_study.ps1로 학습)
 # RF = 그 분할의 train 사진(training/data/splits/<split>.json)으로만 학습
 # test = 000 → outputs/eval/split_<split>/

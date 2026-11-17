@@ -115,6 +115,8 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 
 ## 4. 결과 (test = 000, 86장, 사람 visiting 133마리)
 
+> 4장은 11/16 통일 기준 적용 **전** 결과임(포즈 seed·best.pt 기준이 다름). 통일 기준으로 다시 학습한 랜덤 · 시간대 5-fold 결과는 **[6장](#6-랜덤-vs-시간대-5-fold--1116-통일-기준으로-재학습)**.
+
 ### 4-1. 사진당 마릿수
 
 5-fold는 fold 5개의 평균 ± 표준편차.
@@ -195,3 +197,83 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 - **한계**: test가 1분 영상 하나(000, 86장)라 장면이 다양하지 않음. 학습 사진도 190장이라 train이 조금만 바뀌어도 결과가 흔들림.
 
 결과 파일: `counting/reports/split_comparison/` (`split_comparison.csv` / `.md` / `.png`, `split_folds.csv`, `pose_by_split.csv`), YOLO는 `yolo_det/reports/ep200*/m/summary.json`.
+
+---
+
+## 6. 랜덤 vs 시간대 5-fold — 11/16 통일 기준으로 재학습
+
+### 6-1. 조건
+
+| 항목 | 값 |
+|---|---|
+| 분할 | 시간대 `k5_f0~f4` (시간순 5구간 중 1구간이 valid), 랜덤 `rk5_f0~f4` (task마다 seed 42로 섞음) |
+| train / valid 장수 | 랜덤과 시간대가 fold마다 task별로 똑같음: f0 148 / 42, f1 155 / 34, f2 151 / 37, f3 151 / 37, f4 149 / 40 |
+| 포즈 모델 | v8m-pose, ep200, imgsz 640, batch 8, seed 42, best.pt = **val pose mAP50-95 최고** (box 제외) |
+| RF | 나무 100개, balanced, seed 42, 기준 0.5. 그 fold train 사진으로만 학습 |
+| RF best | RF / RF+Geo / RF+Geo+Leg 중 **5-fold 평균 val MAE 최소** (test는 보지 않음) → 두 분할 모두 **RF+Geo+Leg** |
+| 지표 | `count_metrics()` + RMSE, fold 5개 평균 ± 표본 표준편차 |
+| val / test | val = 그 fold의 valid 사진(001+002), test = 000 86장 |
+
+- 분할 목록 해시(정렬된 `<task>__<사진>` 목록의 SHA-256 앞 12자리)로 YOLO와 같은 사진인지 확인함. 생성: `training/scripts/make_study_splits.py`, `yolo_det/scripts/prepare_data.py --split kfold|rkfold`.
+- YOLO(수아): YOLOv8m detect, COCO 시작, ep200, imgsz 640, batch 8, seed 42, agnostic NMS, conf = 그 fold valid에서 사진당 MAE 최소. 시간대 `ep200_k5_f*` 11/17 재평가, 랜덤 `ep200_rk5_f*` 11/17 학습·평가. 분할 목록 해시 10개 일치 확인됨. 값은 수아 노션 표와 000 사진별 카운트 csv(`counting/reports/fold_study/inputs/`)에서 가져옴.
+
+### 6-2. 사진당 마릿수 MAE / RMSE
+
+| 방법 | 랜덤 val MAE | 랜덤 test MAE | 랜덤 test RMSE | 랜덤 test 정확 일치 | 시간대 val MAE | 시간대 test MAE | 시간대 test RMSE | 시간대 test 정확 일치 |
+|---|---|---|---|---|---|---|---|---|
+| Geo | 0.566 ± 0.045 | 0.293 ± 0.028 | 0.562 ± 0.025 | 71.9 ± 2.8% | 0.575 ± 0.148 | 0.293 ± 0.022 | 0.562 ± 0.020 | 71.9 ± 2.2% |
+| RF | 0.389 ± 0.136 | **0.114 ± 0.015** | **0.343 ± 0.032** | **88.8 ± 1.3%** | 0.632 ± 0.252 | 0.116 ± 0.032 | 0.338 ± 0.046 | 88.4 ± 3.2% |
+| RF+Geo | 0.259 ± 0.139 | 0.133 ± 0.033 | 0.362 ± 0.047 | 86.7 ± 3.3% | 0.349 ± 0.122 | 0.126 ± 0.019 | 0.353 ± 0.028 | 87.4 ± 1.9% |
+| **RF+Geo+Leg** (RF best) | **0.209 ± 0.133** | 0.121 ± 0.033 | 0.345 ± 0.051 | 87.9 ± 3.3% | **0.284 ± 0.104** | **0.109 ± 0.021** | **0.329 ± 0.032** | **89.1 ± 2.1%** |
+| YOLO | 0.251 ± 0.128 | 0.300 ± 0.137 | 0.545 ± 0.125 | 70.5 ± 13.6% | 0.347 ± 0.166 | 0.223 ± 0.048 | 0.475 ± 0.059 | 77.9 ± 4.4% |
+
+- YOLO val은 conf를 같은 valid에서 골라 낙관적임. 랜덤 val MAE 0.251은 fold별 값(소수 3자리)의 평균이라 수아 노션 0.252와 반올림 차이.
+
+YOLO 검출 성능 (box, 평균 ± 표본 표준편차):
+
+| 분할 | conf | val mAP50-95 | test P | test R | test mAP50 | test mAP50-95 |
+|---|---|---|---|---|---|---|
+| 랜덤 5-fold | 0.48 ± 0.15 | 0.713 ± 0.024 | 0.900 ± 0.039 | 0.843 ± 0.036 | 0.867 ± 0.029 | 0.597 ± 0.024 |
+| 시간대 5-fold | 0.49 ± 0.19 | 0.610 ± 0.042 | 0.910 ± 0.033 | 0.859 ± 0.022 | 0.879 ± 0.008 | 0.600 ± 0.016 |
+
+fold별 값은 [fold_study.md 8장](counting/reports/fold_study/fold_study.md).
+
+![MAE 랜덤 vs 시간대](counting/reports/fold_study/graph_B_mae_random_vs_time.png)
+
+### 6-3. 실제로 센 마릿수 (fold 5개 합계, GT = 사람)
+
+| 분할 · 세트 | GT | Geo | RF | RF+Geo | RF+Geo+Leg | YOLO |
+|---|---|---|---|---|---|---|
+| 랜덤 · val | 315 | 281 (−10.8%) | 357 (+13.3%) | 331 (+5.1%) | **317 (+0.6%)** | – |
+| 랜덤 · test | 665 (133 × 5) | 541 (−18.6%) | 650 (−2.3%) | 636 (−4.4%) | 643 (−3.3%) | 638 (−4.1%) |
+| 시간대 · val | 315 | 273 (−13.3%) | 400 (+27.0%) | 340 (+7.9%) | **322 (+2.2%)** | – |
+| 시간대 · test | 665 (133 × 5) | 547 (−17.7%) | 657 (−1.2%) | 643 (−3.3%) | 656 (−1.4%) | 637 (−4.2%) |
+
+- YOLO 랜덤 test는 합계로는 −4.1%지만 fold마다 크게 흔들림: f2 101마리(−24.1%), f3 152마리(+14.3%). YOLO val 총 마릿수는 수아 자료에 없어 '–'.
+- fold별 값은 [fold_study.md 6장](counting/reports/fold_study/fold_study.md).
+- 000 사진별 카운트 csv: `counting/reports/fold_study/per_frame_000/<geo|rf|rf_geo|rf_geo_leg|yolo>.csv`. 열은 frame_idx, image, gt, k5_f0\~f4, rk5_f0\~f4로 수아 `000_per_frame_counts.csv`와 같은 형식임.
+
+![fold별 총 마릿수](counting/reports/fold_study/graph_C_total_counts.png)
+![000 사진별 마릿수](counting/reports/fold_study/graph_A_frame_counts_000.png)
+
+### 6-4. 포즈 모델 (keypoint)
+
+| 분할 | val pose mAP50-95 | val PCK@0.1 | test pose mAP50-95 | test PCK@0.1 | test PCK@0.2 |
+|---|---|---|---|---|---|
+| 랜덤 5-fold | 0.287 ± 0.024 | 0.784 ± 0.018 | 0.111 ± 0.021 | 0.691 ± 0.029 | 0.865 ± 0.009 |
+| 시간대 5-fold | 0.167 ± 0.020 | 0.695 ± 0.025 | 0.087 ± 0.010 | 0.692 ± 0.024 | 0.865 ± 0.011 |
+
+- keypoint별로는 몸통(tail · hip · flank · shoulder · neck · ear)이 test PCK@0.1 0.72\~0.94, 다리 끝·귀 끝(foot · hand · ear_tip)이 0.26\~0.69로 낮음. keypoint별 표는 [fold_study.md 7장](counting/reports/fold_study/fold_study.md).
+
+![keypoint별 PCK](counting/reports/fold_study/graph_D_keypoint_pck.png)
+
+### 6-5. 정리
+
+- **test(000)에서 RF 계열은 랜덤과 시간대 차이가 거의 없음** (0.11\~0.13). Geo도 0.293으로 같음.
+- **YOLO는 랜덤 5-fold test에서 흔들림이 큼** (MAE 0.300 ± 0.137, rk5_f2 0.419, rk5_f3 0.477). box mAP50-95는 두 분할 모두 0.60으로 안정적이라, 흔들림은 검출이 아니라 conf 임계값과 visiting / other 판정에서 생김.
+- test 순서: 시간대는 RF 계열 < YOLO < Geo, 랜덤은 RF 계열 < Geo ≈ YOLO.
+- **val은 시간대가 랜덤보다 나쁘고 fold마다 크게 흔들림** (RF 0.389 → 0.632, k5_f3는 1.054). 시간대 분할은 학습 때 못 본 시간대를 valid로 두기 때문임. 포즈 val mAP50-95도 0.287 → 0.167로 떨어지지만 test PCK는 같음.
+- **RF best는 두 분할 모두 RF+Geo+Leg**이고, 실제 센 마릿수도 val에서 GT와 가장 가까움(+0.6%, +2.2%). RF 단독은 val에서 13\~27% 많이 셈.
+- Geo는 val · test 모두 약 11\~19% 적게 셈.
+
+결과 파일: `counting/reports/fold_study/` (`fold_study.md`, `fold_metrics.csv`, `fold_summary.csv`, `pose_folds.csv`, `pose_keypoints.csv`, `fold_composition.csv`, `frames/ep200_<split>/<방법>_<val|test>.csv`, 그래프 A\~D). 명령: `training/scripts/run_split_study.ps1`, `counting/scripts/run_split_eval.ps1 -Valid`.

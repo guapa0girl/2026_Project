@@ -53,7 +53,7 @@ METHODS = [("geo", "Geo"), ("rf", "RF"), ("rf_geo", "RF+Geo"), ("rf_geo_leg", "R
 RF_FAMILY = ["rf", "rf_geo", "rf_geo_leg"]
 LABEL = dict(METHODS)
 SCHEMES = [("random_5fold", "Random 5-fold", "rk5"), ("time_5fold", "Time 5-fold", "k5")]
-SETS = [("val", "val"), ("test", "test (000)")]
+SETS = [("val", "val"), ("test", "test(000)")]
 COLS = ["count_MAE", "count_RMSE", "count_bias", "exact_rate", "within1_rate", "total_model", "total_human",
         "total_error_pct", "over_frames", "under_frames", "bin_MAE",
         "missed_visiting_undetected", "missed_visiting_judged", "wrong_visiting", "extra_visiting"]
@@ -415,7 +415,7 @@ def plot_b(df, out):
                 ax.text(x, (0 if np.isnan(mval) else mval + (0 if np.isnan(s) else s)) + 0.01,
                         "n/a" if np.isnan(mval) else f"{mval:.3f}", ha="center", va="bottom", fontsize=7)
         ax.set_xticks(range(len(METHODS)), [lab for _, lab in METHODS])
-        ax.set_title(f"{'Validation' if part == 'val' else 'Test (000, 86 images)'}")
+        ax.set_title(f"{'Validation' if part == 'val' else 'test(000), 86 images'}")
         ax.grid(axis="y", color="#e5e5e5")
         ax.set_axisbelow(True)
         ax.spines[["top", "right"]].set_visible(False)
@@ -464,8 +464,8 @@ def plot_a(out, rf_best):
         ax.grid(axis="y", color="#e5e5e5")
         ax.spines[["top", "right"]].set_visible(False)
         ax.legend(frameon=False, fontsize=8, ncol=4, loc="lower left")
-    axes[-1].set_xlabel("Image order in 000 (time →)")
-    fig.suptitle("Per-image visiting count on 000 (line = mean over folds, band = min–max)")
+    axes[-1].set_xlabel("Image order in test(000) (time →)")
+    fig.suptitle("Per-image visiting count on test(000) (line = mean over folds, band = min–max)")
     fig.tight_layout()
     fig.savefig(out / "graph_A_frame_counts_000.png", dpi=150)
     plt.close(fig)
@@ -496,7 +496,7 @@ def plot_c(df, out, rf_best):
                     ax.hlines(gi, xi - 0.45, xi + 0.45, color=COLOR["gt"], lw=2)
             ax.set_xticks(x, [f"{f}\nGT {g:.0f}" if not pd.isna(g) else f for f, g in zip(folds, gt)])
             ax.set_title(f"{'Random' if key == 'random_5fold' else 'Time'} 5-fold · "
-                         f"{'Validation' if part == 'val' else 'Test (000, 86 images)'}", loc="left", fontsize=10)
+                         f"{'Validation' if part == 'val' else 'test(000), 86 images'}", loc="left", fontsize=10)
             ax.set_ylabel("Total visiting pigs counted")
             ymax = np.nanmax(np.r_[sub["total_model"].to_numpy(float), gt.to_numpy(float), 1.0])
             ax.set_ylim(0, ymax * 1.18)
@@ -531,7 +531,7 @@ def plot_d(kp, out):
                    hatch="" if key == "random_5fold" else "///", edgecolor="white" if key == "random_5fold" else "#333",
                    linewidth=0.6, label="Random 5-fold" if key == "random_5fold" else "Time 5-fold")
             ax.errorbar(xs, mean, yerr=sd, fmt="none", capsize=2, elinewidth=0.8, ecolor="#333")
-        ax.set_title("Validation" if part == "val" else "Test (000)", loc="left", fontsize=10)
+        ax.set_title("Validation" if part == "val" else "test(000)", loc="left", fontsize=10)
         ax.set_ylabel("PCK@0.1")
         ax.set_ylim(0, 1.05)
         ax.grid(axis="y", color="#e5e5e5")

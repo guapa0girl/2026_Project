@@ -2,7 +2,7 @@
 
 fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133마리), val = 그 fold의 valid 사진(001+002). '–' = 값 없음. 지표 정의와 계산 방법은 `counting/scripts/paper_tables.py` 맨 위 설명.
 
-## Table 1. Counting performance — Test (000)
+## Table 1. Counting performance — test(000)
 
 | Split | Method | MAE | RMSE | ME | Acc (%) | Acc±1 (%) | TCE (%) | 10-s MAE | Precision | Recall | F1 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -48,7 +48,7 @@ fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133�
 
 사진별 |오차|는 fold 5개 평균. 86장이 1분 영상 하나에서 나와 사진끼리 독립이 아니므로 CI는 낙관적임.
 
-## Table 4. Paired comparison on test images (Wilcoxon signed-rank, n = 86)
+## Table 4. Paired comparison on test(000) images (Wilcoxon signed-rank, n = 86)
 
 | Comparison (A vs B) | Split | ΔMAE (B − A) | A better / same / B better (images) | p |
 |---|---|---|---|---|
@@ -68,7 +68,7 @@ fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133�
 
 사진별 |오차|(fold 5개 평균)로 비교. Random 5-fold vs Time 5-fold 줄은 A = Random 5-fold, B = Time 5-fold (Δ > 0이면 Random 5-fold가 더 나쁨). 사진끼리 독립이 아니라 p값은 참고용.
 
-## Table 5. Error decomposition on test (visiting pigs per fold)
+## Table 5. Error decomposition on test(000) (visiting pigs per fold)
 
 | Split | Method | Counted / GT | Missed (undetected) | Missed (judged other) | Other → visiting | Unlabeled → visiting |
 |---|---|---|---|---|---|---|
@@ -89,14 +89,14 @@ Geo · RF 계열은 같은 포즈 모델을 써서 'Missed (undetected)'가 같�
 
 | Split | Set | box_mAP50 | box_mAP50-95 | pose_mAP50 | pose_mAP50-95 | PCK@0.05 | PCK@0.1 | PCK@0.2 |
 |---|---|---|---|---|---|---|---|---|
-| Random 5-fold | Test (000) | 0.885 ± 0.008 | 0.652 ± 0.023 | 0.338 ± 0.062 | 0.111 ± 0.021 | 0.369 ± 0.042 | 0.691 ± 0.029 | 0.865 ± 0.009 |
+| Random 5-fold | test(000) | 0.885 ± 0.008 | 0.652 ± 0.023 | 0.338 ± 0.062 | 0.111 ± 0.021 | 0.369 ± 0.042 | 0.691 ± 0.029 | 0.865 ± 0.009 |
 | Random 5-fold | Validation | 0.986 ± 0.005 | 0.797 ± 0.011 | 0.742 ± 0.031 | 0.287 ± 0.024 | 0.518 ± 0.016 | 0.784 ± 0.018 | 0.923 ± 0.009 |
-| Time 5-fold | Test (000) | 0.884 ± 0.026 | 0.646 ± 0.023 | 0.274 ± 0.049 | 0.087 ± 0.010 | 0.373 ± 0.009 | 0.692 ± 0.024 | 0.865 ± 0.011 |
+| Time 5-fold | test(000) | 0.884 ± 0.026 | 0.646 ± 0.023 | 0.274 ± 0.049 | 0.087 ± 0.010 | 0.373 ± 0.009 | 0.692 ± 0.024 | 0.865 ± 0.011 |
 | Time 5-fold | Validation | 0.960 ± 0.019 | 0.694 ± 0.024 | 0.548 ± 0.046 | 0.167 ± 0.020 | 0.406 ± 0.011 | 0.695 ± 0.025 | 0.871 ± 0.026 |
 
 PCK@α = 정답과 예측 keypoint 거리가 α × 정답 박스 긴 변(max(w, h)) 미만인 비율 (`training/scripts/utils/pck.py`; 예측 conf 0.25, 사람 박스와 IoU ≥ 0.5로 짝지은 돼지만). mAP는 Ultralytics val. best.pt = val pose mAP50-95 최고 epoch. keypoint별 PCK@0.1:
 
-| Keypoint | Random 5-fold Test (000) | Random 5-fold Validation | Time 5-fold Test (000) | Time 5-fold Validation |
+| Keypoint | Random 5-fold test(000) | Random 5-fold Validation | Time 5-fold test(000) | Time 5-fold Validation |
 |---|---|---|---|---|
 | tail_tip | 0.818 ± 0.020 | 0.884 ± 0.021 | 0.794 ± 0.052 | 0.797 ± 0.041 |
 | tail | 0.836 ± 0.012 | 0.935 ± 0.015 | 0.839 ± 0.021 | 0.871 ± 0.025 |
@@ -121,9 +121,9 @@ PCK@α = 정답과 예측 keypoint 거리가 α × 정답 박스 긴 변(max(w, 
 
 | Split | Set | conf | P | R | mAP50 | mAP50-95 |
 |---|---|---|---|---|---|---|
-| Random 5-fold | Test (000) | 0.48 ± 0.15 | 0.900 ± 0.039 | 0.843 ± 0.036 | 0.867 ± 0.029 | 0.597 ± 0.024 |
+| Random 5-fold | test(000) | 0.48 ± 0.15 | 0.900 ± 0.039 | 0.843 ± 0.036 | 0.867 ± 0.029 | 0.597 ± 0.024 |
 | Random 5-fold | Validation | 0.48 ± 0.15 | 0.939 ± 0.019 | 0.924 ± 0.020 | 0.953 ± 0.009 | 0.713 ± 0.024 |
-| Time 5-fold | Test (000) | 0.49 ± 0.19 | 0.910 ± 0.033 | 0.859 ± 0.022 | 0.879 ± 0.008 | 0.600 ± 0.016 |
+| Time 5-fold | test(000) | 0.49 ± 0.19 | 0.910 ± 0.033 | 0.859 ± 0.022 | 0.879 ± 0.008 | 0.600 ± 0.016 |
 | Time 5-fold | Validation | 0.49 ± 0.19 | 0.921 ± 0.036 | 0.838 ± 0.066 | 0.899 ± 0.059 | 0.610 ± 0.042 |
 
 conf = 그 fold valid에서 사진당 MAE 최소. 추론 시간(RTX 6000 Ada, batch 1, imgsz 640): 중앙값 21.3\~22.3 ms, p95 22.4\~24.3 ms (수아 노션 11/17).
@@ -132,7 +132,7 @@ conf = 그 fold valid에서 사진당 MAE 최소. 추론 시간(RTX 6000 Ada, ba
 
 | Figure | File | Caption |
 |---|---|---|
-| A | `../graph_A_frame_counts_000.png` | Per-image visiting count on 000 (GT, Geo, RF best, YOLO; mean over 5 folds, band = min–max) |
+| A | `../graph_A_frame_counts_000.png` | Per-image visiting count on test(000) (GT, Geo, RF best, YOLO; mean over 5 folds, band = min–max) |
 | B | `../graph_B_mae_random_vs_time.png` | Per-image count MAE by method, Random 5-fold vs Time 5-fold (mean ± SD) |
 | C | `../graph_C_total_counts.png` | Total visiting pigs counted per fold vs human GT |
 | D | `../graph_D_keypoint_pck.png` | Per-keypoint PCK@0.1, Random 5-fold vs Time 5-fold |

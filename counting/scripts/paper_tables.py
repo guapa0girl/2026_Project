@@ -39,7 +39,7 @@ K = 5
 METHODS = [("geo", "Geo"), ("rf", "RF"), ("rf_geo", "RF+Geo"), ("rf_geo_leg", "RF+Geo+Leg"), ("yolo", "YOLO")]
 LABEL = dict(METHODS)
 SCHEMES = [("random_5fold", "Random 5-fold", "rk5"), ("time_5fold", "Time 5-fold", "k5")]
-SETS = [("test", "Test (000)"), ("val", "Validation")]
+SETS = [("test", "test(000)"), ("val", "Validation")]
 RF_BEST = "rf_geo_leg"   # 두 분할 모두 5-fold 평균 val MAE 최소 (fold_study.md 1장)
 
 
@@ -183,7 +183,7 @@ def main():
                        "better": int((d > 0).sum()), "same": int((d == 0).sum()), "worse": int((d < 0).sum()), "p": pv})
     w = pd.DataFrame(w_rows)
     w.to_csv(OUT / "wilcoxon.csv", index=False, encoding="utf-8-sig")
-    md += ["## Table 4. Paired comparison on test images (Wilcoxon signed-rank, n = 86)", "",
+    md += ["## Table 4. Paired comparison on test(000) images (Wilcoxon signed-rank, n = 86)", "",
            "| Comparison (A vs B) | Split | ΔMAE (B − A) | A better / same / B better (images) | p |",
            "|---|---|---|---|---|"]
     for _, r in w.iterrows():
@@ -194,7 +194,7 @@ def main():
            "사진끼리 독립이 아니라 p값은 참고용.", ""]
 
     # 표 5: 오류 분해 (test, 개체 수)
-    md += ["## Table 5. Error decomposition on test (visiting pigs per fold)", "",
+    md += ["## Table 5. Error decomposition on test(000) (visiting pigs per fold)", "",
            "| Split | Method | Counted / GT | Missed (undetected) | Missed (judged other) | Other → visiting | "
            "Unlabeled → visiting |", "|---|---|---|---|---|---|---|"]
     for key, slab, _ in SCHEMES:
@@ -242,7 +242,7 @@ def main():
 
     md += ["## Figures", "",
            "| Figure | File | Caption |", "|---|---|---|",
-           "| A | `../graph_A_frame_counts_000.png` | Per-image visiting count on 000 (GT, Geo, RF best, YOLO; mean over 5 folds, band = min–max) |",
+           "| A | `../graph_A_frame_counts_000.png` | Per-image visiting count on test(000) (GT, Geo, RF best, YOLO; mean over 5 folds, band = min–max) |",
            "| B | `../graph_B_mae_random_vs_time.png` | Per-image count MAE by method, Random 5-fold vs Time 5-fold (mean ± SD) |",
            "| C | `../graph_C_total_counts.png` | Total visiting pigs counted per fold vs human GT |",
            "| D | `../graph_D_keypoint_pck.png` | Per-keypoint PCK@0.1, Random 5-fold vs Time 5-fold |", ""]

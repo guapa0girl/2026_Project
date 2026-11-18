@@ -169,7 +169,7 @@ def plot_e(base, frames):
             ax.set_axisbelow(True)
             ax.spines[["top", "right"]].set_visible(False)
     for ax in axes[-1]:
-        ax.set_xlabel("Test image (000, time order, 1–86)")
+        ax.set_xlabel("test(000) image (time order, 1–86)")
         ax.set_xticks(np.arange(0, 86, 10), [str(i + 1) for i in range(0, 86, 10)])
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
@@ -177,7 +177,7 @@ def plot_e(base, frames):
          Line2D([], [], color="#555", lw=1.6, label="Model, mean of 5 folds (method color)"),
          Patch(color="#555", alpha=0.25, label="Range over 5 folds (min–max)")]
     fig.legend(handles=h, loc="lower center", ncol=3, frameon=False, fontsize=9)
-    fig.suptitle("Visiting pigs counted per test image: every method vs human GT", fontsize=12)
+    fig.suptitle("Visiting pigs counted per test(000) image: every method vs human GT", fontsize=12)
     fig.tight_layout(rect=(0, 0.03, 1, 1))
     fig.savefig(OUT / "graph_E_per_image_counts.png", dpi=150)
     plt.close(fig)
@@ -215,13 +215,13 @@ def plot_model(base, fr, m, lab, path):
     ax.axhline(K + 0.5, color="#333", lw=1.0)
     for s in ax.spines.values():
         s.set_visible(False)
-    ax.set_xlabel("Test image (000, time order, 1–86)")
+    ax.set_xlabel("test(000) image (time order, 1–86)")
     cb = fig.colorbar(im, ax=ax, ticks=ERR_LEVELS, fraction=0.015, pad=0.01)
     cb.ax.set_yticklabels(["≤ −3", "−2", "−1", "0", "+1", "+2", "≥ +3"], fontsize=8)
     cb.set_label("Error = model − GT")
     acc = [(rows[r][2] == 0).mean() for r in range(1, R)]
     mae = [np.abs(rows[r][2]).mean() for r in range(1, R)]
-    ax.set_title(f"{lab}: pigs counted per test image (numbers) vs human GT (top row); "
+    ax.set_title(f"{lab}: pigs counted per test(000) image (numbers) vs human GT (top row); "
                  f"MAE Random 5-fold {np.mean(mae[:K]):.3f}, Time 5-fold {np.mean(mae[K:]):.3f}; "
                  f"exact (Random 5-fold / Time 5-fold) {np.mean(acc[:K]) * 100:.1f}% / {np.mean(acc[K:]) * 100:.1f}%", fontsize=11, loc="left")
     fig.tight_layout()
@@ -263,7 +263,7 @@ def plot_f(base, frames):
     im = ax.imshow(E, aspect="auto", cmap=cmap, norm=norm, interpolation="nearest")
     ax.set_yticks(np.arange(n_models), labels, fontsize=6.5)
     ax.set_xticks(np.arange(0, 86, 5), [str(i + 1) for i in range(0, 86, 5)], fontsize=8)
-    ax.set_xlabel("Test image (000, time order, 1–86)")
+    ax.set_xlabel("test(000) image (time order, 1–86)")
     ax.set_xticks(np.arange(-0.5, 86, 1), minor=True)
     ax.set_yticks(np.arange(-0.5, n_models, 1), minor=True)
     ax.grid(which="minor", color="#ffffff", lw=0.6)
@@ -280,7 +280,7 @@ def plot_f(base, frames):
     cb = fig.colorbar(im, cax=cax, ticks=ERR_LEVELS)
     cb.ax.set_yticklabels(["≤ −3", "−2", "−1", "0 (correct)", "+1", "+2", "≥ +3"], fontsize=8)
     cb.set_label("Error = model − GT (pigs)")
-    fig.suptitle("Per-image counting error of all 50 models on test (000): blue = undercount, red = overcount",
+    fig.suptitle("Per-image counting error of all 50 models on test(000): blue = undercount, red = overcount",
                  fontsize=12, y=0.995)
     fig.subplots_adjust(left=0.11, right=0.93, top=0.965, bottom=0.05)
     fig.savefig(OUT / "graph_F_per_image_error_heatmap.png", dpi=150)

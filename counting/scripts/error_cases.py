@@ -194,7 +194,7 @@ def plot_all_models(no, stem, img_path, gt_rows, cams, out_path):
          Line2D([], [], color="#bbbbbb", lw=1.0, ls=":", label="Feeder ROI")]
     fig.legend(handles=h, loc="lower center", ncol=4, frameon=False, fontsize=9)
     n_wrong = sum(s["counted_visiting"] != n_vis for s in summary)
-    fig.suptitle(f"Test image #{no}: all 10 pose models (+ RF+Geo+Leg), cropped around the feeder — "
+    fig.suptitle(f"test(000) image #{no}: all 10 pose models (+ RF+Geo+Leg), cropped around the feeder — "
                  f"count wrong in {n_wrong} of 10 (red titles)", fontsize=11)
     fig.tight_layout(rect=(0, 0.04, 1, 0.97))
     fig.savefig(out_path, dpi=150)
@@ -271,7 +271,7 @@ def main():
          Line2D([], [], color=C_OTHER, lw=1.0, label="Model: other"),
          Line2D([], [], color="#bbbbbb", lw=1.2, ls=":", label="Feeder ROI")]
     fig.legend(handles=h, loc="lower center", ncol=5, frameon=False, fontsize=9)
-    fig.suptitle("Error cases on test (000): visiting pigs missed by the pose model in crowded / occluded feeder scenes",
+    fig.suptitle("Error cases on test(000): visiting pigs missed by the pose model in crowded / occluded feeder scenes",
                  fontsize=11)
     fig.tight_layout(rect=(0, 0.03, 1, 0.98))
     fig.savefig(OUT / "error_cases.png", dpi=150)

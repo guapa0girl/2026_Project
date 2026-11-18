@@ -1,4 +1,4 @@
-"""랜덤 5-fold vs 시간대 5-fold — Geo / RF / RF+Geo / RF+Geo+Leg / YOLO를 val·test(000)에서 비교 (11/16 랩미팅 통일 기준).
+"""Random 5-fold vs Time 5-fold — Geo / RF / RF+Geo / RF+Geo+Leg / YOLO를 val·test(000)에서 비교 (11/16 랩미팅 통일 기준).
 
 분할 (training/data/splits/<split>.json, make_study_splits.py — YOLO prepare_data.py와 같은 함수):
     시간대 k5_f0~f4 : 001·002를 시간순 5구간, fold마다 한 구간이 valid
@@ -52,7 +52,7 @@ K = 5
 METHODS = [("geo", "Geo"), ("rf", "RF"), ("rf_geo", "RF+Geo"), ("rf_geo_leg", "RF+Geo+Leg"), ("yolo", "YOLO")]
 RF_FAMILY = ["rf", "rf_geo", "rf_geo_leg"]
 LABEL = dict(METHODS)
-SCHEMES = [("random", "랜덤 5-fold", "rk5"), ("time", "시간대 5-fold", "k5")]
+SCHEMES = [("random_5fold", "Random 5-fold", "rk5"), ("time_5fold", "Time 5-fold", "k5")]
 SETS = [("val", "val"), ("test", "test (000)")]
 COLS = ["count_MAE", "count_RMSE", "count_bias", "exact_rate", "within1_rate", "total_model", "total_human",
         "total_error_pct", "over_frames", "under_frames", "bin_MAE",
@@ -130,7 +130,7 @@ def load_yolo(split, part):
     f = YOLO_INPUTS / "yolo_fold_metrics.csv"
     if f.exists():
         t = pd.read_csv(f, encoding="utf-8-sig")
-        t = t[(t.scheme == ("random" if split.startswith("rk5_") else "time")) & (t.fold == split[-2:]) & (t.set == part)]
+        t = t[(t.scheme == ("random_5fold" if split.startswith("rk5_") else "time_5fold")) & (t.fold == split[-2:]) & (t.set == part)]
         if len(t):
             for c, v in t.iloc[0].items():
                 if c in rec and pd.isna(rec[c]) and not pd.isna(v):
@@ -252,7 +252,7 @@ def main():
     pose.to_csv(out / "pose_folds.csv", index=False, encoding="utf-8-sig")
     kp = pd.DataFrame([r for _, _, p in SCHEMES for s in splits_of(p) for r in load_pose_kp(s)])
     if len(kp):
-        kp.insert(0, "scheme", kp.split.str.startswith("rk5_").map({True: "random", False: "time"}))
+        kp.insert(0, "scheme", kp.split.str.startswith("rk5_").map({True: "random_5fold", False: "time_5fold"}))
         kp.insert(2, "fold", kp.split.str[-2:])
     kp.to_csv(out / "pose_keypoints.csv", index=False, encoding="utf-8-sig")
     comp = pd.DataFrame([composition(s) for _, _, p in SCHEMES for s in splits_of(p)])
@@ -269,11 +269,11 @@ def main():
         return [g.loc[f"f{i}", c] if f"f{i}" in g.index else np.nan for i in range(K)]
 
     # ---------------- markdown ----------------
-    md = ["# 랜덤 5-fold vs 시간대 5-fold — 5가지 방법 비교", "",
+    md = ["# Random 5-fold vs Time 5-fold — 5가지 방법 비교", "",
           "값은 fold 5개의 평균 ± 표본 표준편차(ddof=1). 사진당 visiting 마릿수 기준. val = 그 fold의 valid 사진, "
           "test = 000 86장(사람 visiting 133마리). '–' = 아직 값 없음.", "",
           "## 1. 통합 결과표 (MAE / RMSE)", "",
-          "| 방법 | 랜덤 val MAE | 랜덤 val RMSE | 랜덤 test MAE | 랜덤 test RMSE | 시간대 val MAE | 시간대 val RMSE | 시간대 test MAE | 시간대 test RMSE |",
+          "| 방법 | Random 5-fold val MAE | Random 5-fold val RMSE | Random 5-fold test MAE | Random 5-fold test RMSE | Time 5-fold val MAE | Time 5-fold val RMSE | Time 5-fold test MAE | Time 5-fold test RMSE |",
           "|---|---|---|---|---|---|---|---|---|"]
     for m, lab in METHODS:
         cells = [ms(vals(k, part, m, c)) for k, _, _ in SCHEMES for part, _ in SETS for c in ("count_MAE", "count_RMSE")]
@@ -309,8 +309,8 @@ def main():
     md.append("")
 
     md += ["## 4. fold 구성 (train / valid 장수, valid 사진이 속한 클립의 시작 시각 KST = 파일 이름 + 9시간)", "",
-           "001 = 7/8 아침(클립 4개), 002 = 7/16 낮~저녁(클립 17개). 랜덤과 시간대는 fold마다 train·valid 장수가 task별로 같음.", "",
-           "| fold | train (001 / 002) | valid (001 / 002) | 랜덤 valid 시각 범위 001 · 002 | 시간대 valid 시각 범위 001 · 002 |",
+           "001 = 7/8 아침(클립 4개), 002 = 7/16 낮~저녁(클립 17개). Random 5-fold와 Time 5-fold는 fold마다 train·valid 장수가 task별로 같음.", "",
+           "| fold | train (001 / 002) | valid (001 / 002) | Random 5-fold valid 시각 범위 001 · 002 | Time 5-fold valid 시각 범위 001 · 002 |",
            "|---|---|---|---|---|"]
     for i in range(K):
         r = comp[comp.split == f"rk5_f{i}"].iloc[0]
@@ -332,18 +332,19 @@ def main():
                 md.append(f"| {slab} | 평균 ± 표준편차 | {ms(sub['val_pose_mAP50-95'])} | {ms(sub['val_PCK@0.1'])} | "
                           f"{ms(sub['test_pose_mAP50-95'])} | {ms(sub['test_PCK@0.1'])} | {ms(sub['test_PCK@0.2'])} |")
         md.append("")
-    md += ["## 6. 실제로 센 마릿수 (val · test, fold별 총합)", "",
-           "각 fold에서 모델이 센 visiting 마릿수 총합. GT = 사람이 센 값(val은 fold마다 valid 사진이 달라 GT도 다름). "
-           "괄호 = (모델 − GT) / GT. ★ = RF best (분할 방식별로 val MAE로 고름).", ""]
+    md += ["## 6. 실제로 센 마릿수 (val · test, fold별 값과 5-fold 평균)", "",
+           "각 fold에서 모델이 센 visiting 마릿수. GT = 사람이 센 값(val은 fold마다 valid 사진이 달라 GT도 다름). "
+           "괄호 = (모델 − GT) / GT. 마지막 두 열 = fold 5개의 평균 ± 표본 표준편차. ★ = RF best (분할 방식별로 val MAE로 고름).", ""]
     for key, slab, _ in SCHEMES:
         for part, plab in SETS:
             gt = vals(key, part, "geo", "total_human")
             if all(pd.isna(x) for x in gt):
                 continue
             md += [f"**{slab} · {plab}**", "",
-                   "| 방법 | f0 | f1 | f2 | f3 | f4 | 합계 | 평균 ± 표준편차 |", "|---|---|---|---|---|---|---|---|",
+                   "| 방법 | f0 | f1 | f2 | f3 | f4 | 마릿수 평균 ± 표준편차 | 총 마릿수 오차 평균 ± 표준편차 |",
+                   "|---|---|---|---|---|---|---|---|",
                    "| GT (사람) | " + " | ".join("–" if pd.isna(x) else f"{x:.0f}" for x in gt) +
-                   f" | {np.nansum(gt):.0f} | {ms(gt, '.1f')} |"]
+                   f" | {ms(gt, '.1f')} | – |"]
             for m, lab in METHODS:
                 v = vals(key, part, m, "total_model")
                 star = " ★" if m == rf_best.get(key) else ""
@@ -351,15 +352,13 @@ def main():
                     md.append(f"| {lab}{star} | – | – | – | – | – | – | – |")
                     continue
                 cells = ["–" if pd.isna(x) else f"{x:.0f} ({(x - g) / g * 100:+.1f}%)" for x, g in zip(v, gt)]
-                tot = np.nansum(v)
-                gtot = np.nansum([g for x, g in zip(v, gt) if not pd.isna(x)])
                 md.append(f"| {lab}{star} | " + " | ".join(cells) +
-                          f" | {tot:.0f} ({(tot - gtot) / gtot * 100:+.1f}%) | {ms(v, '.1f')} |")
+                          f" | {ms(v, '.1f')} | {ms(vals(key, part, m, 'total_error_pct'), '+.1f')}% |")
             md.append("")
 
     if len(kp):
         md += ["## 7. keypoint별 PCK@0.1 (fold 5개 평균 ± 표본 표준편차)", "",
-               "| keypoint | 랜덤 val | 랜덤 test | 시간대 val | 시간대 test |", "|---|---|---|---|---|"]
+               "| keypoint | Random 5-fold val | Random 5-fold test | Time 5-fold val | Time 5-fold test |", "|---|---|---|---|---|"]
         for name in kp.keypoint.drop_duplicates():
             cells = [ms(kp[(kp.scheme == key) & (kp.set == part) & (kp.keypoint == name)]["PCK@0.1"])
                      for key, _, _ in SCHEMES for part, _ in SETS]
@@ -409,7 +408,7 @@ def plot_b(df, out):
                 sds.append(v.std(ddof=1) if len(v) > 1 else np.nan)
             xs = np.arange(len(METHODS)) + (j - 0.5) * w
             b = ax.bar(xs, np.nan_to_num(means), w, color=[COLOR[m] for m, _ in METHODS],
-                       hatch="" if key == "random" else "///", edgecolor="white" if key == "random" else "#333",
+                       hatch="" if key == "random_5fold" else "///", edgecolor="white" if key == "random_5fold" else "#333",
                        linewidth=0.6)
             ax.errorbar(xs, means, yerr=sds, fmt="none", capsize=3, elinewidth=0.9, ecolor="#333")
             for x, mval, s in zip(xs, means, sds):
@@ -425,7 +424,7 @@ def plot_b(df, out):
     fig.legend(handles=[Patch(facecolor="#bbbbbb", label="Random 5-fold"),
                         Patch(facecolor="#bbbbbb", hatch="///", edgecolor="#333", label="Time 5-fold")],
                frameon=False, ncol=2, loc="lower center")
-    fig.suptitle("Visiting count MAE by method: random vs time 5-fold (mean ± sample SD over folds)")
+    fig.suptitle("Visiting count MAE by method: Random 5-fold vs Time 5-fold (mean ± sample SD over folds)")
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     fig.savefig(out / "graph_B_mae_random_vs_time.png", dpi=150)
     plt.close(fig)
@@ -459,7 +458,7 @@ def plot_a(out, rf_best):
             lab = {"geo": "Geo", "yolo": "YOLO"}.get(m, f"RF best ({LABEL[m]})")
             ax.plot(x, p_.mean(0), color=COLOR[m], lw=1.3, label=f"{lab}, mean of {len(fr)} folds")
             ax.fill_between(x, p_.min(0), p_.max(0), color=COLOR[m], alpha=0.18, lw=0)
-        ax.set_title("Random 5-fold" if key == "random" else "Time 5-fold", loc="left", fontsize=10)
+        ax.set_title("Random 5-fold" if key == "random_5fold" else "Time 5-fold", loc="left", fontsize=10)
         ax.set_ylabel("Visiting pigs")
         ax.set_yticks([0, 1, 2, 3])
         ax.grid(axis="y", color="#e5e5e5")
@@ -496,7 +495,7 @@ def plot_c(df, out, rf_best):
                 if not pd.isna(gi):
                     ax.hlines(gi, xi - 0.45, xi + 0.45, color=COLOR["gt"], lw=2)
             ax.set_xticks(x, [f"{f}\nGT {g:.0f}" if not pd.isna(g) else f for f, g in zip(folds, gt)])
-            ax.set_title(f"{'Random' if key == 'random' else 'Time'} 5-fold · "
+            ax.set_title(f"{'Random' if key == 'random_5fold' else 'Time'} 5-fold · "
                          f"{'Validation' if part == 'val' else 'Test (000, 86 images)'}", loc="left", fontsize=10)
             ax.set_ylabel("Total visiting pigs counted")
             ymax = np.nanmax(np.r_[sub["total_model"].to_numpy(float), gt.to_numpy(float), 1.0])
@@ -528,9 +527,9 @@ def plot_d(kp, out):
             g = kp[(kp.scheme == key) & (kp.set == part)].groupby("keypoint")["PCK@0.1"]
             mean, sd = g.mean().reindex(names), g.std(ddof=1).reindex(names)
             xs = x + (j - 0.5) * w
-            ax.bar(xs, mean, w, color="#6b8fb5" if key == "random" else "#c9d6e5",
-                   hatch="" if key == "random" else "///", edgecolor="white" if key == "random" else "#333",
-                   linewidth=0.6, label="Random 5-fold" if key == "random" else "Time 5-fold")
+            ax.bar(xs, mean, w, color="#6b8fb5" if key == "random_5fold" else "#c9d6e5",
+                   hatch="" if key == "random_5fold" else "///", edgecolor="white" if key == "random_5fold" else "#333",
+                   linewidth=0.6, label="Random 5-fold" if key == "random_5fold" else "Time 5-fold")
             ax.errorbar(xs, mean, yerr=sd, fmt="none", capsize=2, elinewidth=0.8, ecolor="#333")
         ax.set_title("Validation" if part == "val" else "Test (000)", loc="left", fontsize=10)
         ax.set_ylabel("PCK@0.1")
@@ -540,7 +539,7 @@ def plot_d(kp, out):
         ax.spines[["top", "right"]].set_visible(False)
         ax.legend(frameon=False, fontsize=8, ncol=2, loc="upper right")
     axes[-1].set_xticks(x, names, rotation=45, ha="right")
-    fig.suptitle("Per-keypoint PCK@0.1: random vs time 5-fold (mean ± sample SD over folds)")
+    fig.suptitle("Per-keypoint PCK@0.1: Random 5-fold vs Time 5-fold (mean ± sample SD over folds)")
     fig.tight_layout()
     fig.savefig(out / "graph_D_keypoint_pck.png", dpi=150)
     plt.close(fig)

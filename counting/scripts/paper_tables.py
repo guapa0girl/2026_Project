@@ -38,7 +38,7 @@ OUT = FS / "paper"
 K = 5
 METHODS = [("geo", "Geo"), ("rf", "RF"), ("rf_geo", "RF+Geo"), ("rf_geo_leg", "RF+Geo+Leg"), ("yolo", "YOLO")]
 LABEL = dict(METHODS)
-SCHEMES = [("random", "Random 5-fold", "rk5"), ("time", "Time 5-fold", "k5")]
+SCHEMES = [("random_5fold", "Random 5-fold", "rk5"), ("time_5fold", "Time 5-fold", "k5")]
 SETS = [("test", "Test (000)"), ("val", "Validation")]
 RF_BEST = "rf_geo_leg"   # 두 분할 모두 5-fold 평균 val MAE 최소 (fold_study.md 1장)
 
@@ -110,7 +110,7 @@ def main():
                 summ.append(rec)
     pd.DataFrame(summ).to_csv(OUT / "count_metrics.csv", index=False, encoding="utf-8-sig")
 
-    md = ["# Paper metrics — random vs time 5-fold, 5 methods", "",
+    md = ["# Paper metrics — Random 5-fold vs Time 5-fold, 5 methods", "",
           "fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133마리), val = 그 fold의 valid 사진(001+002). "
           "'–' = 값 없음. 지표 정의와 계산 방법은 `counting/scripts/paper_tables.py` 맨 위 설명.", ""]
 
@@ -179,7 +179,7 @@ def main():
             continue
         d = a - b
         pv = wilcoxon(a, b, zero_method="zsplit").pvalue if np.any(d != 0) else 1.0
-        w_rows.append({"comparison": f"{mlab}: random vs time", "scheme": "both", "mean_diff": d.mean(),
+        w_rows.append({"comparison": f"{mlab}: Random 5-fold vs Time 5-fold", "scheme": "both", "mean_diff": d.mean(),
                        "better": int((d > 0).sum()), "same": int((d == 0).sum()), "worse": int((d < 0).sum()), "p": pv})
     w = pd.DataFrame(w_rows)
     w.to_csv(OUT / "wilcoxon.csv", index=False, encoding="utf-8-sig")
@@ -187,10 +187,10 @@ def main():
            "| Comparison (A vs B) | Split | ΔMAE (B − A) | A better / same / B better (images) | p |",
            "|---|---|---|---|---|"]
     for _, r in w.iterrows():
-        sl = {"random": "Random", "time": "Time", "both": "–"}[r.scheme]
+        sl = {"random_5fold": "Random 5-fold", "time_5fold": "Time 5-fold", "both": "–"}[r.scheme]
         md.append(f"| {r.comparison} | {sl} | {r.mean_diff:+.3f} | {r.better} / {r.same} / {r.worse} | "
                   f"{'<0.001' if r.p < 0.001 else f'{r.p:.3f}'} |")
-    md += ["", "사진별 |오차|(fold 5개 평균)로 비교. random vs time 줄은 A = 랜덤, B = 시간대 (Δ > 0이면 랜덤이 더 좋음). "
+    md += ["", "사진별 |오차|(fold 5개 평균)로 비교. Random 5-fold vs Time 5-fold 줄은 A = Random 5-fold, B = Time 5-fold (Δ > 0이면 Random 5-fold가 더 나쁨). "
            "사진끼리 독립이 아니라 p값은 참고용.", ""]
 
     # 표 5: 오류 분해 (test, 개체 수)
@@ -243,9 +243,9 @@ def main():
     md += ["## Figures", "",
            "| Figure | File | Caption |", "|---|---|---|",
            "| A | `../graph_A_frame_counts_000.png` | Per-image visiting count on 000 (GT, Geo, RF best, YOLO; mean over 5 folds, band = min–max) |",
-           "| B | `../graph_B_mae_random_vs_time.png` | Per-image count MAE by method, random vs time 5-fold (mean ± SD) |",
+           "| B | `../graph_B_mae_random_vs_time.png` | Per-image count MAE by method, Random 5-fold vs Time 5-fold (mean ± SD) |",
            "| C | `../graph_C_total_counts.png` | Total visiting pigs counted per fold vs human GT |",
-           "| D | `../graph_D_keypoint_pck.png` | Per-keypoint PCK@0.1, random vs time 5-fold |", ""]
+           "| D | `../graph_D_keypoint_pck.png` | Per-keypoint PCK@0.1, Random 5-fold vs Time 5-fold |", ""]
     (OUT / "paper_metrics.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md))
 

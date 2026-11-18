@@ -1,4 +1,4 @@
-# Paper metrics — random vs time 5-fold, 5 methods
+# Paper metrics — Random 5-fold vs Time 5-fold, 5 methods
 
 fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133마리), val = 그 fold의 valid 사진(001+002). '–' = 값 없음. 지표 정의와 계산 방법은 `counting/scripts/paper_tables.py` 맨 위 설명.
 
@@ -52,21 +52,21 @@ fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133�
 
 | Comparison (A vs B) | Split | ΔMAE (B − A) | A better / same / B better (images) | p |
 |---|---|---|---|---|
-| RF+Geo+Leg vs Geo | Random | +0.172 | 24 / 58 / 4 | <0.001 |
-| RF+Geo+Leg vs RF | Random | -0.007 | 4 / 75 / 7 | 0.580 |
-| RF+Geo+Leg vs RF+Geo | Random | +0.012 | 6 / 78 / 2 | 0.429 |
-| RF+Geo+Leg vs YOLO | Random | +0.179 | 54 / 29 / 3 | <0.001 |
-| RF+Geo+Leg vs Geo | Time | +0.184 | 20 / 61 / 5 | 0.007 |
-| RF+Geo+Leg vs RF | Time | +0.007 | 6 / 78 / 2 | 0.449 |
-| RF+Geo+Leg vs RF+Geo | Time | +0.016 | 8 / 75 / 3 | 0.344 |
-| RF+Geo+Leg vs YOLO | Time | +0.114 | 27 / 56 / 3 | <0.001 |
-| Geo: random vs time | – | +0.000 | 6 / 73 / 7 | 0.859 |
-| RF: random vs time | – | -0.002 | 6 / 73 / 7 | 0.861 |
-| RF+Geo: random vs time | – | +0.007 | 5 / 78 / 3 | 0.696 |
-| RF+Geo+Leg: random vs time | – | +0.012 | 9 / 70 / 7 | 0.713 |
-| YOLO: random vs time | – | +0.077 | 42 / 35 / 9 | <0.001 |
+| RF+Geo+Leg vs Geo | Random 5-fold | +0.172 | 24 / 58 / 4 | <0.001 |
+| RF+Geo+Leg vs RF | Random 5-fold | -0.007 | 4 / 75 / 7 | 0.580 |
+| RF+Geo+Leg vs RF+Geo | Random 5-fold | +0.012 | 6 / 78 / 2 | 0.429 |
+| RF+Geo+Leg vs YOLO | Random 5-fold | +0.179 | 54 / 29 / 3 | <0.001 |
+| RF+Geo+Leg vs Geo | Time 5-fold | +0.184 | 20 / 61 / 5 | 0.007 |
+| RF+Geo+Leg vs RF | Time 5-fold | +0.007 | 6 / 78 / 2 | 0.449 |
+| RF+Geo+Leg vs RF+Geo | Time 5-fold | +0.016 | 8 / 75 / 3 | 0.344 |
+| RF+Geo+Leg vs YOLO | Time 5-fold | +0.114 | 27 / 56 / 3 | <0.001 |
+| Geo: Random 5-fold vs Time 5-fold | – | +0.000 | 6 / 73 / 7 | 0.859 |
+| RF: Random 5-fold vs Time 5-fold | – | -0.002 | 6 / 73 / 7 | 0.861 |
+| RF+Geo: Random 5-fold vs Time 5-fold | – | +0.007 | 5 / 78 / 3 | 0.696 |
+| RF+Geo+Leg: Random 5-fold vs Time 5-fold | – | +0.012 | 9 / 70 / 7 | 0.713 |
+| YOLO: Random 5-fold vs Time 5-fold | – | +0.077 | 42 / 35 / 9 | <0.001 |
 
-사진별 |오차|(fold 5개 평균)로 비교. random vs time 줄은 A = 랜덤, B = 시간대 (Δ > 0이면 랜덤이 더 좋음). 사진끼리 독립이 아니라 p값은 참고용.
+사진별 |오차|(fold 5개 평균)로 비교. Random 5-fold vs Time 5-fold 줄은 A = Random 5-fold, B = Time 5-fold (Δ > 0이면 Random 5-fold가 더 나쁨). 사진끼리 독립이 아니라 p값은 참고용.
 
 ## Table 5. Error decomposition on test (visiting pigs per fold)
 
@@ -133,7 +133,7 @@ conf = 그 fold valid에서 사진당 MAE 최소. 추론 시간(RTX 6000 Ada, ba
 | Figure | File | Caption |
 |---|---|---|
 | A | `../graph_A_frame_counts_000.png` | Per-image visiting count on 000 (GT, Geo, RF best, YOLO; mean over 5 folds, band = min–max) |
-| B | `../graph_B_mae_random_vs_time.png` | Per-image count MAE by method, random vs time 5-fold (mean ± SD) |
+| B | `../graph_B_mae_random_vs_time.png` | Per-image count MAE by method, Random 5-fold vs Time 5-fold (mean ± SD) |
 | C | `../graph_C_total_counts.png` | Total visiting pigs counted per fold vs human GT |
-| D | `../graph_D_keypoint_pck.png` | Per-keypoint PCK@0.1, random vs time 5-fold |
+| D | `../graph_D_keypoint_pck.png` | Per-keypoint PCK@0.1, Random 5-fold vs Time 5-fold |
 

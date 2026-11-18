@@ -9,9 +9,9 @@
     graph_E_per_image_counts.png   방법별 small multiples: GT 계단선 + fold 평균선 + fold 최소~최대 띠
     graph_F_per_image_error_heatmap.png  모델 50개 × 사진 86장 오차(예측 − 정답) heatmap, 맨 위 GT 띠
     by_model/<method>.csv    모델(방법)별 표: no, frame_idx, image, gt,
-                             random_f0..f4, random_mean, random_n_correct, time_f0..f4, time_mean, time_n_correct
+                             random_5fold_f0..f4, random_5fold_mean, random_5fold_n_correct, time_5fold_f0..f4, time_5fold_mean, time_5fold_n_correct
                              (YOLO 포함, n_correct = fold 5개 중 GT와 같은 개수)
-    by_model/<method>.png    모델별 그래프: 행 = GT · 랜덤 f0~f4 · 시간대 f0~f4, 칸 숫자 = 센 마릿수, 칸 색 = 오차
+    by_model/<method>.png    모델별 그래프: 행 = GT · Random 5-fold f0~f4 · Time 5-fold f0~f4, 칸 숫자 = 센 마릿수, 칸 색 = 오차
 
 사용법 (counting/ 에서):  python scripts/per_image_000.py
 """
@@ -31,7 +31,7 @@ FS = ROOT / "reports" / "fold_study"
 OUT = FS / "per_image"
 K = 5
 METHODS = [("geo", "Geo"), ("rf", "RF"), ("rf_geo", "RF+Geo"), ("rf_geo_leg", "RF+Geo+Leg"), ("yolo", "YOLO")]
-SCHEMES = [("random", "Random 5-fold", "랜덤 5-fold", "rk5"), ("time", "Time 5-fold", "시간대 5-fold", "k5")]
+SCHEMES = [("random_5fold", "Random 5-fold", "Random 5-fold", "rk5"), ("time_5fold", "Time 5-fold", "Time 5-fold", "k5")]
 COLOR = {"gt": "#000000", "geo": "#8c8c8c", "rf": "#9ecae1", "rf_geo": "#4292c6", "rf_geo_leg": "#08519c",
          "yolo": "#f28e2b"}
 LINE = {**COLOR, "rf": "#6baed6"}            # 연한 RF 파랑은 선으로 그리면 잘 안 보여 한 단계 진하게
@@ -134,7 +134,7 @@ def main():
            "그래프: `graph_E_per_image_counts.png`(방법별 카운트), `graph_F_per_image_error_heatmap.png`(모델 50개 오차).",
            "",
            "모델별 표 · 그래프: `by_model/<geo|rf|rf_geo|rf_geo_leg|yolo>.csv` · `.png` "
-           "(열 = no, frame_idx, image, gt, random_f0~f4, random_mean, random_n_correct, time_f0~f4, time_mean, time_n_correct).",
+           "(열 = no, frame_idx, image, gt, random_5fold_f0~f4, random_5fold_mean, random_5fold_n_correct, time_5fold_f0~f4, time_5fold_mean, time_5fold_n_correct).",
            ""]
     (OUT / "per_image_000.md").write_text("\n".join(md) + "\n", encoding="utf-8")
 
@@ -184,13 +184,13 @@ def plot_e(base, frames):
 
 
 def plot_model(base, fr, m, lab, path):
-    """모델별 그래프: 행 = GT + 랜덤 f0~f4 + 시간대 f0~f4, 열 = 사진 86장. 칸 숫자 = 센 마릿수, 칸 색 = 오차."""
+    """모델별 그래프: 행 = GT + Random 5-fold f0~f4 + Time 5-fold f0~f4, 열 = 사진 86장. 칸 숫자 = 센 마릿수, 칸 색 = 오차."""
     gt = base["gt"].to_numpy()
     rows = [("GT (human)", gt, None)]
     for key, elab, _, p in SCHEMES:
         for i in range(K):
             v = fr[f"{p}_f{i}"].to_numpy()
-            rows.append((f"{elab.split()[0]} f{i}", v, v - gt))
+            rows.append((f"{elab} f{i}", v, v - gt))
     n, R = len(gt), len(rows)
     E = np.vstack([np.zeros(n) if e is None else np.clip(e, -3, 3) for _, _, e in rows])
     cmap = ListedColormap(ERR_COLORS)
@@ -222,8 +222,8 @@ def plot_model(base, fr, m, lab, path):
     acc = [(rows[r][2] == 0).mean() for r in range(1, R)]
     mae = [np.abs(rows[r][2]).mean() for r in range(1, R)]
     ax.set_title(f"{lab}: pigs counted per test image (numbers) vs human GT (top row); "
-                 f"MAE random {np.mean(mae[:K]):.3f}, time {np.mean(mae[K:]):.3f}; "
-                 f"exact {np.mean(acc[:K]) * 100:.1f}% / {np.mean(acc[K:]) * 100:.1f}%", fontsize=11, loc="left")
+                 f"MAE Random 5-fold {np.mean(mae[:K]):.3f}, Time 5-fold {np.mean(mae[K:]):.3f}; "
+                 f"exact (Random 5-fold / Time 5-fold) {np.mean(acc[:K]) * 100:.1f}% / {np.mean(acc[K:]) * 100:.1f}%", fontsize=11, loc="left")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)

@@ -14,7 +14,7 @@ pose mAP·PCK로 비교. **bbox보다 포즈(keypoint) 성능을 우선 지표**
 | 000 | 1분 샘플 영상 (960×720) | 86 | 860 | **test 전용** (학습에 안 씀) |
 
 - 기본 분할(`split_dataset.py`): 001+002 190장을 seed 42로 섞어 **train 162 / valid 28**(valid 15%), 000 86장은 통째로 **test**. 사이즈 · epoch 비교에 사용.
-- **최종 비교(11/16 통일 기준)**: 시간대 5-fold `k5_f0~f4` + 랜덤 5-fold `rk5_f0~f4`(fold마다 train 148\~155 / valid 34\~42, 두 분할 장수 동일)로 medium ep200을 fold마다 학습 → [RESULTS.md](../RESULTS.md).
+- **최종 비교(11/16 통일 기준)**: Time 5-fold `k5_f0~f4` + Random 5-fold `rk5_f0~f4`(fold마다 train 148\~155 / valid 34\~42, 두 분할 장수 동일)로 medium ep200을 fold마다 학습 → [RESULTS.md](../RESULTS.md).
 - test가 학습에 없는 다른 카메라라, test 점수 = 처음 보는 화면에서의 성능.
 - 원본: CVAT "for images 1.1" export(`<task>_sorted.zip` = 사진 + `annotations.xml`, 스켈레톤 + State 라벨).
 
@@ -45,7 +45,7 @@ training/
 │   ├── cvat_xml_to_raw_zip.py CVAT XML + 사진 zip → data/raw/data/<task>.zip (YOLO-Pose 라벨)
 │   ├── ingest_raw_zips.py     data/raw/data/*.zip → data/raw/{img,label}
 │   ├── split_dataset.py       raw → train/valid/test (--test-zip 으로 test task 고정, --split-file 로 목록 그대로)
-│   ├── make_study_splits.py   분할 목록 생성: random, sorted, k5_f0~f4(시간대 5-fold), rk5_f0~f4(랜덤 5-fold)
+│   ├── make_study_splits.py   분할 목록 생성: random, sorted, k5_f0~f4(Time 5-fold), rk5_f0~f4(Random 5-fold)
 │   │                          (yolo_det과 같은 분할 함수, --export-images로 001+002 사진을 counting valid 평가용으로 꺼냄)
 │   ├── run_split_study.ps1    분할별 medium ep200 재학습 (-Splits로 분할 지정, 끝나면 랜덤 분할로 복구)
 │   ├── time_distribution.py   task별 촬영 시간대 분포 + 분할별 valid 위치 (실제 시각 = 이름 + 9시간)
@@ -116,13 +116,13 @@ test(000) 기준. 배치 nano 16 / small 16 / medium 8 / large 8, 조기 종료 
 
 | 분할 | train / valid | pose mAP50-95 | PCK@0.1 | PCK@0.2 |
 |---|---|---|---|---|
-| 랜덤 (`ep200`) | 162 / 28 | 0.100 | 0.710 | 0.870 |
-| 시간대 (`ep200_sorted`) | 159 / 31 | 0.079 | 0.652 | 0.839 |
-| 시간대 5-fold (`ep200_k5_f0`\~`f4`, 11/18 재학습) 평균 | 148\~155 / 34\~42 | 0.087 (0.076\~0.097) | 0.692 (0.657\~0.719) | 0.865 |
-| 랜덤 5-fold (`ep200_rk5_f0`\~`f4`, 11/18) 평균 | 148\~155 / 34\~42 | 0.111 (0.082\~0.139) | 0.691 (0.650\~0.726) | 0.865 |
+| 랜덤 단일 분할 (`ep200`, 5-fold 아님) | 162 / 28 | 0.100 | 0.710 | 0.870 |
+| 시간대 단일 분할 (`ep200_sorted`, 5-fold 아님) | 159 / 31 | 0.079 | 0.652 | 0.839 |
+| **Time 5-fold** (`ep200_k5_f0`\~`f4`, 11/18 재학습) 평균 | 148\~155 / 34\~42 | 0.087 (0.076\~0.097) | 0.692 (0.657\~0.719) | 0.865 |
+| **Random 5-fold** (`ep200_rk5_f0`\~`f4`, 11/18) 평균 | 148\~155 / 34\~42 | 0.111 (0.082\~0.139) | 0.691 (0.650\~0.726) | 0.865 |
 
-- 랜덤 · 시간대는 seed 0 · best.pt = pose + box 합(재학습 전 방식), 5-fold 10개는 seed 42 · best.pt = pose mAP50-95.
-- 재학습 전 시간대 5-fold 평균은 pose mAP50-95 0.108, PCK@0.1 0.696, PCK@0.2 0.859 ([PROGRESS.md](../PROGRESS.md) 2장 결과 4).
+- 단일 분할 2개는 seed 0 · best.pt = pose + box 합(재학습 전 방식, 연구 결과에는 쓰지 않음), Random 5-fold · Time 5-fold 10개는 seed 42 · best.pt = pose mAP50-95.
+- 재학습 전 Time 5-fold 평균은 pose mAP50-95 0.108, PCK@0.1 0.696, PCK@0.2 0.859 ([PROGRESS.md](../PROGRESS.md) 2장 결과 4).
 - train 사진 몇 장 차이로 PCK@0.1이 0.65\~0.73까지 흔들림. 판정까지 비교한 결과는 [RESULTS.md](../RESULTS.md) 4장.
 
 ### 지표

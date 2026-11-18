@@ -11,9 +11,9 @@ CCTV 사진 ─→ 포즈 추정 (YOLOv8-pose, 관절 18개) ─→ 돼지마다
 
 ## 결과
 
-test = 000(1분 샘플 영상 86장, 사람 visiting 133마리). 11/16 통일 기준(같은 train 사진 · seed 42 · val만으로 선택)으로 학습한 랜덤 / 시간대 5-fold의 fold 5개 평균 ± 표본 표준편차.
+test = 000(1분 샘플 영상 86장, 사람 visiting 133마리). 11/16 통일 기준(같은 train 사진 · seed 42 · val만으로 선택)으로 학습한 Random 5-fold / Time 5-fold의 fold 5개 평균 ± 표본 표준편차.
 
-| 방법 | 사진당 마릿수 MAE (랜덤) | MAE (시간대) | 정확 일치 (랜덤 / 시간대) | 1분 총 점유량 오차 (랜덤 / 시간대) |
+| 방법 | 사진당 마릿수 MAE (Random 5-fold) | MAE (Time 5-fold) | 정확 일치 (Random 5-fold / Time 5-fold) | 1분 총 점유량 오차 (Random 5-fold / Time 5-fold) |
 |---|---|---|---|---|
 | Geo | 0.293 ± 0.028 | 0.293 ± 0.022 | 71.9% / 71.9% | −18.6% / −17.7% |
 | RF | 0.114 ± 0.015 | 0.116 ± 0.032 | 88.8% / 88.4% | −2.3% / −1.2% |
@@ -22,8 +22,8 @@ test = 000(1분 샘플 영상 86장, 사람 visiting 133마리). 11/16 통일 �
 | YOLO | 0.300 ± 0.137 | 0.223 ± 0.048 | 70.5% / 77.9% | −4.1% / −4.2% |
 
 - RF 계열 3가지가 가장 좋음. RF best(5-fold 평균 val MAE 최소)는 두 분할 모두 RF+Geo+Leg이고, Geo · YOLO보다 test 사진 단위로 유의하게 좋음(Wilcoxon p ≤ 0.007). RF 계열 3가지 사이 차이는 유의하지 않음(p > 0.3).
-- YOLO는 랜덤 5-fold에서 fold마다 크게 흔들림(MAE 0.174\~0.477). Geo는 test에서 약 18% 적게 셈.
-- 분할 · 조건 · 결과 · 추론 시간 · 한계점: **[RESULTS.md](RESULTS.md)** (통일 기준 전 결과는 부록 A), 표 전체: [fold_study.md](counting/reports/fold_study/fold_study.md), 논문용 지표: [paper_metrics.md](counting/reports/fold_study/paper/paper_metrics.md), test 사진별 카운트: [per_image_000.md](counting/reports/fold_study/per_image/per_image_000.md).
+- YOLO는 Random 5-fold에서 fold마다 크게 흔들림(MAE 0.174\~0.477). Geo는 test에서 약 18% 적게 셈.
+- 분할 · 조건 · 결과 · 추론 시간 · 한계점: **[RESULTS.md](RESULTS.md)** (모두 Random 5-fold · Time 5-fold 평균), 표 전체: [fold_study.md](counting/reports/fold_study/fold_study.md), 논문용 지표: [paper_metrics.md](counting/reports/fold_study/paper/paper_metrics.md), test 사진별 카운트: [per_image_000.md](counting/reports/fold_study/per_image/per_image_000.md).
 - 진행 과정 전체 기록: [PROGRESS.md](PROGRESS.md)
 
 ## 데이터

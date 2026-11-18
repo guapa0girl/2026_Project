@@ -145,7 +145,7 @@ def plot_all_models(no, stem, img_path, gt_rows, cams, out_path):
         ax.set_yticks([])
 
     fig, axes = plt.subplots(2, 6, figsize=(19, 7.2))
-    rows = [("Time", [f"k5_f{i}" for i in range(5)]), ("Random", [f"rk5_f{i}" for i in range(5)])]
+    rows = [("Time 5-fold", [f"k5_f{i}" for i in range(5)]), ("Random 5-fold", [f"rk5_f{i}" for i in range(5)])]
     summary = []
     for r_i, (lab, splits) in enumerate(rows):
         for c_i, split in enumerate(splits):
@@ -174,7 +174,7 @@ def plot_all_models(no, stem, img_path, gt_rows, cams, out_path):
             ax.set_title(f"{lab} f{c_i}: counted {cnt} / GT {n_vis}" + note,
                          fontsize=9, loc="left", color="#000000" if ok else "#b2182b",
                          fontweight="normal" if ok else "bold")
-            summary.append({"image_no": no, "scheme": lab.lower(), "fold": f"f{c_i}", "split": split,
+            summary.append({"image_no": no, "scheme": lab.lower().replace(" 5-fold", "_5fold"), "fold": f"f{c_i}", "split": split,
                             "gt_visiting": n_vis, "counted_visiting": cnt, "detected_pigs": len(preds),
                             "missed_no_detection": kinds.count("no det."), "missed_kpts_off": kinds.count("kpts off")})
     for r_i in range(2):
@@ -186,7 +186,7 @@ def plot_all_models(no, stem, img_path, gt_rows, cams, out_path):
             ax.add_patch(Rectangle((b[0], b[1]), b[2] - b[0], b[3] - b[1], fill=False, ec="#000000" if v else "#ffffff",
                                    lw=2.0 if v else 0.8, ls="--" if v else "-"))
         ax.set_title(f"Human labels: {n_vis} visiting", fontsize=9, loc="left")
-        ax.set_ylabel(rows[r_i][0] + " 5-fold", fontsize=11, fontweight="bold")
+        ax.set_ylabel(rows[r_i][0], fontsize=11, fontweight="bold")
     from matplotlib.lines import Line2D
     h = [Line2D([], [], color="#000000", lw=2.0, ls="--", label="Human visiting (missed by model if drawn on a model panel)"),
          Line2D([], [], color=C_VIS, lw=2.0, label="Model: counted visiting (RF+Geo+Leg)"),
@@ -278,7 +278,7 @@ def main():
     plt.close(fig)
     md += ["", "![error cases](error_cases.png)", "",
            "## 10개 분할 모델 나란히 (사료통 주변 확대)", "",
-           "1열 = 사람 라벨, 위 줄 = 시간대 5-fold f0~f4, 아래 줄 = 랜덤 5-fold f0~f4. 빨간 제목 = 센 마릿수가 GT와 다름. "
+           "1열 = 사람 라벨, 위 줄 = Time 5-fold f0~f4, 아래 줄 = Random 5-fold f0~f4. 빨간 제목 = 센 마릿수가 GT와 다름. "
            "모델 칸의 검정 점선 = 그 모델이 매칭하지 못한 사람 visiting (no det. = 검출 없음, kpts off = 검출은 됐지만 "
            "keypoint가 어긋남).", "",
            "| # | 분할 | f0 | f1 | f2 | f3 | f4 |", "|---|---|---|---|---|---|---|"]
@@ -288,12 +288,12 @@ def main():
         rows = [r for r in gt_all if r["image"] == stem]
         s = plot_all_models(no, stem, imgs[stem], rows, cams, OUT / f"all_models_{no:02d}.png")
         allsum += s
-        for sch in ("time", "random"):
+        for sch in ("time_5fold", "random_5fold"):
             cells = [f"{x['counted_visiting']}/{x['gt_visiting']}" +
                      (f" (no det. {x['missed_no_detection']}, kpts off {x['missed_kpts_off']})"
                       if x["missed_no_detection"] + x["missed_kpts_off"] else "")
                      for x in s if x["scheme"] == sch]
-            md.append(f"| {no} | {'시간대' if sch == 'time' else '랜덤'} | " + " | ".join(cells) + " |")
+            md.append(f"| {no} | {'Time 5-fold' if sch == 'time_5fold' else 'Random 5-fold'} | " + " | ".join(cells) + " |")
     pd.DataFrame(allsum).to_csv(OUT / "all_models_summary.csv", index=False, encoding="utf-8-sig")
     md += ["", "칸 = 센 visiting / 사람 visiting (괄호 = 매칭 못 한 사람 visiting 종류별 수).", ""]
     md += [f"![#{no} all models](all_models_{no:02d}.png)" for no in a.images] + [""]

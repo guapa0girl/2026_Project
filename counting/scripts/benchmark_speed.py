@@ -9,14 +9,18 @@
     특징 계산은 방법과 상관없이 모든 특징을 한 번에 구하므로(Geo 규칙 포함) 네 방법이 같은 값이고,
     방법별로 다른 것은 마지막 판정 시간뿐임. RF는 사진마다 그 사진의 돼지 전부를 한 번에 predict (n_jobs=1:
     한 장씩 처리할 때 스레드 생성 비용을 빼기 위함, 예측 결과는 같음).
-모델: 포즈 = training/models/results/ep200_<split>/m/weights/best.pt, RF = 그 분할 train 사진으로 학습 (평가와 동일)
-      YOLO = --yolo-weights (없으면 YOLO는 건너뜀. 수아 서버에서 같은 스크립트로 같이 재면 같은 GPU 조건)
+모델: fold마다 그 fold의 모델로 잼 (기본: 랜덤 5-fold rk5_f0~f4 + 시간대 5-fold k5_f0~f4, 모델 10개)
+      포즈 = training/models/results/ep200_<split>/m/weights/best.pt, RF = 그 fold train 사진으로 학습 (평가와 동일)
+      YOLO = --yolo-weights 경로 틀 ('{split}'이 fold 이름으로 바뀜), conf = 그 fold conf
+             (reports/fold_study/inputs/yolo_fold_metrics.csv의 test 행). 없으면 YOLO는 건너뜀.
+집계: fold마다 사진 1장 시간의 중앙값 · p95를 구하고, 분할 방식(랜덤 5-fold / 시간대 5-fold)마다
+      fold 5개의 평균 ± 표본 표준편차로 보고. 실시간 판정은 fold 5개 p95 평균 기준(최대 p95도 같이 표기).
 실시간 기준 (p95): 1초 1프레임 운용 ≤ 1000 ms, 30 fps 전체 프레임 ≤ 33.3 ms
-출력: reports/speed/<장비 이름>/ (speed_raw.csv, speed_summary.csv, speed.md)
+출력: reports/speed/<장비 이름>/ (speed_raw.csv, speed_folds.csv, speed_summary.csv, speed.md)
 
-사용법 (counting/ 에서):
-    python scripts/benchmark_speed.py                                   # GPU 0 + CPU, 포즈 = ep200_k5_f0
-    python scripts/benchmark_speed.py --devices 0 --yolo-weights <yolo best.pt> --yolo-conf 0.65
+사용법 (저장소 루트 또는 counting/ 에서):
+    python counting/scripts/benchmark_speed.py                       # GPU 0 + CPU, 모델 10개
+    python counting/scripts/benchmark_speed.py --devices 0 cpu --yolo-weights "yolo_det/models/ep200_{split}/m/weights/best.pt"
 """
 import argparse
 import json
@@ -134,13 +138,13 @@ def bench_yolo(images, device, weights, conf, iou, warmup, runs):
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser()
-    ap.add_argument("--split", default="k5_f0", help="포즈 모델 · RF 학습 분할 (속도는 분할과 무관, 기본 k5_f0)")
+    ap.add_argument("--splits", nargs="+", default=[f"rk5_f{i}" for i in range(5)] + [f"k5_f{i}" for i in range(5)],
+                    help="잴 fold (기본: 랜덤 5-fold + 시간대 5-fold, 모델 10개)")
     ap.add_argument("--devices", nargs="+", default=["0", "cpu"])
     ap.add_argument("--images", default=str(ROOT / "data" / "raw" / "000_img"))
     ap.add_argument("--warmup", type=int, default=5)
     ap.add_argument("--runs", type=int, default=3)
-    ap.add_argument("--yolo-weights", default=None)
-    ap.add_argument("--yolo-conf", type=float, default=0.5)
+    ap.add_argument("--yolo-weights", default=None, help="YOLO best.pt 경로 틀, '{split}' 자리에 fold 이름")
     ap.add_argument("--yolo-iou", type=float, default=0.7)
     ap.add_argument("--out", default=str(ROOT / "reports" / "speed"))
     a = ap.parse_args()
@@ -148,21 +152,28 @@ def main():
     import torch
     import ultralytics
     images = sorted(p for p in Path(a.images).iterdir() if p.suffix.lower() in (".png", ".jpg", ".jpeg"))
-    weights = REPO / "training" / "models" / "results" / f"ep200_{a.split}" / "m" / "weights" / "best.pt"
-    cams, models = train_rfs(a.split)
-    print(f"[speed] 사진 {len(images)}장 × {a.runs}회, 예열 {a.warmup}장 제외, 포즈 {weights.relative_to(REPO)}")
+    yconf = {}
+    if a.yolo_weights:
+        t = pd.read_csv(ROOT / "reports" / "fold_study" / "inputs" / "yolo_fold_metrics.csv", encoding="utf-8-sig")
+        t = t[t.set == "test"]
+        yconf = {("rk5" if s == "random_5fold" else "k5") + f"_{f}": c for s, f, c in zip(t.scheme, t.fold, t.conf)}
+    print(f"[speed] 사진 {len(images)}장 × {a.runs}회, 예열 {a.warmup}장 제외, fold {len(a.splits)}개: {' '.join(a.splits)}")
 
     rows = []
-    for dev in a.devices:
-        dev = dev if dev == "cpu" else int(dev)
-        name = device_name(dev)
-        print(f"[speed] {name} — 포즈 + Geo · RF 계열")
-        for r in bench_pose(images, dev, weights, cams, models, a.warmup, a.runs):
-            rows.append({"device": "GPU" if dev != "cpu" else "CPU", "device_name": name, **r})
-        if a.yolo_weights:
-            print(f"[speed] {name} — YOLO")
-            for r in bench_yolo(images, dev, a.yolo_weights, a.yolo_conf, a.yolo_iou, a.warmup, a.runs):
-                rows.append({"device": "GPU" if dev != "cpu" else "CPU", "device_name": name, **r})
+    for split in a.splits:
+        weights = REPO / "training" / "models" / "results" / f"ep200_{split}" / "m" / "weights" / "best.pt"
+        cams, models = train_rfs(split)
+        for dev in a.devices:
+            dev = dev if dev == "cpu" else int(dev)
+            name = device_name(dev)
+            base = {"split": split, "scheme": "random_5fold" if split.startswith("rk5_") else "time_5fold",
+                    "fold": split[-2:], "device": "GPU" if dev != "cpu" else "CPU", "device_name": name}
+            print(f"[speed] {split} · {name} — 포즈 + Geo · RF 계열")
+            rows += [{**base, **r} for r in bench_pose(images, dev, weights, cams, models, a.warmup, a.runs)]
+            if a.yolo_weights:
+                print(f"[speed] {split} · {name} — YOLO (conf {yconf[split]})")
+                rows += [{**base, **r} for r in bench_yolo(images, dev, a.yolo_weights.format(split=split),
+                                                             yconf[split], a.yolo_iou, a.warmup, a.runs)]
     raw = pd.DataFrame(rows)
 
     gpu = next((n for n in raw.device_name.unique() if raw[raw.device_name == n].device.iloc[0] == "GPU"), "nogpu")
@@ -170,11 +181,21 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     raw.to_csv(out / "speed_raw.csv", index=False, encoding="utf-8-sig")
 
-    summ = []
-    for (dev, m), g in raw.groupby(["device", "method"], sort=False):
-        rec = {"device": dev, "device_name": g.device_name.iloc[0], "method": m, "n": len(g),
-               "median_ms": g.total_ms.median(), "p95_ms": g.total_ms.quantile(0.95), "mean_ms": g.total_ms.mean(),
-               **{f"{s}_median_ms": g[f"{s}_ms"].median() for s in ("read", "infer", "feature", "classify")}}
+    stages = ("read", "infer", "feature", "classify")
+    folds = []                                                   # fold(모델) 하나당 중앙값 · p95
+    for (sch, fold, split, dev, m), g in raw.groupby(["scheme", "fold", "split", "device", "method"], sort=False):
+        folds.append({"scheme": sch, "fold": fold, "split": split, "device": dev, "device_name": g.device_name.iloc[0],
+                      "method": m, "n": len(g), "median_ms": g.total_ms.median(), "p95_ms": g.total_ms.quantile(0.95),
+                      **{f"{s}_median_ms": g[f"{s}_ms"].median() for s in stages}})
+    folds = pd.DataFrame(folds)
+    folds.to_csv(out / "speed_folds.csv", index=False, encoding="utf-8-sig")
+
+    summ = []                                                    # 분할 방식마다 fold 5개 평균 ± 표본 표준편차
+    for (sch, dev, m), g in folds.groupby(["scheme", "device", "method"], sort=False):
+        rec = {"scheme": sch, "device": dev, "device_name": g.device_name.iloc[0], "method": m, "n_folds": len(g),
+               "median_ms": g.median_ms.mean(), "median_ms_sd": g.median_ms.std(ddof=1),
+               "p95_ms": g.p95_ms.mean(), "p95_ms_sd": g.p95_ms.std(ddof=1), "p95_ms_max": g.p95_ms.max(),
+               **{f"{s}_median_ms": g[f"{s}_median_ms"].mean() for s in stages}}
         for lab, lim in RT:
             rec[f"realtime_{lab.split()[0]}{lab.split()[1]}"] = rec["p95_ms"] <= lim
         summ.append(rec)
@@ -183,23 +204,25 @@ def main():
 
     env = (f"Python {platform.python_version()} / torch {torch.__version__} / ultralytics {ultralytics.__version__} / "
            f"CPU {device_name('cpu')}" + (f" / GPU {gpu}" if gpu != "nogpu" else ""))
-    md = ["# 추론 시간 (end-to-end, 사진 1장)", "",
+    md = ["# 추론 시간 (end-to-end, 사진 1장) — Random 5-fold / Time 5-fold", "",
           f"환경: {env}", "",
-          f"조건: batch 1, imgsz 640, 예열 {a.warmup}장 제외, 000 {len(images)}장 × {a.runs}회, "
-          f"포즈 = `ep200_{a.split}` best.pt (conf 0.4), RF = 같은 분할 train 사진으로 학습. "
-          "사진 읽기부터 마릿수까지.", "",
-          "| 장비 | 방법 | 중앙값 (ms) | p95 (ms) | 읽기 | 모델 추론 | 특징 계산 | 판정 | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |",
-          "|---|---|---|---|---|---|---|---|---|---|"]
+          f"조건: batch 1, imgsz 640, 예열 {a.warmup}장 제외, 000 {len(images)}장 × {a.runs}회, fold마다 그 fold의 모델 "
+          f"(포즈 `ep200_<fold>` best.pt conf 0.4, RF = 그 fold train 사진으로 학습). 사진 읽기부터 마릿수까지.", "",
+          "값 = fold 5개(모델 5개) 각각의 중앙값 · p95를 평균 ± 표본 표준편차. 단계별 칸은 fold 중앙값의 평균.", "",
+          "| 분할 | 장비 | 방법 | 중앙값 (ms) | p95 (ms) | p95 최대 (fold) | 읽기 | 모델 추론 | 특징 계산 | 판정 | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     order = {m: i for i, m in enumerate(list(LABEL))}
-    for _, r in summ.sort_values(["device", "method"], key=lambda s: s.map(order) if s.name == "method" else s,
-                                 ascending=[False, True]).iterrows():
+    slab = {"random_5fold": "Random 5-fold", "time_5fold": "Time 5-fold"}
+    summ["_o"] = summ.method.map(order)
+    for _, r in summ.sort_values(["scheme", "device", "_o"], ascending=[True, False, True]).iterrows():
         ok = ["✅" if r.p95_ms <= lim else "❌" for _, lim in RT]
-        md.append(f"| {r.device} ({r.device_name}) | {LABEL[r.method]} | {r.median_ms:.1f} | {r.p95_ms:.1f} | "
+        md.append(f"| {slab[r.scheme]} | {r.device} ({r.device_name}) | {LABEL[r.method]} | "
+                  f"{r.median_ms:.1f} ± {r.median_ms_sd:.1f} | {r.p95_ms:.1f} ± {r.p95_ms_sd:.1f} | {r.p95_ms_max:.1f} | "
                   f"{r.read_median_ms:.1f} | {r.infer_median_ms:.1f} | {r.feature_median_ms:.1f} | "
                   f"{r.classify_median_ms:.2f} | {ok[0]} | {ok[1]} |")
-    md += ["", "단계별 칸은 중앙값(ms). '모델 추론' = 포즈 또는 YOLO predict(전처리 · NMS · 후처리 포함). "
+    md += ["", "'모델 추론' = 포즈 또는 YOLO predict(전처리 · NMS · 후처리 포함). "
            "'특징 계산' = 검출된 돼지 전부의 특징 + Geo 판정. '판정' = RF predict (Geo는 특징 계산에 포함, 0).",
-           "실시간 판정은 p95 기준.", ""]
+           "실시간 판정은 fold 5개 p95 평균 기준. fold별 값은 `speed_folds.csv`.", ""]
     if not a.yolo_weights:
         md += ["YOLO는 이 장비에서 재지 않음 (`--yolo-weights` 없음). 같은 장비 비교를 위해 YOLO 가중치로 다시 재거나, "
                "수아 서버에서 이 스크립트로 Geo · RF 계열을 같이 재야 함.", ""]

@@ -1,4 +1,4 @@
-﻿no,frame_idx,image,gt,random_f0,random_f1,random_f2,random_f3,random_f4,random_mean,random_n_correct,time_f0,time_f1,time_f2,time_f3,time_f4,time_mean,time_n_correct
+﻿no,frame_idx,image,gt,random_5fold_f0,random_5fold_f1,random_5fold_f2,random_5fold_f3,random_5fold_f4,random_5fold_mean,random_5fold_n_correct,time_5fold_f0,time_5fold_f1,time_5fold_f2,time_5fold_f3,time_5fold_f4,time_5fold_mean,time_5fold_n_correct
 1,0,0001_0001_frame_000000,2,2,2,2,2,2,2.0,5,2,2,2,2,2,2.0,5
 2,8,0002_0002_frame_000008,2,2,2,2,2,2,2.0,5,2,2,2,2,2,2.0,5
 3,32,0003_0003_frame_000032,2,2,2,2,2,2,2.0,5,2,2,2,2,2,2.0,5

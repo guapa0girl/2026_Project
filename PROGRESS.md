@@ -6,7 +6,7 @@
 |---|---|---|
 | 1. 데이터 준비 | 001·002 학습용, 000 test용 정리 → YOLO-Pose 라벨 변환 → 분할 | ✅ 완료 |
 | 2. 포즈 추정 | YOLOv8-pose n/s/m/l × epoch 100·200·300 학습·비교 → 사용할 모델 선택 | ✅ 완료 — 300은 valid만 오르고 000에서는 이득 없음, medium ep200 사용 |
-| 3. visiting 판정 | Geo / RF / RF+Geo / RF+Geo+Leg 학습·평가, YOLO 직접 판정(수아), 분할 3가지(랜덤 / 시간대 / 시간대 5-fold)별 비교 | ✅ 완료 — (통일 기준 전) 세 분할 모두 RF 계열 > YOLO > Geo, 5-fold 평균 RF+Geo+Leg 사진당 0.119마리 / YOLO 0.223. (11/18 통일 기준 재학습, 랜덤 / 시간대 5-fold) RF+Geo+Leg 0.121 / 0.109, YOLO 0.300 / 0.223, Geo 0.293 / 0.293 → [RESULTS.md](RESULTS.md) 6\~8장 |
+| 3. visiting 판정 | Geo / RF / RF+Geo / RF+Geo+Leg 학습·평가, YOLO 직접 판정(수아), 분할 3가지(랜덤 / 시간대 / 시간대 5-fold)별 비교 | ✅ 완료 — (통일 기준 전) 세 분할 모두 RF 계열 > YOLO > Geo, 5-fold 평균 RF+Geo+Leg 사진당 0.119마리 / YOLO 0.223. (11/18 통일 기준 재학습, Random 5-fold / Time 5-fold) RF+Geo+Leg 0.121 / 0.109, YOLO 0.300 / 0.223, Geo 0.293 / 0.293 → [RESULTS.md](RESULTS.md) |
 
 **정답**: 000(1분 샘플 영상 86장)의 사람 라벨만 사용.
 
@@ -72,10 +72,10 @@
 |---|---|---|---|
 | **랜덤** | 001+002를 seed 42로 섞어 15% valid (위 기본 분할과 사진까지 동일) | 162 / 28 | 기본 |
 | **시간대** | 001·002 각각 마지막 클립을 통째로 valid (001 07:24 클립 20장, 002 17:51·18:12 클립 11장) | 159 / 31 | 랜덤은 같은 클립의 비슷한 사진이 train·valid에 갈림 → valid가 낙관적 |
-| **시간대 5-fold** | 001·002 각각 시간순 5구간, fold마다 한 구간이 valid. 경계가 클립 중간이면 붙은 사진 1장을 train에서 뺌 | 148\~155 / 34\~42 | valid 구간에 따라 결과가 얼마나 흔들리는지 확인 (평균 ± 표준편차) |
-| **랜덤 5-fold** (11/17 추가) | 001·002 각각 seed 42로 섞고, fold마다 train · valid 장수를 시간대 5-fold와 task별로 똑같이 맞춤(190장이 한 번씩 valid) | 148\~155 / 34\~42 | 시간대 5-fold와 valid 고르는 방식만 다르게 → 분할 방식의 영향 확인 |
+| **Time 5-fold** | 001·002 각각 시간순 5구간, fold마다 한 구간이 valid. 경계가 클립 중간이면 붙은 사진 1장을 train에서 뺌 | 148\~155 / 34\~42 | valid 구간에 따라 결과가 얼마나 흔들리는지 확인 (평균 ± 표준편차) |
+| **Random 5-fold** (11/17 추가) | 001·002 각각 seed 42로 섞고, fold마다 train · valid 장수를 Time 5-fold와 task별로 똑같이 맞춤(190장이 한 번씩 valid) | 148\~155 / 34\~42 | Time 5-fold와 valid 고르는 방식만 다르게 → 분할 방식의 영향 확인 |
 
-- **11/16 랩미팅 이후 최종 비교는 시간대 5-fold와 랜덤 5-fold 두 가지**(통일 기준, [RESULTS.md](RESULTS.md)). 랜덤 · 시간대 단일 분할은 통일 기준 전 비교(아래 2장 결과 4, 3장 결과 4 · 5).
+- **11/16 랩미팅 이후 최종 결과는 Time 5-fold와 Random 5-fold 두 가지뿐**(통일 기준, [RESULTS.md](RESULTS.md)). 랜덤 · 시간대 단일 분할(5-fold 아님)은 통일 기준 전 비교(아래 2장 결과 4, 3장 결과 4 · 5).
 
 - 5-fold의 valid 구간: f0 = 001 첫 클립 + 002 10\~13시, f1 = 001 06:37 클립 앞부분 + 002 13\~16시, f2 = 001 06:37·07:01 클립 일부 + 002 16:17 클립, f3 = 001 07:01 클립 + 002 16:58\~17:34, f4 = 001 마지막 클립 + 002 마지막 부분.
 
@@ -223,8 +223,8 @@ medium ep200의 test 관절별 PCK (판정에 쓰는 관절 굵게):
 
 | 분할 | train / valid | test pose mAP50-95 | test PCK@0.1 | test PCK@0.2 | test box mAP50-95 | 놓친 돼지 (박스 IoU 0.5) |
 |---|---|---|---|---|---|---|
-| 랜덤 | 162 / 28 | 0.100 | **0.710** | **0.870** | **0.672** | 110 |
-| 시간대 | 159 / 31 | 0.079 | 0.652 | 0.839 | 0.657 | 113 |
+| 랜덤 (단일 분할) | 162 / 28 | 0.100 | **0.710** | **0.870** | **0.672** | 110 |
+| 시간대 (단일 분할) | 159 / 31 | 0.079 | 0.652 | 0.839 | 0.657 | 113 |
 | 5-fold f0 | 148 / 42 | **0.127** | 0.707 | 0.867 | 0.632 | 112 |
 | 5-fold f1 | 155 / 34 | 0.122 | 0.674 | 0.858 | 0.608 | 113 |
 | 5-fold f2 | 151 / 37 | 0.096 | **0.725** | 0.859 | **0.681** | 104 |
@@ -236,16 +236,16 @@ medium ep200의 test 관절별 PCK (판정에 쓰는 관절 굵게):
 - 랜덤 분할 모델(지금 쓰는 `pig_pose_best.pt`)은 5-fold 범위 안에서 위쪽(PCK 0.710 / 0.870). 시간대 분할 모델이 가장 낮음.
 - 결과: `training/reports/metrics/ep200_<분할>/m/summary.json`, 표 `counting/reports/split_comparison/pose_by_split.csv`.
 
-### 결과 5 — 통일 기준 포즈 모델 10개 (랜덤 · 시간대 5-fold, 11/18) ✅
+### 결과 5 — 통일 기준 포즈 모델 10개 (Random 5-fold · Time 5-fold, 11/18) ✅
 
 `run_split_study.ps1 -Splits k5_f0,...,k5_f4,rk5_f0,...,rk5_f4` (medium ep200, seed 42, best.pt = valid pose mAP50-95 최고, 하나에 약 15분). fold 5개 평균 ± 표본 표준편차:
 
 | 분할 | val pose mAP50-95 | val PCK@0.1 | test pose mAP50-95 | test PCK@0.1 | test PCK@0.2 | test box mAP50-95 |
 |---|---|---|---|---|---|---|
-| 랜덤 5-fold | 0.287 ± 0.024 | 0.784 ± 0.018 | 0.111 ± 0.021 | 0.691 ± 0.029 | 0.865 ± 0.009 | 0.652 ± 0.023 |
-| 시간대 5-fold | 0.167 ± 0.020 | 0.695 ± 0.025 | 0.087 ± 0.010 | 0.692 ± 0.024 | 0.865 ± 0.011 | 0.646 ± 0.023 |
+| Random 5-fold | 0.287 ± 0.024 | 0.784 ± 0.018 | 0.111 ± 0.021 | 0.691 ± 0.029 | 0.865 ± 0.009 | 0.652 ± 0.023 |
+| Time 5-fold | 0.167 ± 0.020 | 0.695 ± 0.025 | 0.087 ± 0.010 | 0.692 ± 0.024 | 0.865 ± 0.011 | 0.646 ± 0.023 |
 
-- val은 시간대가 크게 낮지만(못 본 시간대), test(못 본 카메라) PCK는 두 분할이 같음.
+- val은 Time 5-fold가 크게 낮지만(못 본 시간대), test(못 본 카메라) PCK는 두 분할이 같음.
 - 관절별 test PCK@0.1: 몸통 · 목 · 귀 0.72\~0.94, 발 · 앞발 · 귀 끝 0.26\~0.69. fold별 · 관절별 표는 `counting/reports/fold_study/fold_study.md` 5 · 7장.
 
 ### 학습 중 생긴 문제 — large 학습이 매우 느려짐
@@ -432,7 +432,7 @@ Geo 규칙의 방향 조건 각도와 누움 조건(confidence 기반)을 바꿔
 
 ### 결과 4 — 분할 방식별 최종 비교: Geo / RF / RF+Geo / RF+Geo+Leg / YOLO ✅
 
-> 결과 4 · 5의 시간대 5-fold 값은 11/18 재학습 **전** 포즈 모델 기준임. 11/16 랩미팅 통일 기준(seed 42, best.pt = val pose mAP50-95, RF best = val MAE, 랜덤 5-fold 추가)으로 다시 돌린 결과는 [RESULTS.md](RESULTS.md) 6\~8장.
+> 결과 4 · 5의 시간대 5-fold 값은 11/18 재학습 **전** 포즈 모델 기준임. 11/16 랩미팅 통일 기준(seed 42, best.pt = val pose mAP50-95, RF best = val MAE, Random 5-fold 추가)으로 다시 돌린 결과는 [RESULTS.md](RESULTS.md)와 아래 결과 6.
 
 결과 1\~3은 RF를 001+002 **전체 190장**으로 학습한 결과. 여기서는 YOLO와 조건을 똑같이 맞춤:
 
@@ -454,12 +454,12 @@ cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.
 
 | 분할 | 방법 | 사진당 MAE | bias | 정확 일치 | 1분 총 점유량 오차 | 10초 구간 오차 |
 |---|---|---|---|---|---|---|
-| 랜덤 | Geo | 0.279 | −0.279 | 73.3% | −18.0% | 0.234 |
+| 랜덤 (단일 분할) | Geo | 0.279 | −0.279 | 73.3% | −18.0% | 0.234 |
 | | RF | 0.105 | −0.012 | 89.5% | −0.8% | 0.062 |
 | | RF+Geo | 0.105 | −0.012 | 89.5% | −0.8% | 0.062 |
 | | **RF+Geo+Leg** | **0.093** | **0.000** | **90.7%** | **0.0%** | 0.069 |
 | | YOLO | 0.198 | −0.151 | 80.2% | −9.8% | 0.150 |
-| 시간대 | Geo | 0.279 | −0.279 | 73.3% | −18.0% | 0.217 |
+| 시간대 (단일 분할) | Geo | 0.279 | −0.279 | 73.3% | −18.0% | 0.217 |
 | | **RF** | **0.093** | −0.047 | **90.7%** | −3.0% | 0.069 |
 | | RF+Geo | 0.151 | −0.058 | 84.9% | −3.8% | 0.075 |
 | | RF+Geo+Leg | 0.140 | −0.047 | 86.0% | −3.0% | 0.069 |
@@ -484,12 +484,12 @@ cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.
 
 | 분할 | 방법 | 못 찾은 visiting | 찾았지만 other로 | other를 visiting으로 | 라벨 없는 검출을 visiting으로 |
 |---|---|---|---|---|---|
-| 랜덤 | Geo | 9 | 18 | 0 | 3 |
+| 랜덤 (단일 분할) | Geo | 9 | 18 | 0 | 3 |
 | | RF | 9 | 1 | 4 | 5 |
 | | RF+Geo | 9 | 0 | 4 | 4 |
 | | RF+Geo+Leg | 9 | 0 | 4 | 5 |
 | | YOLO | 8 | 11 | 2 | 4 |
-| 시간대 | Geo | 4 | 21 | 0 | 1 |
+| 시간대 (단일 분할) | Geo | 4 | 21 | 0 | 1 |
 | | RF | 4 | 4 | 3 | 1 |
 | | RF+Geo | 4 | 6 | 4 | 1 |
 | | RF+Geo+Leg | 4 | 5 | 4 | 1 |
@@ -591,9 +591,9 @@ cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.
 
 - 확실하게 말할 수 있는 순서는 **RF 계열 < YOLO < Geo**(오차 기준). RF 계열 안에서는 RF+Geo+Leg가 가장 안정적이지만, 000에서 RF / RF+Geo와의 차이는 1\~3장 수준이라 분할 하나만 보면 순위가 바뀜.
 
-### 결과 6 — 통일 기준: 랜덤 vs 시간대 5-fold, 5가지 방법 (11/18) ✅
+### 결과 6 — 통일 기준: Random 5-fold vs Time 5-fold, 5가지 방법 (11/18) ✅
 
-11/16 랩미팅 통일 기준: 같은 분할 목록(해시 10개 일치), 포즈 · YOLO seed 42, 선택은 val만(포즈 best.pt = val pose mAP50-95, YOLO conf = val MAE 최소, RF best = 5-fold 평균 val MAE 최소), 지표 `count_metrics()` + RMSE. YOLO는 수아(시간대 11/17 재평가, 랜덤 11/17 학습 · 평가).
+11/16 랩미팅 통일 기준: 같은 분할 목록(해시 10개 일치), 포즈 · YOLO seed 42, 선택은 val만(포즈 best.pt = val pose mAP50-95, YOLO conf = val MAE 최소, RF best = 5-fold 평균 val MAE 최소), 지표 `count_metrics()` + RMSE. YOLO는 수아(Time 5-fold 11/17 재평가, Random 5-fold 11/17 학습 · 평가).
 
 ```powershell
 cd counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1 -Valid -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4
@@ -601,7 +601,7 @@ cd counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1
 
 test(000) 사진당 MAE (fold 5개 평균 ± 표본 표준편차):
 
-| 방법 | 랜덤 5-fold | 시간대 5-fold | val MAE (랜덤 / 시간대) |
+| 방법 | Random 5-fold | Time 5-fold | val MAE (Random 5-fold / Time 5-fold) |
 |---|---|---|---|
 | Geo | 0.293 ± 0.028 | 0.293 ± 0.022 | 0.566 / 0.575 |
 | RF | **0.114 ± 0.015** | 0.116 ± 0.032 | 0.389 / 0.632 |
@@ -610,14 +610,14 @@ test(000) 사진당 MAE (fold 5개 평균 ± 표본 표준편차):
 | YOLO | 0.300 ± 0.137 | 0.223 ± 0.048 | 0.251 / 0.347 |
 
 - RF 계열이 가장 좋음. RF+Geo+Leg는 Geo · YOLO보다 test 사진 단위로 유의하게 좋음(Wilcoxon p ≤ 0.007), RF 계열 3가지 사이는 유의하지 않음(p > 0.3).
-- test에서는 Geo · RF 계열의 랜덤 vs 시간대 차이가 없음(p > 0.69). YOLO만 랜덤에서 나빠짐(fold 2개가 101 · 152마리로 크게 틀림, conf 임계값 영향).
-- val은 시간대가 나쁘고 크게 흔들림(시간대 RF 0.400\~1.054) → 랜덤 val은 새 장면 성능을 낙관적으로 보여 줌.
-- 추가 결과: 실제 센 마릿수, test 사진별 카운트(모델 50개), 오차 원인, 논문용 지표(P/R/F1, bootstrap CI, Wilcoxon), 추론 시간(GPU 26 ms · CPU 158 ms, RF+Geo+Leg), 가림 · 밀집 오차 사례 → [RESULTS.md](RESULTS.md) 4\~7장, `counting/reports/fold_study/`, `counting/reports/speed/`.
+- test에서는 Geo · RF 계열의 Random 5-fold vs Time 5-fold 차이가 없음(p > 0.69). YOLO만 Random 5-fold에서 나빠짐(fold 2개가 101 · 152마리로 크게 틀림, conf 임계값 영향).
+- val은 Time 5-fold가 나쁘고 크게 흔들림(Time 5-fold RF 0.400\~1.054) → Random 5-fold val은 새 장면 성능을 낙관적으로 보여 줌.
+- 추가 결과: 실제 센 마릿수, test 사진별 카운트(모델 50개), 오차 원인, 논문용 지표(P/R/F1, bootstrap CI, Wilcoxon), 가림 · 밀집 오차 사례 → [RESULTS.md](RESULTS.md) 4\~7장, `counting/reports/fold_study/`. 추론 시간은 수아 담당.
 
 ### 정리
 
-- **최종(통일 기준, 결과 6)**: RF 계열이 가장 좋음. test 사진당 MAE RF+Geo+Leg 0.121 / 0.109(랜덤 / 시간대), RF 0.114 / 0.116, RF+Geo 0.133 / 0.126, YOLO 0.300 / 0.223, Geo 0.293 / 0.293. RF best는 두 분할 모두 RF+Geo+Leg.
-  - 시간대 5-fold는 RF 계열 < YOLO < Geo, 랜덤 5-fold는 RF 계열 < Geo ≈ YOLO.
+- **최종(통일 기준, 결과 6)**: RF 계열이 가장 좋음. test 사진당 MAE RF+Geo+Leg 0.121 / 0.109(Random 5-fold / Time 5-fold), RF 0.114 / 0.116, RF+Geo 0.133 / 0.126, YOLO 0.300 / 0.223, Geo 0.293 / 0.293. RF best는 두 분할 모두 RF+Geo+Leg.
+  - Time 5-fold는 RF 계열 < YOLO < Geo, Random 5-fold는 RF 계열 < Geo ≈ YOLO.
   - 통일 기준 전(결과 4)에도 RF 계열 > YOLO > Geo였음(5-fold 평균 RF+Geo+Leg 0.119, YOLO 0.223, Geo 0.288).
 - 통일 기준 전 단일 분할에서는 RF+Geo(+Leg)가 사진당 0.093마리 오차, 86장 중 78장 정확까지 나왔지만(결과 1 · 4), 분할 하나의 값이라 5-fold로는 0.11\~0.13이 대표값임.
 - Geo(60°)는 점유량을 18% 적게 셈. 각도를 90°로 넓히면 000에서는 RF 계열과 비슷해지지만 001+002에서는 반대로 16.5% 많이 셈 → 규칙은 카메라마다 다시 맞춰야 함.

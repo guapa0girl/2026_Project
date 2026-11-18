@@ -19,8 +19,7 @@ counting/
 ├── data/labels/     CVAT 라벨 XML·평가 이미지 (git 제외)
 ├── outputs/         추론·평가 결과 (git 제외)
 ├── reports/split_comparison/  분할 방식별 5가지 방법 비교 (통일 기준 전, md / csv / png, git에 올림)
-├── reports/fold_study/        랜덤 vs 시간대 5-fold, 11/16 통일 기준 (표 · 그래프 · 논문 지표 · 사진별 · 오차 사례, git에 올림)
-├── reports/speed/             추론 시간 (장비별 폴더)
+├── reports/fold_study/        Random 5-fold vs Time 5-fold, 11/16 통일 기준 (표 · 그래프 · 논문 지표 · 사진별 · 오차 사례, git에 올림)
 ├── scripts/
 │   ├── count_day.py          폴더의 클립 전체를 순서대로 추론 (클립마다 KST 시작 시각 자동 계산, 이어하기 가능)
 │   ├── count_full_video.py   클립 1개를 1초 샘플링으로 추론 → 1초 CSV + 집계 CSV/그래프 (+ _dets.csv)
@@ -29,14 +28,14 @@ counting/
 │   ├── evaluate_methods.py   Stage 1·2 평가 (Geo / RF / RF+Geo / RF+Geo+Leg)
 │   │                         --stage2-train-split: RF를 분할의 train 사진으로만 학습, --pose-weights: 포즈 가중치 바꾸기
 │   │                         --stage2-eval-part valid: 그 분할의 valid 사진(001+002)으로 평가
-│   ├── run_split_eval.ps1    분할별 Stage 2 평가 (기본: 랜덤, 시간대, 시간대 5-fold; -Splits로 지정, -Valid면 val도)
-│   │                         → compare_splits.py (랜덤 · 시간대) / compare_folds.py (5-fold)
+│   ├── run_split_eval.ps1    분할별 Stage 2 평가 (기본: 랜덤 단일 · 시간대 단일 · Time 5-fold; -Splits로 지정, -Valid면 val도)
+│   │                         → compare_splits.py (단일 분할, 통일 기준 전) / compare_folds.py (Random 5-fold · Time 5-fold)
 │   ├── compare_splits.py     분할 3가지 × 5가지 방법(YOLO 포함) 비교표·그림 → reports/split_comparison/ (통일 기준 전)
-│   ├── compare_folds.py      랜덤 vs 시간대 5-fold × 5가지 방법, val · test → reports/fold_study/ (표, 그래프 A~D)
+│   ├── compare_folds.py      Random 5-fold vs Time 5-fold × 5가지 방법, val · test → reports/fold_study/ (표, 그래프 A~D)
 │   ├── paper_tables.py       논문용 지표 (P/R/F1, bootstrap CI, Wilcoxon, 포즈 · YOLO 표) → reports/fold_study/paper/
 │   ├── per_image_000.py      000 사진별 카운트 (모델별 csv · 그림, 그래프 E · F) → reports/fold_study/per_image/
 │   ├── error_cases.py        가림 · 밀집 오차 사례 그림 (10개 모델 나란히) → reports/fold_study/error_cases/
-│   ├── benchmark_speed.py    추론 시간 end-to-end (GPU · CPU, YOLO는 --yolo-weights) → reports/speed/
+│   ├── benchmark_speed.py    추론 시간 측정 도구 (수아 담당 측정용; Random 5-fold · Time 5-fold 모델 10개, GPU · CPU, YOLO는 --yolo-weights)
 │   ├── run_geo_ablation.ps1  Geo 조건 5종 Stage 2 평가 (000)
 │   ├── apply_methods.py      _dets.csv에 모든 방법 적용 → 방법별 10분 그래프 (YOLO 재실행 없음)
 │   ├── plot_methods.py / plot_geo_ablation.py   평가 결과 그림 (사진당 마릿수 오차, 총 점유량 오차)
@@ -71,14 +70,13 @@ powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1   # → outp
 - 분할마다 그 분할의 포즈 모델(`training/models/results/ep200[_<분할>]/m`)과 그 분할 train 사진으로 학습한 RF로 000을 평가.
 - YOLO는 `yolo_det/reports/ep200[_sorted|_k5_f<i>]/m/summary.json`을 읽어 같은 표에 넣음.
 
-### 랜덤 vs 시간대 5-fold (11/16 통일 기준)
+### Random 5-fold vs Time 5-fold (11/16 통일 기준)
 
 ```powershell
 # training/에서: make_study_splits.py --export-images ..\counting\data\raw\train_img, run_split_study.ps1 -Splits k5_f0,...,rk5_f4
 cd counting
 powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1 -Valid -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4
 python scripts\paper_tables.py; python scripts\per_image_000.py; python scripts\error_cases.py
-python scripts\benchmark_speed.py            # GPU 0 + CPU (YOLO까지 같은 장비에서: --yolo-weights <best.pt> --yolo-conf <conf>)
 ```
 
 - val = 그 fold의 valid 사진(001+002), test = 000. RF best = RF / RF+Geo / RF+Geo+Leg 중 5-fold 평균 val MAE 최소.

@@ -11,11 +11,16 @@
 진단 = 사람 박스와 IoU ≥ 0.5로 짝지어
     missed_visiting_undetected(못 찾음) / missed_visiting_judged(찾았지만 other) /
     wrong_visiting(other를 visiting) / extra_visiting(사람 라벨에 없는 박스를 visiting으로 셈)
-참고 = Ultralytics box mAP50 / mAP50-95 (클래스별)
+참고 = Ultralytics box P / R / mAP50 / mAP50-95 (valid·test 각각, 클래스별 mAP50-95)
+valid 결과 = 같은 임계값으로 valid의 사진당 지표도 기록 (임계값을 valid에서 골랐으므로 valid 값은 낙관적)
+사진별 카운트 = reports/<run>/<size>/test_frames.csv (팀 통일 형식: image, frame_idx, gt, pred, error=pred−gt)
+추론 시간 (--timing) = 팀 통일 조건: batch 1, imgsz 640, 예열 5장 제외, 000 전체 × 3회,
+    사진 읽기부터 visiting 마릿수까지 end-to-end, 사진당 중앙값·p95(ms)
 
 사용법 (레포 루트에서):
     python yolo_det/scripts/evaluate.py --run ep200 --size m
     python yolo_det/scripts/evaluate.py --run ep200 --size m --conf 0.4      # 임계값 직접 지정
+    python yolo_det/scripts/evaluate.py --run ep200_k5_f0 --size m --timing  # 추론 시간도 측정
 결과: outputs/<run>/<size>/ (상세 csv, git 제외), reports/<run>/<size>/ (summary.json·md, git에 올림)
 """
 from __future__ import annotations
@@ -139,16 +144,45 @@ def bin_metrics(frames: pd.DataFrame, n_bins: int) -> tuple[dict, pd.DataFrame |
             "bin_max_abs_err": float(e.abs().max())}, agg
 
 
-def box_map(model, imgsz, device) -> dict:
-    """참고용: Ultralytics 공식 box mAP (test split)."""
+def box_map(model, imgsz, device, split: str = "test") -> dict:
+    """참고용: Ultralytics 공식 box P / R / mAP (split = valid 또는 test)."""
     try:
-        m = model.val(data=str(RESOLVED_YAML), split="test", imgsz=imgsz, device=device, plots=False, verbose=False)
+        m = model.val(data=str(RESOLVED_YAML), split="val" if split == "valid" else split, imgsz=imgsz,
+                      device=device, plots=False, verbose=False)
         per_cls = {CLASS_NAMES[i]: float(m.box.maps[i]) for i in CLASS_NAMES}
-        return {"box_mAP50": float(m.box.map50), "box_mAP50-95": float(m.box.map),
+        return {"box_P": float(m.box.mp), "box_R": float(m.box.mr),
+                "box_mAP50": float(m.box.map50), "box_mAP50-95": float(m.box.map),
                 **{f"box_mAP50-95_{k}": v for k, v in per_cls.items()}}
     except Exception as e:  # mAP는 참고값이라 실패해도 본 평가는 진행
-        print(f"[evaluate][경고] box mAP 계산 실패: {e}")
+        print(f"[evaluate][경고] box mAP 계산 실패 ({split}): {e}")
         return {}
+
+
+def measure_time(model, thr: float, imgsz: int, iou: float, device, warmup: int = 5, repeats: int = 3) -> dict:
+    """팀 통일 추론 시간: 사진 읽기 → 예측 → visiting 마릿수까지, batch 1. 예열 warmup장은 제외."""
+    import time
+    import cv2
+    imgs = sorted(p for p in (DATA_DIR / "test" / "images").iterdir() if p.suffix.lower() in IMAGE_EXTS)
+
+    def once(p):
+        t0 = time.perf_counter()
+        im = cv2.imread(str(p))
+        r = model.predict(im, conf=0.01, iou=iou, agnostic_nms=True, imgsz=imgsz, device=device, verbose=False)[0]
+        b = r.boxes
+        _ = int(((b.cls.cpu().numpy().astype(int) == CLS_VISITING) & (b.conf.cpu().numpy() >= thr)).sum())
+        return (time.perf_counter() - t0) * 1000
+
+    for p in imgs[:warmup]:
+        once(p)
+    ms = np.array([once(p) for _ in range(repeats) for p in imgs])
+    try:
+        import torch
+        gpu = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
+    except Exception:  # noqa: BLE001
+        gpu = "?"
+    return {"n_images": len(imgs), "repeats": repeats, "warmup": warmup, "batch": 1, "imgsz": imgsz, "gpu": gpu,
+            "median_ms": float(np.median(ms)), "p95_ms": float(np.percentile(ms, 95)),
+            "mean_ms": float(ms.mean())}
 
 
 def main():
@@ -161,6 +195,7 @@ def main():
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--bins", type=int, default=6, help="구간 집계 수 (evaluate_methods.py와 같게 6 ≈ 10초)")
     ap.add_argument("--device", default=None)
+    ap.add_argument("--timing", action="store_true", help="팀 통일 조건으로 추론 시간 측정 (000 × 3회)")
     a = ap.parse_args()
 
     weights = Path(a.weights) if a.weights else MODELS_DIR / a.run / a.size / "weights" / "best.pt"
@@ -193,13 +228,20 @@ def main():
     rep.mkdir(parents=True, exist_ok=True)
 
     # 1) 임계값: valid에서 선택
+    preds_valid = predict_split(model, "valid", a.imgsz, a.iou, a.device)
     if a.conf is None:
-        thr, scan = choose_threshold(predict_split(model, "valid", a.imgsz, a.iou, a.device), gt, count_metrics)
+        thr, scan = choose_threshold(preds_valid, gt, count_metrics)
         scan.to_csv(out / "valid_conf_scan.csv", index=False, encoding="utf-8-sig")
         thr_note = f"valid {len(gt[gt.split == 'valid'])}장에서 사진당 MAE 최소"
     else:
         thr, thr_note = a.conf, "직접 지정(--conf)"
     print(f"[evaluate] visiting conf 임계값 = {thr:.2f} ({thr_note})")
+
+    # 1-1) valid 결과 (같은 임계값) — 임계값을 valid에서 골랐으므로 낙관적인 값
+    cnt_v = visiting_counts(preds_valid, thr)
+    gv = gt.set_index("image").loc[list(cnt_v)]
+    metrics_valid = count_metrics(gv.n_visiting.values, list(cnt_v.values()))
+    mp_valid = box_map(model, a.imgsz, a.device, "valid")
 
     # 2) test(000) 평가
     preds = predict_split(model, "test", a.imgsz, a.iou, a.device)
@@ -212,9 +254,15 @@ def main():
     metrics = count_metrics(frames.human_visiting, frames.yolo_visiting)
     bins, agg = bin_metrics(frames, a.bins)
     diag = diagnose(preds, "test", thr)
-    mp = box_map(model, a.imgsz, a.device)
+    mp = box_map(model, a.imgsz, a.device, "test")
+    timing = measure_time(model, thr, a.imgsz, a.iou, a.device) if a.timing else None
 
     frames.to_csv(out / "test_frames.csv", index=False, encoding="utf-8-sig")
+    # 팀 통일 사진별 카운트 csv (Geo·RF와 같은 형식) → reports/ 에 커밋
+    pd.DataFrame({"image": frames.orig_image, "frame_idx": frames.orig_image.map(frame_index),
+                  "gt": frames.human_visiting, "pred": frames.yolo_visiting,
+                  "error": frames.yolo_visiting - frames.human_visiting}) \
+        .sort_values(["frame_idx", "image"]).to_csv(rep / "test_frames.csv", index=False, encoding="utf-8-sig")
     if agg is not None:
         agg.to_csv(out / "test_bins.csv", encoding="utf-8-sig")
 
@@ -234,17 +282,25 @@ def main():
     summary = {"method": "YOLO", "run": a.run, "size": a.size, "weights": weights.name, "split": split,
                "weights_sha256_16": sha256_16(weights), "env_train": env, "env_eval": env_eval,
                "conf_threshold": thr, "conf_threshold_from": thr_note, "nms": f"agnostic, iou {a.iou}",
+               "valid": metrics_valid, "box_map_valid": mp_valid,
                "test": {**metrics, **bins, **diag}, "box_map_test": mp}
+    if timing:
+        summary["timing"] = timing
     (rep / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
     m = summary["test"]
     md = [f"# YOLO 직접 판정 — {a.run} / {a.size} (test = 000, 사진 {m['n_frames']}장)", "",
           f"- 분할: {split}, 가중치: `models/{a.run}/{a.size}/weights/{weights.name}`, visiting conf ≥ {thr:.2f} ({thr_note}), "
           f"NMS {summary['nms']}", "",
-          "| 방법 | 사진당 MAE (bias) | 정확 일치 | ±1 이내 | 총 점유량 오차 | 구간 평균 오차 |",
-          "|---|---|---|---|---|---|",
-          f"| YOLO ({a.size}) | {m['count_MAE']:.3f} ({m['count_bias']:+.3f}) | {m['exact_rate']:.1%} | "
-          f"{m['within1_rate']:.1%} | {m['total_error_pct']:+.1f}% | {m.get('bin_MAE', float('nan')):.3f} |", "",
+          "| 방법 | 사진당 MAE (bias) | RMSE | 정확 일치 | ±1 이내 | 총 점유량 오차 | 구간 평균 오차 |",
+          "|---|---|---|---|---|---|---|",
+          f"| YOLO ({a.size}) | {m['count_MAE']:.3f} ({m['count_bias']:+.3f}) | {m.get('count_RMSE', float('nan')):.3f} | "
+          f"{m['exact_rate']:.1%} | {m['within1_rate']:.1%} | {m['total_error_pct']:+.1f}% | "
+          f"{m.get('bin_MAE', float('nan')):.3f} |", "",
+          f"- valid {metrics_valid['n_frames']}장 (같은 임계값, 임계값을 여기서 골라 낙관적): "
+          f"MAE {metrics_valid['count_MAE']:.3f} ({metrics_valid['count_bias']:+.3f}), "
+          f"RMSE {metrics_valid.get('count_RMSE', float('nan')):.3f}, 정확 일치 {metrics_valid['exact_rate']:.1%}"
+          + (", " + ", ".join(f"{k} {v:.3f}" for k, v in mp_valid.items() if "_" not in k[4:]) if mp_valid else ""),
           f"- 총 visiting: YOLO {m['total_model']} / 사람 {m['total_human']}, "
           f"많이 센 사진 {m['over_frames']} / 적게 센 사진 {m['under_frames']}",
           f"- 진단(IoU ≥ 0.5): 못 찾은 visiting {m['missed_visiting_undetected']}, "
@@ -256,7 +312,11 @@ def main():
               f"git {e.get('git_commit', '?')}, 시작 가중치 {e.get('init', '?')} ({e.get('init_sha256_16', '?')}), "
               f"best.pt {summary['weights_sha256_16']}")
     if mp:
-        md.append("- 참고 box mAP (test): " + ", ".join(f"{k} {v:.3f}" for k, v in mp.items()))
+        md.append("- 참고 box (test): " + ", ".join(f"{k} {v:.3f}" for k, v in mp.items()))
+    if timing:
+        md.append(f"- 추론 시간 ({timing['gpu']}, batch 1, {timing['imgsz']}, 예열 {timing['warmup']}장 제외, "
+                  f"{timing['n_images']}장 × {timing['repeats']}회, end-to-end): 중앙값 {timing['median_ms']:.1f} ms, "
+                  f"p95 {timing['p95_ms']:.1f} ms")
     (rep / "summary.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md))
     print(f"\n[saved] {rep}  (상세: {out})")

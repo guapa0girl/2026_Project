@@ -91,6 +91,14 @@ python yolo_det\scripts\evaluate.py --run ep200 --size m
   | 2 | 151 | 37 (44) |
   | 3 | 151 | 37 (61) |
   | 4 | 149 | 40 (51) |
+- **재평가·추론 시간 (`run_kfold.sh`)**:
+  ```bash
+  EVAL_ONLY=1 bash yolo_det/scripts/run_kfold.sh 0 0 1 2 3 4                 # 시간대 재평가 (재학습 없음, val 결과 추가)
+  SPLIT=rkfold TIMING=1 bash yolo_det/scripts/run_kfold.sh 0 0 1 2 3 4       # 랜덤 5-fold 학습·평가 + 추론 시간
+  python yolo_det/scripts/summarize_folds.py --prefix ep200_k5 --k 5           # val 표 + test(000) 표
+  python yolo_det/scripts/summarize_folds.py --prefix ep200_rk5 --k 5
+  ```
+  `TIMING=1`: batch 1, 640, 예열 5장 제외, 000 × 3회, 사진 읽기→마릿수 end-to-end, 중앙값·p95(ms). 같은 GPU 한 대로 잴 것.
 - **사람 정답 마릿수**: clip 전 XML 기준으로 `data/gt_counts.csv`에 저장(evaluate.py가 사용).
 
 ---
@@ -105,6 +113,10 @@ python yolo_det\scripts\evaluate.py --run ep200 --size m
 | 지표 | `counting/scripts/evaluate_methods.py`의 `count_metrics()`를 그대로 import — MAE, bias, 정확 일치, ±1 이내, 총 점유량 오차 + 구간(6등분 ≈ 10초) 오차 |
 | 진단 | 사람 박스와 IoU ≥ 0.5로 짝지어 못 찾은 visiting / other로 판정 / 잘못 visiting / 라벨에 없는 박스 |
 | 참고 | Ultralytics box mAP50, mAP50-95 (클래스별) |
+
+평가는 valid에도 같은 임계값을 적용해 val 결과(P, R, mAP50, mAP50-95, MAE, RMSE, 정확 일치율)를 `summary.json`의 `valid`에 남기고
+(임계값을 valid에서 골랐으므로 낙관적), 000 사진별 카운트를 팀 통일 형식(`image, frame_idx, gt, pred, error=pred−gt`)으로
+`reports/<run>/<size>/test_frames.csv`에 저장한다(git에 올림).
 
 결과의 `reports/<run>/<size>/summary.md` 표 한 줄을 루트 README·PROGRESS.md 비교표의 "YOLO (수아)" 줄에 옮긴다.
 

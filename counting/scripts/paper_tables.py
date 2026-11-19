@@ -145,9 +145,9 @@ def main():
           "fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133마리), val = 그 fold의 valid 사진(001+002). "
           "'–' = 값 없음. 지표 정의와 계산 방법은 `counting/scripts/paper_tables.py` 맨 위 설명.", ""]
 
-    # 표 1·2: 카운트 지표
+    # 표 1·2: 카운트 지표 (test · val 같은 열. val의 10-s MAE는 정의되지 않아 '–')
     for t_no, (part, plab) in zip((1, 2), SETS):
-        use = [c for c in cols if not (part == "val" and c[0] == "bin_MAE")]
+        use = cols
         md += [f"## Table {t_no}. Counting performance — {plab}", "",
                "| Split | Method | " + " | ".join(lab for _, lab, _, _ in use) + " |",
                "|---|---|" + "---|" * len(use)]
@@ -163,6 +163,8 @@ def main():
                "Precision · Recall · F1 = visiting 개체 단위(사람 개체와 짝짓기: Geo · RF 계열 = 관절 평균 거리 ÷ "
                "사람 박스 대각선 ≤ 0.25, YOLO = 박스 IoU ≥ 0.5)." +
                (" val은 모든 방법이 조금 낙관적임: 포즈 best.pt(Geo · RF 계열)와 YOLO best.pt · conf를 같은 valid로 골랐음."
+                " 10-s MAE는 1분 연속 영상(test(000))을 프레임 번호로 6등분해 구하는 지표라, 여러 클립에서 뽑은 val 사진에는 "
+                "정의되지 않음(–). YOLO val Precision · Recall · F1은 YOLO 재평가(valid 개체 진단 추가) 후 채워짐."
                 if part == "val" else ""), ""]
 
     # 표 3: bootstrap 95% CI (test MAE)

@@ -474,6 +474,7 @@ def plot_a(out, rf_best):
         ax.spines[["top", "right"]].set_visible(False)
         ax.legend(frameon=False, fontsize=8, ncol=4, loc="lower left")
         frame_ticks(ax, lines=True)
+        ax.tick_params(axis="x", labelbottom=True)              # 두 칸 모두 가로축 숫자
     axes[-1].set_xlabel("test(000) image (time order, 1–86; red = error cases #57, #76)")
     fig.suptitle("Per-image visiting count on test(000) (line = mean over folds, band = min–max)")
     fig.tight_layout()

@@ -149,7 +149,7 @@ def main():
 def plot_e(base, frames):
     """그래프 E: 행 = 방법, 열 = 분할. GT 계단선 + fold 평균선 + fold 최소~최대 띠."""
     ms = [(m, lab) for m, lab in METHODS if m in frames]
-    fig, axes = plt.subplots(len(ms), 2, figsize=(15, 2.0 * len(ms) + 1.2), sharex=True, sharey=True)
+    fig, axes = plt.subplots(len(ms), 2, figsize=(15, 2.5 * len(ms) + 1.2), sharex=True, sharey=True)
     x = np.arange(1, len(base) + 1)                      # 사진 번호 1~86
     for c, (key, elab, _, p) in enumerate(SCHEMES):
         for r, (m, lab) in enumerate(ms):
@@ -172,7 +172,8 @@ def plot_e(base, frames):
             ax.grid(axis="y", color="#e5e5e5", lw=0.8)
             ax.set_axisbelow(True)
             ax.spines[["top", "right"]].set_visible(False)
-            frame_ticks(ax, lines=True)
+            frame_ticks(ax, lines=True, fontsize=8)
+            ax.tick_params(axis="x", labelbottom=True)          # 10칸 모두 가로축 숫자
     for ax in axes[-1]:
         ax.set_xlabel("test(000) image (time order, 1–86; red = error cases #57, #76)")
     from matplotlib.lines import Line2D

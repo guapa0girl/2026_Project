@@ -418,7 +418,10 @@ YOLO:          사진 → YOLOv8m detect (클래스 visiting / other) → conf �
 | Time 5-fold | YOLO | 0.347 ± 0.166 | 0.642 ± 0.213 | −0.067 ± 0.128 | 70.4 ± 10.4 | −5.5 ± 10.3 | – |
 
 - val은 모든 방법이 조금 낙관적임. 포즈 best.pt와 YOLO best.pt · conf를 같은 valid로 골랐기 때문임.
-- YOLO val의 개체 단위 P / R / F1은 기록되지 않았음.
+- YOLO val의 F1은 아직 빈칸임. 처음 평가할 때 개체 단위 진단을 test에서만 계산했기 때문임.
+  - val 진단을 추가하도록 `yolo_det/scripts/evaluate.py`를 고쳤음.
+  - YOLO 10개 모델을 재평가(`EVAL_ONLY=1`)하면 같은 방식(IoU ≥ 0.5 짝짓기)으로 채워짐.
+  - 재평가는 재학습이 아니고 conf도 그대로라서, 기존 val · test 수치는 바뀌지 않음.
 - Acc±1, Precision, Recall은 [paper_metrics.md](counting/reports/fold_study/paper/paper_metrics.md) Table 2에 있음.
 
 ### 6-3. fold별 test MAE

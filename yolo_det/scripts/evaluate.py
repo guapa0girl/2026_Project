@@ -241,6 +241,7 @@ def main():
     cnt_v = visiting_counts(preds_valid, thr)
     gv = gt.set_index("image").loc[list(cnt_v)]
     metrics_valid = count_metrics(gv.n_visiting.values, list(cnt_v.values()))
+    diag_valid = diagnose(preds_valid, "valid", thr)   # val visiting Precision / Recall / F1용 (test와 같은 IoU ≥ 0.5 짝짓기)
     mp_valid = box_map(model, a.imgsz, a.device, "valid")
 
     # 2) test(000) 평가
@@ -282,7 +283,7 @@ def main():
     summary = {"method": "YOLO", "run": a.run, "size": a.size, "weights": weights.name, "split": split,
                "weights_sha256_16": sha256_16(weights), "env_train": env, "env_eval": env_eval,
                "conf_threshold": thr, "conf_threshold_from": thr_note, "nms": f"agnostic, iou {a.iou}",
-               "valid": metrics_valid, "box_map_valid": mp_valid,
+               "valid": {**metrics_valid, **diag_valid}, "box_map_valid": mp_valid,
                "test": {**metrics, **bins, **diag}, "box_map_test": mp}
     if timing:
         summary["timing"] = timing
@@ -305,7 +306,10 @@ def main():
           f"많이 센 사진 {m['over_frames']} / 적게 센 사진 {m['under_frames']}",
           f"- 진단(IoU ≥ 0.5): 못 찾은 visiting {m['missed_visiting_undetected']}, "
           f"찾았지만 other로 판정 {m['missed_visiting_judged']}, other를 visiting으로 {m['wrong_visiting']}, "
-          f"사람 라벨에 없는 박스를 visiting으로 {m['extra_visiting']}"]
+          f"사람 라벨에 없는 박스를 visiting으로 {m['extra_visiting']}",
+          f"- valid 진단(IoU ≥ 0.5): 못 찾은 visiting {diag_valid['missed_visiting_undetected']}, "
+          f"찾았지만 other로 판정 {diag_valid['missed_visiting_judged']}, other를 visiting으로 {diag_valid['wrong_visiting']}, "
+          f"사람 라벨에 없는 박스를 visiting으로 {diag_valid['extra_visiting']}"]
     e = {**env_eval, **env}
     md.append(f"- 버전: ultralytics {e.get('ultralytics') or e.get('ckpt_ultralytics')}, torch {e.get('torch', '?')}, "
               f"CUDA {e.get('cuda', '?')}, GPU {e.get('gpu', '?')}, 학습 {e.get('started') or e.get('ckpt_date', '?')}, "

@@ -29,6 +29,8 @@ METHODS = [("geo", "Geo"), ("rf_geo_leg", "RF+Geo+Leg"), ("yolo", "YOLO")]
 SCHEMES = [("rk5", "Random 5-fold"), ("k5", "Time 5-fold")]
 COLOR = {"gt": "#000000", "geo": "#5a5a5a", "rf_geo_leg": "#08519c", "yolo": "#e8710a"}
 GT_FILL = "#ededed"
+plt.rcParams["font.family"] = ["Malgun Gothic", "DejaVu Sans"]   # 제목 한국어 + 영어 (Windows 맑은 고딕)
+plt.rcParams["axes.unicode_minus"] = False
 FPS = 24          # 000 = 1분 샘플 영상, 프레임 번호 0~1440 → 1440 / 60 s = 24 fps로 환산 (초 = 프레임 번호 / 24)
 plt.rcParams.update({"font.size": 10, "axes.titlesize": 11})
 
@@ -100,10 +102,12 @@ def plot_h():
     handles = [Patch(fc=GT_FILL, ec=COLOR["gt"], lw=1.0, label="Human GT"),
                *[Line2D([], [], color=COLOR[m], lw=2.0, label=f"{lab} (mean of 5 folds)") for m, lab in METHODS],
                Patch(fc="#9e9e9e", alpha=0.35, lw=0, label="min–max of 5 folds")]
-    fig.legend(handles=handles, loc="upper center", ncol=5, frameon=False, fontsize=9.5, bbox_to_anchor=(0.5, 0.945))
-    fig.suptitle("Visiting pigs per image on test(000): human GT vs Geo, RF+Geo+Leg, YOLO\n"
-                 "(upper: count per image; lower: mean error = predicted − GT; 86 images over 60 s)", fontsize=12, y=0.99)
-    fig.subplots_adjust(top=0.89)
+    fig.legend(handles=handles, loc="upper center", ncol=5, frameon=False, fontsize=9.5, bbox_to_anchor=(0.5, 0.93))
+    fig.suptitle("test(000) 사진별 visiting 돼지 수: 사람 정답 vs Geo · RF+Geo+Leg · YOLO\n"
+                 "Visiting pigs per image on test(000): human GT vs Geo, RF+Geo+Leg, YOLO\n"
+                 "(위: 사진별 마릿수, 아래: 평균 오차 = 예측 − 정답 / upper: count per image, lower: mean error = predicted − GT)",
+                 fontsize=12, y=1.0)
+    fig.subplots_adjust(top=0.875)
     fig.savefig(FS / "graph_H_counts_3methods.png", dpi=170, bbox_inches="tight")
     plt.close(fig)
 
@@ -132,7 +136,7 @@ def plot_i():
         for (v, lab, col), y in zip(ends, ys):
             ax.annotate(f"{lab} {v:.1f}" if lab != "Human GT" else f"{lab} {v:.0f}", xy=(60, v),
                         xytext=(61.5, y), fontsize=9, color="#222222", va="center",
-                        arrowprops=dict(arrowstyle="-", color=col, lw=0.8))
+                        arrowprops=dict(arrowstyle="-", color=col, lw=0.8, relpos=(0, 0.5), shrinkA=1))
         ax.set_xlim(0, 60.5)
         ax.set_xticks(range(0, 61, 10))
         ax.set_title(slab, loc="left")
@@ -141,7 +145,9 @@ def plot_i():
         ax.spines[["top", "right"]].set_visible(False)
     axes[0].set_ylabel("Cumulative count")
     axes[0].legend(frameon=False, fontsize=9, loc="upper left")
-    fig.suptitle("Cumulative visiting count over test(000): human GT vs Geo, RF+Geo+Leg, YOLO "
+    fig.suptitle("test(000) 60초 누적 visiting 돼지 수: 사람 정답 vs Geo · RF+Geo+Leg · YOLO "
+                 "(선 = fold 모델 5개 평균, 띠 = 최소~최대)\n"
+                 "Cumulative visiting count over test(000): human GT vs Geo, RF+Geo+Leg, YOLO "
                  "(line = mean of 5 fold models, band = min–max)", fontsize=11.5)
     fig.tight_layout()
     fig.subplots_adjust(right=0.9, wspace=0.28)
@@ -175,9 +181,10 @@ def plot_j():
         ax.spines[["top", "right"]].set_visible(False)
         ax.legend(frameon=True, framealpha=0.95, edgecolor="#dddddd", fontsize=9, loc="upper right", ncol=2)
     axes[-1].set_xlabel("Time in test(000) video (s)")
-    fig.suptitle("Visiting pigs counted per image on test(000): human GT vs Geo, RF+Geo+Leg, YOLO\n"
-                 "(line = mean of 5 fold models; lines offset by −0.06 / 0 / +0.06 so overlapping lines stay visible)",
-                 fontsize=11.5)
+    fig.suptitle("test(000) 사진별 visiting 돼지 수: 사람 정답 vs Geo · RF+Geo+Leg · YOLO\n"
+                 "Visiting pigs counted per image on test(000): human GT vs Geo, RF+Geo+Leg, YOLO\n"
+                 "(선 = fold 모델 5개 평균, 겹친 선이 보이도록 −0.06 / 0 / +0.06 띄움 / "
+                 "line = mean of 5 fold models, offset −0.06 / 0 / +0.06 for visibility)", fontsize=11.5)
     fig.tight_layout()
     fig.savefig(FS / "graph_J_counts_overlay.png", dpi=170, bbox_inches="tight")
     plt.close(fig)
@@ -217,9 +224,12 @@ def plot_j_single(axis="sec"):
         ax.spines[["top", "right"]].set_visible(False)
         ax.legend(frameon=True, framealpha=0.95, edgecolor="#dddddd", fontsize=9, loc="upper right", ncol=2)
         span = "86 images" if axis == "frame" else "60-s video"
-        ax.set_title(f"{slab} — visiting pigs per image on test(000) ({span}): human GT vs Geo, RF+Geo+Leg, YOLO\n"
-                     "line = mean of 5 fold models; lines offset by −0.06 / 0 / +0.06 so overlapping lines stay visible",
-                     fontsize=11, loc="left")
+        span_ko = "사진 86장" if axis == "frame" else "60초 영상"
+        ax.set_title(f"{slab} — test(000) 사진별 visiting 돼지 수 ({span_ko}): 사람 정답 vs Geo · RF+Geo+Leg · YOLO\n"
+                     f"{slab} — Visiting pigs per image on test(000) ({span}): human GT vs Geo, RF+Geo+Leg, YOLO\n"
+                     "선 = fold 모델 5개 평균, 겹친 선이 보이도록 −0.06 / 0 / +0.06 띄움 · "
+                     "line = mean of 5 fold models, offset −0.06 / 0 / +0.06 for visibility",
+                     fontsize=10.5, loc="left")
         fig.tight_layout()
         suffix = "_frames" if axis == "frame" else ""
         fig.savefig(FS / f"graph_J_{'random' if p == 'rk5' else 'time'}_5fold{suffix}.png", dpi=170, bbox_inches="tight")

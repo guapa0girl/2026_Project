@@ -26,7 +26,7 @@
 
 ## 10개 분할 모델 나란히 (사료통 주변 확대)
 
-1열 = 사람 라벨, 위 줄 = Time 5-fold f0~f4, 아래 줄 = Random 5-fold f0~f4. 빨간 제목 = 센 마릿수가 GT와 다름. 모델 칸의 검정 점선 = 그 모델이 매칭하지 못한 사람 visiting (no det. = 검출 없음, kpts off = 검출은 됐지만 keypoint가 어긋남).
+1열 = 사람 라벨, 위 줄 = Time 5-fold f0\~f4, 아래 줄 = Random 5-fold f0\~f4. 빨간 제목 = 센 마릿수가 GT와 다름. 모델 칸의 검정 점선 = 그 모델이 매칭하지 못한 사람 visiting (no det. = 검출 없음, kpts off = 검출은 됐지만 keypoint가 어긋남).
 
 | # | 분할 | f0 | f1 | f2 | f3 | f4 |
 |---|---|---|---|---|---|---|

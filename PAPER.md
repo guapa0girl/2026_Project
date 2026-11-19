@@ -531,6 +531,11 @@ YOLO:          사진 → YOLOv8m detect (클래스 visiting / other) → conf �
 
 두 분할을 위아래로 묶은 한 장: `counting/reports/fold_study/graph_J_counts_overlay.png`
 
+가로축을 test(000) 이미지 순번(frame 0\~85)으로 한 같은 그림:
+
+![그래프 J (Random 5-fold, frame)](counting/reports/fold_study/graph_J_random_5fold_frames.png)
+![그래프 J (Time 5-fold, frame)](counting/reports/fold_study/graph_J_time_5fold_frames.png)
+
 - 가로축은 000 영상의 시간(초)임. 프레임 번호 0\~1440을 24 fps로 환산해 0\~60초로 나타냄.
 - 세로축은 카운팅 횟수(visiting 마릿수)임.
 - 선은 fold 모델 5개의 평균이고, 띠는 최소\~최대 범위임.
@@ -702,7 +707,7 @@ Time 5-fold의 CH010(못 본 시간대)에서 RF 단독이 크게 나빠짐(0.96
 | G | `counting/reports/fold_study/error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases, all 10 pose models side by side |
 | H | `counting/reports/fold_study/graph_H_counts_3methods.png` | Visiting count per image over the 60-s test(000) video: human GT vs Geo, RF+Geo+Leg, YOLO (mean of 5 fold models, band = min–max; lower strip = mean error) |
 | I | `counting/reports/fold_study/graph_I_cumulative_3methods.png` | Cumulative visiting count over the 60-s test(000) video: human GT (133) vs Geo, RF+Geo+Leg, YOLO |
-| J | `counting/reports/fold_study/graph_J_random_5fold.png`, `graph_J_time_5fold.png` (두 분할 한 장: `graph_J_counts_overlay.png`) | Visiting count per image over the 60-s test(000) video, human GT and Geo, RF+Geo+Leg, YOLO in one panel per split (mean of 5 folds; lines offset by −0.06 / 0 / +0.06 for visibility) |
+| J | `counting/reports/fold_study/graph_J_random_5fold.png`, `graph_J_time_5fold.png` (두 분할 한 장: `graph_J_counts_overlay.png`; 가로축 frame 0–85: `graph_J_*_5fold_frames.png`) | Visiting count per image over the 60-s test(000) video, human GT and Geo, RF+Geo+Leg, YOLO in one panel per split (mean of 5 folds; lines offset by −0.06 / 0 / +0.06 for visibility) |
 | – | `training/reports/data/time_distribution.png` | Capture-time distribution of tasks 001 / 002 |
 | – | `counting/reports/fold_study/per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |
 

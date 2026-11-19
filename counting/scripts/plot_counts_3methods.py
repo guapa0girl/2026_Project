@@ -9,6 +9,7 @@
     graph_J_counts_overlay.png        한 칸에 사람 정답 + 세 방법 겹침 (위 Random 5-fold, 아래 Time 5-fold).
                                       맞게 센 구간은 선이 정답 위에 겹치고 틀린 곳만 갈라짐. 선은 −0.06 / 0 / +0.06 띄움
     graph_J_random_5fold.png, graph_J_time_5fold.png   그래프 J를 분할마다 한 장씩 (1초 눈금, 세로축 = 돼지 수)
+    graph_J_*_5fold_frames.png        같은 그림, 가로축 = test(000) 이미지 순번 0~85 (frame)
 가로축 = 000 영상 시간(초, 프레임 번호 / 24), 세로축 = 카운팅 횟수(visiting 마릿수).
 사용법 (counting/ 에서):  python scripts/plot_counts_3methods.py
 """
@@ -182,7 +183,7 @@ def plot_j():
     plt.close(fig)
 
 
-def plot_j_single():
+def plot_j_single(axis="sec"):
     """그래프 J를 분할마다 한 장씩: graph_J_random_5fold.png, graph_J_time_5fold.png.
     가로축 = 000 영상 시간(초, 1초 눈금 · 5초마다 숫자), 세로축 = visiting 돼지 수."""
     from matplotlib.ticker import MultipleLocator
@@ -191,6 +192,8 @@ def plot_j_single():
         fig, ax = plt.subplots(figsize=(14, 4.6))
         for m, mlab in METHODS:
             gt, pred, x = load(m, p)
+            if axis == "frame":
+                x = np.arange(len(gt))                                   # 000 이미지 순번 0~85 (시간순)
             if m == METHODS[0][0]:
                 ax.step(x, gt, where="mid", color="#c8c8c8", lw=7, solid_capstyle="butt", label="Human GT", zorder=1)
             mae, _, tot, _ = fold_stats(gt, pred)
@@ -198,10 +201,14 @@ def plot_j_single():
                     label=f"{mlab}: MAE {mae:.3f}, counted {tot:.1f} / {gt.sum():.0f}")
         ax.set_ylim(-0.3, 3.2)
         ax.set_yticks([0, 1, 2, 3])
-        ax.set_xlim(-0.5, 60.5)
         ax.xaxis.set_major_locator(MultipleLocator(5))
         ax.xaxis.set_minor_locator(MultipleLocator(1))
-        ax.set_xlabel("Time (s)")
+        if axis == "frame":
+            ax.set_xlim(-0.7, len(gt) - 0.3)
+            ax.set_xlabel(f"Frame (test(000) image index, 0–{len(gt) - 1})")
+        else:
+            ax.set_xlim(-0.5, 60.5)
+            ax.set_xlabel("Time (s)")
         ax.set_ylabel("Number of visiting pigs")
         ax.grid(axis="y", color="#ececec", lw=0.8)
         ax.grid(axis="x", which="major", color="#eeeeee", lw=0.7)
@@ -209,11 +216,13 @@ def plot_j_single():
         ax.set_axisbelow(True)
         ax.spines[["top", "right"]].set_visible(False)
         ax.legend(frameon=True, framealpha=0.95, edgecolor="#dddddd", fontsize=9, loc="upper right", ncol=2)
-        ax.set_title(f"{slab} — visiting pigs per image on test(000) (60-s video): human GT vs Geo, RF+Geo+Leg, YOLO\n"
+        span = "86 images" if axis == "frame" else "60-s video"
+        ax.set_title(f"{slab} — visiting pigs per image on test(000) ({span}): human GT vs Geo, RF+Geo+Leg, YOLO\n"
                      "line = mean of 5 fold models; lines offset by −0.06 / 0 / +0.06 so overlapping lines stay visible",
                      fontsize=11, loc="left")
         fig.tight_layout()
-        fig.savefig(FS / f"graph_J_{'random' if p == 'rk5' else 'time'}_5fold.png", dpi=170, bbox_inches="tight")
+        suffix = "_frames" if axis == "frame" else ""
+        fig.savefig(FS / f"graph_J_{'random' if p == 'rk5' else 'time'}_5fold{suffix}.png", dpi=170, bbox_inches="tight")
         plt.close(fig)
 
 
@@ -222,5 +231,6 @@ if __name__ == "__main__":
     plot_i()
     plot_j()
     plot_j_single()
+    plot_j_single("frame")
     print(f"[saved] {FS}: graph_H_counts_3methods.png, graph_I_cumulative_3methods.png, graph_J_counts_overlay.png, "
-          "graph_J_random_5fold.png, graph_J_time_5fold.png")
+          "graph_J_random_5fold.png, graph_J_time_5fold.png, graph_J_random_5fold_frames.png, graph_J_time_5fold_frames.png")

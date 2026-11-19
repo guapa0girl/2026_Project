@@ -217,6 +217,6 @@ fold마다 그 fold valid 중 그 카메라 사진만으로 MAE를 계산 후 �
 | G | `../error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases: all 10 pose models side by side |
 | H | `../graph_H_counts_3methods.png` | Visiting count per image over the 60-s test(000) video: human GT vs Geo, RF+Geo+Leg, YOLO (mean of 5 folds, band = min–max; lower strip = mean error) |
 | I | `../graph_I_cumulative_3methods.png` | Cumulative visiting count over the 60-s test(000) video: human GT vs Geo, RF+Geo+Leg, YOLO |
-| J | `../graph_J_random_5fold.png`, `../graph_J_time_5fold.png` (both: `../graph_J_counts_overlay.png`) | Visiting count per image over the 60-s test(000) video, human GT and Geo, RF+Geo+Leg, YOLO in one panel per split (lines offset by −0.06 / 0 / +0.06) |
+| J | `../graph_J_random_5fold.png`, `../graph_J_time_5fold.png` (both: `../graph_J_counts_overlay.png`; x = image index 0–85: `../graph_J_*_5fold_frames.png`) | Visiting count per image over the 60-s test(000) video, human GT and Geo, RF+Geo+Leg, YOLO in one panel per split (lines offset by −0.06 / 0 / +0.06) |
 | – | `../per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |
 

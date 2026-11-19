@@ -122,7 +122,7 @@ Geo와 RF 계열은 돼지마다 찍힌 관절 좌표로 판정하므로 포즈 
 | 분할 목록 | `prepare_data.py --split kfold\|rkfold` | `make_study_splits.py` (같은 함수 import) | 정렬된 `<task>__<사진>` 목록의 SHA-256 앞 12자리, 10개 fold 모두 일치 |
 | test 정답 | 000 86장 | 000 86장 | 수아 000 사진별 csv의 gt가 우리 라벨과 86장 모두 일치 |
 | 모델 크기 · 시작 | YOLOv8m detect, COCO `yolov8m.pt` | YOLOv8m-pose, COCO `yolov8m-pose.pt` | 같은 크기, 둘 다 COCO에서 처음부터 |
-| epoch / 조기 종료 | 200 / 끔 | 200 / 끔 | YOLO: `yolo_det/scripts/train.py` 기본값 · 수아 노션. 포즈: 10개 모델의 `args.yaml` 직접 확인 |
+| epoch / 조기 종료 | 200 / 끔 | 200 / 끔 | YOLO: 10개 모델 `summary.json`의 `env_train`(epochs 200, patience 0, imgsz 640, batch 8, seed 42, COCO `yolov8m.pt`) 직접 확인. 포즈: 10개 모델의 `args.yaml` 직접 확인 |
 | imgsz / batch / seed / optimizer | 640 / 8 / 42 / auto | 640 / 8 / 42 / auto | 〃 |
 | train 사진 | 그 fold train 목록 | 포즈 · RF 모두 그 fold train 목록 | 포즈 학습 개체 수(1470, 1541, …)가 RF 학습 개체 수와 10개 fold 모두 같음 |
 | val로만 고르는 것 | best.pt, conf 임계값 | best.pt, RF best | test는 선택에 미사용 |
@@ -142,8 +142,8 @@ Geo와 RF 계열은 돼지마다 찍힌 관절 좌표로 판정하므로 포즈 
 
 **실행 환경**: YOLO는 RTX 6000 Ada · Python 3.10.12, 포즈 · RF는 RTX 5060 8GB · Python 3.14. GPU가 달라 seed가 같아도 비트 단위로 같은 결과는 아님(결과 비교에는 영향 거의 없음).
 
-- YOLO Time 5-fold `ep200_k5_f*`는 11/14\~15 학습 후 11/17 재평가, Random 5-fold `ep200_rk5_f*`는 11/17 학습 · 평가. 값은 수아 노션 표와 000 사진별 카운트 csv(`counting/reports/fold_study/inputs/`)에서 가져옴.
-- 확인 필요: 수아 노션 YOLO **val** 표에서 Random 5-fold f2 · f3 · f4의 MAE · RMSE가 Time 5-fold와 소수점까지 같음(conf · mAP는 다름). 옮겨 적다 생긴 실수로 보이며 test 값 · 결론에는 영향 없음.
+- YOLO Time 5-fold `ep200_k5_f*`는 11/14\~15 학습 후 11/17 재평가, Random 5-fold `ep200_rk5_f*`는 11/17 학습 · 평가(git 커밋 c1df046, 미커밋 변경 없음). 값은 수아 PR #4(11/19 main에 합침)의 `yolo_det/reports/ep200_<fold>/m/summary.json` · `test_frames.csv`. 이전에 쓰던 노션 값(`counting/reports/fold_study/inputs/`)과 반올림 범위(±0.0005) 안에서 모두 일치함.
+- val 확인 완료: Random 5-fold f2 · f3 · f4와 Time 5-fold f2 · f3 · f4의 val MAE · RMSE가 같은 것은 우연임. val GT(73 / 44, 54 / 61, 56 / 51)와 YOLO가 센 마릿수가 서로 달라 각 fold의 valid 사진으로 제대로 평가됐고, GT는 서인 쪽 fold별 valid GT와 일치함.
 
 ```powershell
 cd training; python scripts\make_study_splits.py --export-images ..\counting\data\raw\train_img   # 분할 목록 + valid 평가용 사진
@@ -168,11 +168,10 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 | RF | 0.389 ± 0.136 | **0.114 ± 0.015** | **0.343 ± 0.032** | **88.8 ± 1.3%** | 0.632 ± 0.252 | 0.116 ± 0.032 | 0.338 ± 0.046 | 88.4 ± 3.2% |
 | RF+Geo | 0.259 ± 0.139 | 0.133 ± 0.033 | 0.362 ± 0.047 | 86.7 ± 3.3% | 0.349 ± 0.122 | 0.126 ± 0.019 | 0.353 ± 0.028 | 87.4 ± 1.9% |
 | **RF+Geo+Leg** (RF best) | **0.209 ± 0.133** | 0.121 ± 0.033 | 0.345 ± 0.051 | 87.9 ± 3.3% | **0.284 ± 0.104** | **0.109 ± 0.021** | **0.329 ± 0.032** | **89.1 ± 2.1%** |
-| YOLO | 0.251 ± 0.128 | 0.300 ± 0.137 | 0.545 ± 0.125 | 70.5 ± 13.6% | 0.347 ± 0.166 | 0.223 ± 0.048 | 0.475 ± 0.059 | 77.9 ± 4.4% |
+| YOLO | 0.252 ± 0.128 | 0.300 ± 0.137 | 0.545 ± 0.125 | 70.5 ± 13.6% | 0.347 ± 0.166 | 0.223 ± 0.048 | 0.475 ± 0.059 | 77.9 ± 4.4% |
 
 - RF best(RF 3종 중 5-fold 평균 val MAE 최소, test는 보지 않음) = 두 분할 모두 **RF+Geo+Leg**.
 - val은 모든 방법이 조금씩 낙관적임: 포즈 best.pt(Geo · RF 계열)와 YOLO best.pt · conf를 같은 valid로 골랐음. test(000)는 어떤 선택에도 쓰지 않아 이 문제가 없음.
-- YOLO Random 5-fold val MAE 0.251은 fold별 값(소수 3자리)의 평균이라 수아 노션 0.252와 반올림 차이.
 - 그 밖의 test 지표(bias, ±1 이내, 1분 총 점유량 오차, 10초 구간 오차)는 [fold_study.md 3장](counting/reports/fold_study/fold_study.md).
 
 ![MAE Random 5-fold vs Time 5-fold](counting/reports/fold_study/graph_B_mae_random_vs_time.png)
@@ -195,13 +194,13 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 
 | 분할 · 세트 | GT | Geo | RF | RF+Geo | RF+Geo+Leg | YOLO |
 |---|---|---|---|---|---|---|
-| Random 5-fold · val | 63.0 ± 10.6 | 56.2 ± 12.7 (−11.3 ± 8.2%) | 71.4 ± 13.9 (+13.1 ± 8.3%) | 66.2 ± 14.0 (+4.5 ± 5.2%) | **63.4 ± 14.3 (−0.1 ± 7.0%)** | – |
+| Random 5-fold · val | 63.0 ± 10.6 | 56.2 ± 12.7 (−11.3 ± 8.2%) | 71.4 ± 13.9 (+13.1 ± 8.3%) | 66.2 ± 14.0 (+4.5 ± 5.2%) | **63.4 ± 14.3 (−0.1 ± 7.0%)** | 59.4 ± 12.8 (−6.2 ± 5.7%) |
 | Random 5-fold · test | 133 | 108.2 ± 2.2 (−18.6 ± 1.6%) | 130.0 ± 3.7 (−2.3 ± 2.8%) | 127.2 ± 2.8 (−4.4 ± 2.1%) | 128.6 ± 3.2 (−3.3 ± 2.4%) | 127.6 ± 18.1 (−4.1 ± 13.6%) |
-| Time 5-fold · val | 63.0 ± 23.7 | 54.6 ± 19.8 (−13.2 ± 8.2%) | 80.0 ± 24.4 (+29.6 ± 18.5%) | 68.0 ± 20.6 (+9.8 ± 7.9%) | **64.4 ± 22.8 (+2.7 ± 4.3%)** | – |
+| Time 5-fold · val | 63.0 ± 23.7 | 54.6 ± 19.8 (−13.2 ± 8.2%) | 80.0 ± 24.4 (+29.6 ± 18.5%) | 68.0 ± 20.6 (+9.8 ± 7.9%) | **64.4 ± 22.8 (+2.7 ± 4.3%)** | 60.6 ± 26.8 (−5.5 ± 10.3%) |
 | Time 5-fold · test | 133 | 109.4 ± 1.8 (−17.7 ± 1.4%) | 131.4 ± 1.5 (−1.2 ± 1.1%) | 128.6 ± 2.1 (−3.3 ± 1.6%) | 131.2 ± 1.9 (−1.4 ± 1.4%) | 127.4 ± 2.1 (−4.2 ± 1.6%) |
 
 - val GT는 fold마다 valid 사진이 달라 fold마다 다름(5-fold valid 합 = 190장의 visiting 315마리).
-- YOLO Random 5-fold test는 평균으로는 −4.1%지만 fold마다 크게 흔들림: f2 101마리(−24.1%), f3 152마리(+14.3%). YOLO val 마릿수는 수아 자료에 없어 '–'.
+- YOLO Random 5-fold test는 평균으로는 −4.1%지만 fold마다 크게 흔들림: f2 101마리(−24.1%), f3 152마리(+14.3%).
 - fold별 값은 [fold_study.md 6장](counting/reports/fold_study/fold_study.md), 그래프 C는 fold별 막대.
 
 ![fold별 총 마릿수](counting/reports/fold_study/graph_C_total_counts.png)
@@ -225,14 +224,14 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 | | RF | 8.6 | 2.8 | 3.4 | 5.0 |
 | | RF+Geo | 8.6 | 4.6 | 2.8 | 4.6 |
 | | RF+Geo+Leg | 8.6 | 3.4 | 3.0 | 4.6 |
-| | YOLO | 6.0 | 13.0 | – | – |
+| | YOLO | 6.0 | 13.0 | 5.8 | 7.8 |
 | Time 5-fold | Geo | 6.2 | 20.6 | 0.8 | 2.4 |
 | | RF | 6.2 | 2.2 | 4.0 | 2.8 |
 | | RF+Geo | 6.2 | 4.4 | 3.4 | 2.8 |
 | | RF+Geo+Leg | 6.2 | 2.0 | 3.6 | 2.8 |
 | | YOLO | 5.4 | 10.8 | 8.4 | 2.2 |
 
-- "못 찾은 visiting"은 Geo · RF 계열이 같은 포즈 모델을 쓰므로 4개 방법이 같은 값임. YOLO는 자기 검출기라 값이 다름. YOLO Random 5-fold의 마지막 두 칸은 수아 자료에 없음.
+- "못 찾은 visiting"은 Geo · RF 계열이 같은 포즈 모델을 쓰므로 4개 방법이 같은 값임. YOLO는 자기 검출기라 값이 다름. YOLO Random 5-fold f3는 라벨 없는 검출을 visiting으로 26마리 세서(나머지 fold 2\~5) 152마리로 과대 집계됨.
 - 표준편차 · visiting Precision / Recall / F1은 [paper_metrics.md](counting/reports/fold_study/paper/paper_metrics.md) Table 1 · 5.
 
 ### 4-6. 방법을 바꿨을 때 test MAE 변화
@@ -257,10 +256,19 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 | RF | −0.002 | 0.861 | 0.389 → 0.632 |
 | RF+Geo | +0.007 | 0.696 | 0.259 → 0.349 |
 | RF+Geo+Leg | +0.012 | 0.713 | 0.209 → 0.284 |
-| YOLO | +0.077 | < 0.001 | 0.251 → 0.347 |
+| YOLO | +0.077 | < 0.001 | 0.252 → 0.347 |
 
 - **test(000)에서는 Geo · RF 계열의 분할 방식 차이가 없음.** YOLO만 Random 5-fold에서 나빠짐(fold 2개에서 크게 틀림).
 - **val은 Time 5-fold가 나쁘고 fold마다 크게 흔들림**(Time 5-fold RF val 0.400\~1.054). 학습 때 못 본 시간대를 valid로 두기 때문임.
+
+### 4-8. 논문 근거 표 (추가)
+
+[paper_metrics.md](counting/reports/fold_study/paper/paper_metrics.md)에 정리, 모두 Random 5-fold · Time 5-fold 기준.
+
+- **Table 7 · YOLO 클래스별 검출**: test(000) mAP50-95 visiting 0.536 / 0.555, other 0.659 / 0.646 (Random 5-fold / Time 5-fold) → YOLO는 visiting 박스가 other보다 정확도가 낮음.
+- **Table 9 · 사진당 visiting 분포**: train + valid 190장은 0 \~ 3마리 이상이 고르게 섞여 있음(평균 1.66 ± 1.44, 3마리 이상 47장), test(000)는 0 \~ 2마리뿐(평균 1.55 ± 0.61, 2마리 52장) → test가 학습 분포보다 좁음.
+- **Table 10 · 카메라별 val MAE**: Time 5-fold에서 CH010(002, 낮\~저녁)이 CH005(001, 아침)보다 크게 나쁨(RF 0.960 vs 0.253, RF+Geo+Leg 0.342 vs 0.218). Random 5-fold에서는 RF+Geo+Leg가 두 카메라 모두 약 0.21 → 못 본 시간대의 CH010 장면에서 RF 단독이 무너지고 Geo · Leg 특징이 이를 줄임.
+- **Table 11 · RF+Geo+Leg 특징 중요도(fold 10개 평균)**: 코-사료통 거리 ÷ r(Geo) 0.270, 코-구역 거리(RF) 0.211, 코가 구역 안인지(RF) 0.172, 다리 각도(Leg) 0.098, 발 위치(Leg) 0.092 순. 그룹 합계 RF 0.393 · Geo 0.332 · Leg 0.275 → 판정은 주로 코와 사료통의 위치 관계로 하고, Leg 특징은 누운 돼지를 거르는 보조 역할.
 
 ---
 
@@ -273,11 +281,19 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 - **분할 방식(Random 5-fold vs Time 5-fold)은 test 성능을 바꾸지 않음**(Geo · RF 계열 p > 0.69). 대신 val은 Time 5-fold에서 크게 나빠져, Random 5-fold val은 실제(새 장면) 성능을 낙관적으로 보여 줌.
 - **Geo · RF 계열에 남은 오차의 상당 부분은 포즈 모델 단계에서 생김**(못 찾은 visiting fold당 6\~9마리, 급이 파이프 가림 · 밀집). 판정보다 검출을 개선하는 것이 다음 과제임(7장).
 
-결과 파일: `counting/reports/fold_study/` (`fold_study.md`, `fold_metrics.csv`, `fold_summary.csv`, `pose_folds.csv`, `pose_keypoints.csv`, `fold_composition.csv`, `frames/ep200_<split>/<방법>_<val|test>.csv`, 그래프 A\~D, `paper/`, `per_image/`, `error_cases/`), YOLO 원자료는 `counting/reports/fold_study/inputs/`.
+결과 파일: `counting/reports/fold_study/` (`fold_study.md`, `fold_metrics.csv`, `fold_summary.csv`, `pose_folds.csv`, `pose_keypoints.csv`, `fold_composition.csv`, `frames/ep200_<split>/<방법>_<val|test>.csv`, 그래프 A\~D, `paper/`, `per_image/`, `error_cases/`), YOLO 원자료는 `yolo_det/reports/ep200_<fold>/m/` (수아 PR #4).
 
 ---
 
-## 6. 추론 시간 (수아 측정 예정)
+## 6. 추론 시간 (수아 담당 — YOLO 측정 완료, Geo · RF 계열 측정 예정)
+
+| 분할 | 방법 | 장비 | 중앙값 (ms) | p95 (ms) | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |
+|---|---|---|---|---|---|---|
+| Random 5-fold | YOLO | NVIDIA RTX 6000 Ada | 22.1 ± 0.2 | 24.0 ± 0.2 | ✅ | ✅ |
+| Time 5-fold | YOLO | NVIDIA RTX 6000 Ada | 21.6 ± 0.3 | 23.4 ± 0.7 | ✅ | ✅ |
+| Random 5-fold · Time 5-fold | Geo · RF 계열 | (같은 장비에서 측정 예정) | – | – | – | – |
+
+- YOLO: 수아 측정(`summary.json`의 `timing`), fold마다 그 fold 모델로 재서 fold 5개 평균 ± 표본 표준편차. 사진 읽기 → 예측(conf 0.01로 예측 후 그 fold conf로 거름, agnostic NMS IoU 0.7) → visiting 마릿수.
 
 추론 시간 측정 · 실시간 판정 · Discussion은 수아 담당(11/16 랩미팅). 측정 조건(통일): 같은 장비 한 대에서 5가지 방법 모두, batch 1, imgsz 640, 예열 5장 제외, 000 86장 × 3회, 사진 읽기부터 마릿수까지 end-to-end, 중앙값 · p95(ms). 실시간 기준: p95 ≤ 1000 ms(1초 1프레임), ≤ 33.3 ms(30 fps).
 
@@ -310,6 +326,8 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 **촬영 시간대 · 카메라 편중** ([time_distribution.md](training/reports/data/time_distribution.md))
 - 001 = CH005, 7/8 아침 06:15\~07:44(클립 4개, 약 1.5시간), 002 = CH010, 7/16 10:26\~18:32(클립 17개, 약 8시간).
 - 002는 클립 17개 중 11개가 사진 1\~4장이고, 17:34 클립 하나가 26장 → 사진 수가 클립마다 크게 다름. 밤 시간대와 다른 날짜는 없음.
+- 카메라별 val MAE(Table 10): Time 5-fold에서 CH010이 CH005보다 크게 나쁨(RF 0.960 vs 0.253) → 못 본 시간대 · 장면으로의 일반화가 약함.
+- test(000)는 사진당 visiting 0\~2마리뿐(학습 데이터는 3마리 이상이 47장, Table 9) → 밀집 장면에서의 성능은 test로 확인되지 않음.
 
 **가림 · 밀집 오차** ([error_cases.md](counting/reports/fold_study/error_cases/error_cases.md), `counting/scripts/error_cases.py`)
 - Geo · RF 계열의 남은 오차 상당 부분은 포즈 단계: test에서 사람 visiting 133마리 중 fold당 6.2\~8.6마리를 포즈 모델이 매칭하지 못함.

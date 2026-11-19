@@ -593,7 +593,7 @@ cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.
 
 ### 결과 6 — 통일 기준: Random 5-fold vs Time 5-fold, 5가지 방법 (11/18) ✅
 
-11/16 랩미팅 통일 기준: 같은 분할 목록(해시 10개 일치), 포즈 · YOLO seed 42, 선택은 val만(포즈 best.pt = val pose mAP50-95, YOLO conf = val MAE 최소, RF best = 5-fold 평균 val MAE 최소), 지표 `count_metrics()` + RMSE. YOLO는 수아(Time 5-fold 11/17 재평가, Random 5-fold 11/17 학습 · 평가).
+11/16 랩미팅 통일 기준: 같은 분할 목록(해시 10개 일치), 포즈 · YOLO seed 42, 선택은 val만(포즈 best.pt = val pose mAP50-95, YOLO conf = val MAE 최소, RF best = 5-fold 평균 val MAE 최소), 지표 `count_metrics()` + RMSE. YOLO는 수아(Time 5-fold 11/17 재평가, Random 5-fold 11/17 학습 · 평가). 11/19 수아 PR #4(`yolo_det/reports/ep200_{k5,rk5}_f*`)를 main에 합쳐 YOLO 값을 원본 summary.json으로 바꿈(노션 값과 반올림 범위 안에서 일치, val f2~f4 같은 값은 우연으로 확인).
 
 ```powershell
 cd counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1 -Valid -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4

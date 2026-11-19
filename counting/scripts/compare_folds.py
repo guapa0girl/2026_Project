@@ -93,7 +93,8 @@ def load_geo_rf(split, part, eval_root, frames_out):
 
 
 YOLO_INPUTS = ROOT / "reports" / "fold_study" / "inputs"   # 수아 노션(11/17) 값 + 000 사진별 카운트 csv
-YOLO_DET_COLS = ["conf", "box_P", "box_R", "box_mAP50", "box_mAP50-95"]
+YOLO_DET_COLS = ["conf", "box_P", "box_R", "box_mAP50", "box_mAP50-95", "box_mAP50-95_visiting", "box_mAP50-95_other",
+                 "time_median_ms", "time_p95_ms"]
 
 
 def yolo_per_frame():
@@ -122,6 +123,10 @@ def load_yolo(split, part):
         if key is not None:
             rec.update({c: y[key].get(c, np.nan) for c in COLS})
             rec["conf"] = y.get("conf_threshold", np.nan)
+            box = y.get("box_map_test" if part == "test" else "box_map_valid") or {}
+            rec.update({c: box[c] for c in YOLO_DET_COLS if c in box})
+            if part == "test" and "timing" in y:                           # 수아 측정 (RTX 6000 Ada, 그 fold 모델)
+                rec["time_median_ms"], rec["time_p95_ms"] = y["timing"]["median_ms"], y["timing"]["p95_ms"]
     pf = yolo_per_frame()
     if part == "test" and pf is not None and split in pf:
         for c, v in counts_from_frames(pf["gt"], pf[split]).items():

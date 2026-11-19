@@ -88,6 +88,35 @@ def load_pose(split):
     return rec
 
 
+RF_FEATS, GEO_FEATS, LEG_FEATS = [], [], []
+
+
+def rf_importance():
+    """RF+Geo+Leg를 fold 10개(Random 5-fold · Time 5-fold) train 사진으로 평가와 똑같이 학습해 특징 중요도를 모음.
+    라벨 XML(counting/data/labels, git 제외)이 없으면 None."""
+    labels = ROOT / "data" / "labels"
+    if not (labels / "state_001.xml").exists():
+        return None
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import evaluate_methods as em
+    from feeding_monitor.method_features import GEO_FEATURES, LEG_FEATURES, METHOD_FEATURES, RF_FEATURES
+    RF_FEATS[:], GEO_FEATS[:], LEG_FEATS[:] = RF_FEATURES, GEO_FEATURES, LEG_FEATURES
+    cams = em.Cameras(ROOT / "configs" / "eval_cameras.yaml")
+    rows = [r for x in ("state_001.xml", "state_002.xml") for r in em.parse_cvat_xml(labels / x)]
+    s1 = em.featurize([r for r in rows if cams.has(r["camera"])], cams)
+    feats = METHOD_FEATURES["rf_geo_leg"]
+    out = []
+    for _, _, p in SCHEMES:
+        for i in range(K):
+            split = f"{p}_f{i}"
+            keep = {s.split("__", 1)[1] for s in json.loads(
+                (REPO / "training" / "data" / "splits" / f"{split}.json").read_text(encoding="utf-8"))["train"]}
+            d = s1[s1["image"].isin(keep)]
+            clf = em.new_rf(42).fit(d[feats], d["label"])
+            out += [{"split": split, "feature": f, "importance": v} for f, v in zip(feats, clf.feature_importances_)]
+    return pd.DataFrame(out)
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     OUT.mkdir(parents=True, exist_ok=True)
@@ -230,22 +259,89 @@ def main():
 
     # 표 7: YOLO 검출
     y = df[df.method == "yolo"]
+    ycols = ["box_P", "box_R", "box_mAP50", "box_mAP50-95", "box_mAP50-95_visiting", "box_mAP50-95_other"]
     md += ["## Table 7. YOLO detector (visiting / other boxes)", "",
-           "| Split | Set | conf | P | R | mAP50 | mAP50-95 |", "|---|---|---|---|---|---|---|"]
+           "| Split | Set | conf | P | R | mAP50 | mAP50-95 | mAP50-95 visiting | mAP50-95 other |",
+           "|---|---|---|---|---|---|---|---|---|"]
     for key, slab, _ in SCHEMES:
         for part, plab in SETS:
             g = y[(y.scheme == key) & (y.set == part)]
             md.append(f"| {slab} | {plab} | {ms(g.conf, '.2f')} | " +
-                      " | ".join(ms(g[c]) for c in ["box_P", "box_R", "box_mAP50", "box_mAP50-95"]) + " |")
-    md += ["", "conf = 그 fold valid에서 사진당 MAE 최소. 추론 시간(RTX 6000 Ada, batch 1, imgsz 640): 중앙값 21.3\\~22.3 ms, "
-           "p95 22.4\\~24.3 ms (수아 노션 11/17).", ""]
+                      " | ".join(ms(g[c]) if c in g else "–" for c in ycols) + " |")
+    md += ["", "conf = 그 fold valid에서 사진당 MAE 최소. 값 출처: `yolo_det/reports/ep200_<fold>/m/summary.json` (수아).", ""]
+
+    # 표 8: 추론 시간 (수아 측정)
+    t = y[(y.set == "test")]
+    md += ["## Table 8. Inference time (Sua, end-to-end per image)", "",
+           "| Split | Method | Device | Median (ms) | p95 (ms) | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |", "|---|---|---|---|---|---|---|"]
+    for key, slab, _ in SCHEMES:
+        g = t[t.scheme == key]
+        if "time_p95_ms" in g and g.time_p95_ms.notna().any():
+            p95 = g.time_p95_ms.mean()
+            md.append(f"| {slab} | YOLO | NVIDIA RTX 6000 Ada | {ms(g.time_median_ms, '.1f')} | {ms(g.time_p95_ms, '.1f')} | "
+                      f"{'✅' if p95 <= 1000 else '❌'} | {'✅' if p95 <= 1000 / 30 else '❌'} |")
+        md.append(f"| {slab} | Geo · RF 계열 | – | – | – | – | – |")
+    md += ["", "조건: batch 1, imgsz 640, 예열 5장 제외, test(000) 86장 × 3회, 사진 읽기부터 마릿수까지, fold마다 그 fold 모델 → "
+           "fold 5개 평균 ± 표본 표준편차. Geo · RF 계열은 같은 장비에서 수아가 `counting/scripts/benchmark_speed.py`로 측정 예정.", ""]
+
+    # 표 9: 사진당 visiting 마릿수 분포 (데이터)
+    gt_test = pd.read_csv(FS / "per_frame_000" / "geo.csv", encoding="utf-8-sig")["gt"]
+    gt_val = pd.concat([pd.read_csv(FS / "frames" / f"ep200_k5_f{i}" / "geo_val.csv", encoding="utf-8-sig")
+                        for i in range(K)], ignore_index=True)
+    gt_val["camera"] = gt_val.image.str.extract(r"(CH\d{3})")[0]
+    md += ["## Table 9. Visiting pigs per image (human labels)", "",
+           "| Set | Images | 0 | 1 | 2 | 3+ | Mean ± SD | Total visiting |", "|---|---|---|---|---|---|---|---|"]
+    for lab, g in [("train + valid 001 (CH005)", gt_val[gt_val.camera == "CH005"]["gt"]),
+                   ("train + valid 002 (CH010)", gt_val[gt_val.camera == "CH010"]["gt"]),
+                   ("train + valid 001 + 002", gt_val["gt"]), ("test(000)", gt_test)]:
+        c = [int((g == k).sum()) for k in (0, 1, 2)] + [int((g >= 3).sum())]
+        md.append(f"| {lab} | {len(g)} | " + " | ".join(map(str, c)) + f" | {g.mean():.2f} ± {g.std(ddof=1):.2f} | {int(g.sum())} |")
+    md += ["", "train + valid 190장은 5-fold valid를 합친 것(각 사진이 한 번씩 valid). 0 / 1 / 2 / 3+ = 사진 수.", ""]
+
+    # 표 10: 카메라별 val MAE (Geo · RF 계열; YOLO는 사진별 val csv가 없어 제외)
+    md += ["## Table 10. Validation MAE by camera (fold 5개 평균 ± 표본 표준편차)", "",
+           "| Split | Method | CH005 (001, 아침) | CH010 (002, 낮~저녁) |", "|---|---|---|---|"]
+    cam_rows = []
+    for key, slab, p in SCHEMES:
+        for m, mlab in METHODS[:-1]:
+            per = {"CH005": [], "CH010": []}
+            for i in range(K):
+                f = FS / "frames" / f"ep200_{p}_f{i}" / f"{m}_val.csv"
+                v = pd.read_csv(f, encoding="utf-8-sig")
+                v["camera"] = v.image.str.extract(r"(CH\d{3})")[0]
+                for cam in per:
+                    e = v[v.camera == cam].error
+                    per[cam].append(e.abs().mean() if len(e) else np.nan)
+                    cam_rows.append({"scheme": key, "method": m, "fold": f"f{i}", "camera": cam,
+                                     "n_images": len(e), "count_MAE": e.abs().mean() if len(e) else np.nan})
+            md.append(f"| {slab} | {mlab} | {ms(per['CH005'])} | {ms(per['CH010'])} |")
+    pd.DataFrame(cam_rows).to_csv(OUT / "val_mae_by_camera.csv", index=False, encoding="utf-8-sig")
+    md += ["", "fold마다 그 fold valid 중 그 카메라 사진만으로 MAE를 계산 후 평균. fold별 장수는 `val_mae_by_camera.csv`.", ""]
+
+    # 표 11: RF+Geo+Leg 특징 중요도 (fold 10개 평균)
+    imp = rf_importance()
+    if imp is not None:
+        imp.to_csv(OUT / "rf_feature_importance.csv", index=False, encoding="utf-8-sig")
+        s = imp.groupby("feature")["importance"].agg(["mean", "std"]).sort_values("mean", ascending=False)
+        grp = {**{f: "RF" for f in RF_FEATS}, **{f: "Geo" for f in GEO_FEATS}, **{f: "Leg" for f in LEG_FEATS}}
+        md += ["## Table 11. RF+Geo+Leg feature importance (Gini, mean ± SD over 10 fold models)", "",
+               "| Rank | Feature | Group | Importance |", "|---|---|---|---|"]
+        for r, (f, row) in enumerate(s.iterrows(), 1):
+            md.append(f"| {r} | {f} | {grp.get(f, '')} | {row['mean']:.3f} ± {row['std']:.3f} |")
+        gs = imp.assign(group=imp.feature.map(grp)).groupby(["split", "group"]).importance.sum().groupby("group")
+        md += ["", "그룹 합계: " + ", ".join(f"{g} {v.mean():.3f} ± {v.std(ddof=1):.3f}" for g, v in gs) +
+               ". RF는 그 fold train 사진의 사람 관절로 학습(평가와 동일), 나무 100개 · balanced · seed 42.", ""]
 
     md += ["## Figures", "",
            "| Figure | File | Caption |", "|---|---|---|",
            "| A | `../graph_A_frame_counts_000.png` | Per-image visiting count on test(000) (GT, Geo, RF best, YOLO; mean over 5 folds, band = min–max) |",
            "| B | `../graph_B_mae_random_vs_time.png` | Per-image count MAE by method, Random 5-fold vs Time 5-fold (mean ± SD) |",
            "| C | `../graph_C_total_counts.png` | Total visiting pigs counted per fold vs human GT |",
-           "| D | `../graph_D_keypoint_pck.png` | Per-keypoint PCK@0.1, Random 5-fold vs Time 5-fold |", ""]
+           "| D | `../graph_D_keypoint_pck.png` | Per-keypoint PCK@0.1, Random 5-fold vs Time 5-fold |",
+           "| E | `../per_image/graph_E_per_image_counts.png` | Visiting pigs counted per test(000) image, every method vs GT (mean over 5 folds, band = min–max) |",
+           "| F | `../per_image/graph_F_per_image_error_heatmap.png` | Per-image counting error of all 50 models on test(000) |",
+           "| G | `../error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases: all 10 pose models side by side |",
+           "| – | `../per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |", ""]
     (OUT / "paper_metrics.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md))
 

@@ -10,7 +10,7 @@ fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133�
 | Random 5-fold | RF | 0.114 ± 0.015 | 0.343 ± 0.032 | -0.035 ± 0.043 | 88.8 ± 1.3 | 99.8 ± 0.5 | -2.3 ± 2.8 | 0.075 ± 0.017 | 0.936 ± 0.035 | 0.914 ± 0.037 | 0.925 ± 0.033 |
 | Random 5-fold | RF+Geo | 0.133 ± 0.033 | 0.362 ± 0.047 | -0.067 ± 0.032 | 86.7 ± 3.3 | 100.0 ± 0.0 | -4.4 ± 2.1 | 0.083 ± 0.019 | 0.941 ± 0.037 | 0.901 ± 0.053 | 0.920 ± 0.045 |
 | Random 5-fold | RF+Geo+Leg † | 0.121 ± 0.033 | 0.345 ± 0.051 | -0.051 ± 0.037 | 87.9 ± 3.3 | 100.0 ± 0.0 | -3.3 ± 2.4 | 0.083 ± 0.010 | 0.940 ± 0.036 | 0.910 ± 0.053 | 0.925 ± 0.044 |
-| Random 5-fold | YOLO | 0.300 ± 0.137 | 0.545 ± 0.125 | -0.063 ± 0.210 | 70.5 ± 13.6 | 99.5 ± 0.6 | -4.1 ± 13.6 | – | – | 0.857 ± 0.085 | – |
+| Random 5-fold | YOLO | 0.300 ± 0.137 | 0.545 ± 0.125 | -0.063 ± 0.210 | 70.5 ± 13.6 | 99.5 ± 0.6 | -4.1 ± 13.6 | 0.198 ± 0.160 | 0.899 ± 0.066 | 0.857 ± 0.085 | 0.874 ± 0.053 |
 | Time 5-fold | Geo | 0.293 ± 0.022 | 0.562 ± 0.020 | -0.274 ± 0.021 | 71.9 ± 2.2 | 98.8 ± 0.0 | -17.7 ± 1.4 | 0.218 ± 0.016 | 0.971 ± 0.026 | 0.798 ± 0.014 | 0.876 ± 0.018 |
 | Time 5-fold | RF | 0.116 ± 0.032 | 0.338 ± 0.046 | -0.019 ± 0.018 | 88.4 ± 3.2 | 100.0 ± 0.0 | -1.2 ± 1.1 | 0.064 ± 0.011 | 0.948 ± 0.024 | 0.937 ± 0.032 | 0.942 ± 0.028 |
 | Time 5-fold | RF+Geo | 0.126 ± 0.019 | 0.353 ± 0.028 | -0.051 ± 0.024 | 87.4 ± 1.9 | 100.0 ± 0.0 | -3.3 ± 1.6 | 0.076 ± 0.011 | 0.952 ± 0.024 | 0.920 ± 0.027 | 0.936 ± 0.025 |
@@ -27,12 +27,12 @@ fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133�
 | Random 5-fold | RF | 0.389 ± 0.136 | 0.696 ± 0.156 | +0.221 ± 0.133 | 66.8 ± 9.3 | 94.3 ± 5.1 | +13.1 ± 8.3 | 0.821 ± 0.033 | 0.928 ± 0.065 | 0.870 ± 0.038 |
 | Random 5-fold | RF+Geo | 0.259 ± 0.139 | 0.524 ± 0.185 | +0.082 ± 0.097 | 76.2 ± 11.4 | 97.9 ± 3.5 | +4.5 ± 5.2 | 0.897 ± 0.043 | 0.937 ± 0.046 | 0.916 ± 0.038 |
 | Random 5-fold | RF+Geo+Leg † | 0.209 ± 0.133 | 0.489 ± 0.175 | +0.009 ± 0.117 | 81.8 ± 11.0 | 97.3 ± 3.3 | -0.1 ± 7.0 | 0.932 ± 0.039 | 0.930 ± 0.054 | 0.930 ± 0.035 |
-| Random 5-fold | YOLO | 0.251 ± 0.128 | 0.537 ± 0.153 | – | – | – | – | – | – | – |
+| Random 5-fold | YOLO | 0.252 ± 0.128 | 0.537 ± 0.152 | -0.098 ± 0.092 | 77.6 ± 10.9 | 97.2 ± 3.3 | -6.2 ± 5.7 | – | – | – |
 | Time 5-fold | Geo | 0.575 ± 0.148 | 0.871 ± 0.157 | -0.212 ± 0.151 | 52.3 ± 9.7 | 90.8 ± 9.0 | -13.2 ± 8.2 | 0.769 ± 0.179 | 0.665 ± 0.147 | 0.712 ± 0.157 |
 | Time 5-fold | RF | 0.632 ± 0.252 | 0.983 ± 0.275 | +0.454 ± 0.288 | 54.3 ± 10.5 | 84.5 ± 13.5 | +29.6 ± 18.5 | 0.694 ± 0.123 | 0.884 ± 0.081 | 0.774 ± 0.099 |
 | Time 5-fold | RF+Geo | 0.349 ± 0.122 | 0.621 ± 0.161 | +0.140 ± 0.135 | 68.0 ± 8.5 | 97.1 ± 5.1 | +9.8 ± 7.9 | 0.816 ± 0.112 | 0.890 ± 0.084 | 0.851 ± 0.095 |
 | Time 5-fold | RF+Geo+Leg † | 0.284 ± 0.104 | 0.552 ± 0.131 | +0.038 ± 0.061 | 73.3 ± 8.2 | 98.3 ± 2.6 | +2.7 ± 4.3 | 0.854 ± 0.087 | 0.876 ± 0.087 | 0.865 ± 0.086 |
-| Time 5-fold | YOLO | 0.347 ± 0.166 | 0.642 ± 0.213 | – | – | – | – | – | – | – |
+| Time 5-fold | YOLO | 0.347 ± 0.166 | 0.642 ± 0.213 | -0.067 ± 0.128 | 70.4 ± 10.4 | 94.9 ± 6.3 | -5.5 ± 10.3 | – | – | – |
 
 † RF best (5-fold 평균 val MAE 최소). ME = 평균(예측 − 정답), TCE = 총 마릿수 오차 / 정답 총 마릿수. Precision · Recall · F1 = visiting 개체 단위(사람 개체와 짝짓기: Geo · RF 계열 = 관절 평균 거리 ÷ 사람 박스 대각선 ≤ 0.25, YOLO = 박스 IoU ≥ 0.5). val은 모든 방법이 조금 낙관적임: 포즈 best.pt(Geo · RF 계열)와 YOLO best.pt · conf를 같은 valid로 골랐음.
 
@@ -76,7 +76,7 @@ fold 5개 평균 ± 표본 표준편차(ddof=1). test = 000 86장(visiting 133�
 | Random 5-fold | RF | 130.0 ± 3.7 / 133 | 8.6 ± 5.4 | 2.8 ± 2.0 | 3.4 ± 1.7 | 5.0 ± 4.8 |
 | Random 5-fold | RF+Geo | 127.2 ± 2.8 / 133 | 8.6 ± 5.4 | 4.6 ± 2.1 | 2.8 ± 0.8 | 4.6 ± 4.6 |
 | Random 5-fold | RF+Geo+Leg | 128.6 ± 3.2 / 133 | 8.6 ± 5.4 | 3.4 ± 2.3 | 3.0 ± 0.7 | 4.6 ± 4.6 |
-| Random 5-fold | YOLO | 127.6 ± 18.1 / 133 | 6.0 ± 0.7 | 13.0 ± 11.3 | – | – |
+| Random 5-fold | YOLO | 127.6 ± 18.1 / 133 | 6.0 ± 0.7 | 13.0 ± 11.3 | 5.8 ± 1.1 | 7.8 ± 10.3 |
 | Time 5-fold | Geo | 109.4 ± 1.8 / 133 | 6.2 ± 2.8 | 20.6 ± 1.5 | 0.8 ± 0.4 | 2.4 ± 2.6 |
 | Time 5-fold | RF | 131.4 ± 1.5 / 133 | 6.2 ± 2.8 | 2.2 ± 1.6 | 4.0 ± 1.2 | 2.8 ± 2.9 |
 | Time 5-fold | RF+Geo | 128.6 ± 2.1 / 133 | 6.2 ± 2.8 | 4.4 ± 2.9 | 3.4 ± 0.5 | 2.8 ± 2.9 |
@@ -119,14 +119,74 @@ PCK@α = 정답과 예측 keypoint 거리가 α × 정답 박스 긴 변(max(w, 
 
 ## Table 7. YOLO detector (visiting / other boxes)
 
-| Split | Set | conf | P | R | mAP50 | mAP50-95 |
-|---|---|---|---|---|---|---|
-| Random 5-fold | test(000) | 0.48 ± 0.15 | 0.900 ± 0.039 | 0.843 ± 0.036 | 0.867 ± 0.029 | 0.597 ± 0.024 |
-| Random 5-fold | Validation | 0.48 ± 0.15 | 0.939 ± 0.019 | 0.924 ± 0.020 | 0.953 ± 0.009 | 0.713 ± 0.024 |
-| Time 5-fold | test(000) | 0.49 ± 0.19 | 0.910 ± 0.033 | 0.859 ± 0.022 | 0.879 ± 0.008 | 0.600 ± 0.016 |
-| Time 5-fold | Validation | 0.49 ± 0.19 | 0.921 ± 0.036 | 0.838 ± 0.066 | 0.899 ± 0.059 | 0.610 ± 0.042 |
+| Split | Set | conf | P | R | mAP50 | mAP50-95 | mAP50-95 visiting | mAP50-95 other |
+|---|---|---|---|---|---|---|---|---|
+| Random 5-fold | test(000) | 0.48 ± 0.15 | 0.899 ± 0.039 | 0.842 ± 0.036 | 0.867 ± 0.029 | 0.597 ± 0.024 | 0.536 ± 0.035 | 0.659 ± 0.016 |
+| Random 5-fold | Validation | 0.48 ± 0.15 | 0.939 ± 0.019 | 0.924 ± 0.020 | 0.953 ± 0.009 | 0.713 ± 0.024 | 0.597 ± 0.042 | 0.829 ± 0.010 |
+| Time 5-fold | test(000) | 0.49 ± 0.19 | 0.911 ± 0.032 | 0.859 ± 0.022 | 0.879 ± 0.008 | 0.601 ± 0.016 | 0.555 ± 0.045 | 0.646 ± 0.016 |
+| Time 5-fold | Validation | 0.49 ± 0.19 | 0.921 ± 0.036 | 0.838 ± 0.066 | 0.899 ± 0.059 | 0.610 ± 0.042 | 0.516 ± 0.097 | 0.704 ± 0.043 |
 
-conf = 그 fold valid에서 사진당 MAE 최소. 추론 시간(RTX 6000 Ada, batch 1, imgsz 640): 중앙값 21.3\~22.3 ms, p95 22.4\~24.3 ms (수아 노션 11/17).
+conf = 그 fold valid에서 사진당 MAE 최소. 값 출처: `yolo_det/reports/ep200_<fold>/m/summary.json` (수아).
+
+## Table 8. Inference time (Sua, end-to-end per image)
+
+| Split | Method | Device | Median (ms) | p95 (ms) | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |
+|---|---|---|---|---|---|---|
+| Random 5-fold | YOLO | NVIDIA RTX 6000 Ada | 22.1 ± 0.2 | 24.0 ± 0.2 | ✅ | ✅ |
+| Random 5-fold | Geo · RF 계열 | – | – | – | – | – |
+| Time 5-fold | YOLO | NVIDIA RTX 6000 Ada | 21.6 ± 0.3 | 23.4 ± 0.7 | ✅ | ✅ |
+| Time 5-fold | Geo · RF 계열 | – | – | – | – | – |
+
+조건: batch 1, imgsz 640, 예열 5장 제외, test(000) 86장 × 3회, 사진 읽기부터 마릿수까지, fold마다 그 fold 모델 → fold 5개 평균 ± 표본 표준편차. Geo · RF 계열은 같은 장비에서 수아가 `counting/scripts/benchmark_speed.py`로 측정 예정.
+
+## Table 9. Visiting pigs per image (human labels)
+
+| Set | Images | 0 | 1 | 2 | 3+ | Mean ± SD | Total visiting |
+|---|---|---|---|---|---|---|---|
+| train + valid 001 (CH005) | 90 | 26 | 23 | 23 | 18 | 1.51 ± 1.42 | 136 |
+| train + valid 002 (CH010) | 100 | 19 | 33 | 19 | 29 | 1.79 ± 1.44 | 179 |
+| train + valid 001 + 002 | 190 | 45 | 56 | 42 | 47 | 1.66 ± 1.44 | 315 |
+| test(000) | 86 | 5 | 29 | 52 | 0 | 1.55 ± 0.61 | 133 |
+
+train + valid 190장은 5-fold valid를 합친 것(각 사진이 한 번씩 valid). 0 / 1 / 2 / 3+ = 사진 수.
+
+## Table 10. Validation MAE by camera (fold 5개 평균 ± 표본 표준편차)
+
+| Split | Method | CH005 (001, 아침) | CH010 (002, 낮~저녁) |
+|---|---|---|---|
+| Random 5-fold | Geo | 0.423 ± 0.092 | 0.690 ± 0.097 |
+| Random 5-fold | RF | 0.298 ± 0.159 | 0.472 ± 0.142 |
+| Random 5-fold | RF+Geo | 0.255 ± 0.140 | 0.262 ± 0.141 |
+| Random 5-fold | RF+Geo+Leg | 0.212 ± 0.146 | 0.203 ± 0.147 |
+| Time 5-fold | Geo | 0.360 ± 0.093 | 0.765 ± 0.281 |
+| Time 5-fold | RF | 0.253 ± 0.094 | 0.960 ± 0.455 |
+| Time 5-fold | RF+Geo | 0.224 ± 0.069 | 0.452 ± 0.184 |
+| Time 5-fold | RF+Geo+Leg | 0.218 ± 0.148 | 0.342 ± 0.148 |
+
+fold마다 그 fold valid 중 그 카메라 사진만으로 MAE를 계산 후 평균. fold별 장수는 `val_mae_by_camera.csv`.
+
+## Table 11. RF+Geo+Leg feature importance (Gini, mean ± SD over 10 fold models)
+
+| Rank | Feature | Group | Importance |
+|---|---|---|---|
+| 1 | geo_nose_dist_over_r | Geo | 0.270 ± 0.008 |
+| 2 | nose_zone_dist_norm | RF | 0.211 ± 0.004 |
+| 3 | nose_in_zone | RF | 0.172 ± 0.012 |
+| 4 | leg_angle_deg | Leg | 0.098 ± 0.006 |
+| 5 | paw_offset | Leg | 0.092 ± 0.005 |
+| 6 | geo_aspect_ratio | Geo | 0.055 ± 0.006 |
+| 7 | leg_side_bias | Leg | 0.045 ± 0.006 |
+| 8 | leg_extension | Leg | 0.034 ± 0.007 |
+| 9 | geo_head_angle_deg | Geo | 0.007 ± 0.001 |
+| 10 | body_bend_deg | Leg | 0.006 ± 0.001 |
+| 11 | key_kpt_conf | RF | 0.004 ± 0.001 |
+| 12 | spine_dip_deg | RF | 0.003 ± 0.001 |
+| 13 | neck_rel_height | RF | 0.002 ± 0.001 |
+| 14 | head_dip_deg | RF | 0.002 ± 0.000 |
+| 15 | geo_lateral_asymmetry | Geo | 0.001 ± 0.000 |
+| 16 | geo_limb_visibility | Geo | 0.000 ± 0.000 |
+
+그룹 합계: Geo 0.332 ± 0.012, Leg 0.275 ± 0.010, RF 0.393 ± 0.011. RF는 그 fold train 사진의 사람 관절로 학습(평가와 동일), 나무 100개 · balanced · seed 42.
 
 ## Figures
 
@@ -136,4 +196,8 @@ conf = 그 fold valid에서 사진당 MAE 최소. 추론 시간(RTX 6000 Ada, ba
 | B | `../graph_B_mae_random_vs_time.png` | Per-image count MAE by method, Random 5-fold vs Time 5-fold (mean ± SD) |
 | C | `../graph_C_total_counts.png` | Total visiting pigs counted per fold vs human GT |
 | D | `../graph_D_keypoint_pck.png` | Per-keypoint PCK@0.1, Random 5-fold vs Time 5-fold |
+| E | `../per_image/graph_E_per_image_counts.png` | Visiting pigs counted per test(000) image, every method vs GT (mean over 5 folds, band = min–max) |
+| F | `../per_image/graph_F_per_image_error_heatmap.png` | Per-image counting error of all 50 models on test(000) |
+| G | `../error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases: all 10 pose models side by side |
+| – | `../per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |
 

@@ -26,7 +26,7 @@ yolo_det/
 └── reports/<run>/<size>/     평가 요약 summary.json / summary.md (git에 올림)
 ```
 
-원본 데이터는 서인 레포 규칙대로 `counting/data/labels/source/<task>_sorted.zip`(CVAT for images 1.1)에서 읽는다.
+원본 데이터는 레포 공통 규칙대로 `counting/data/labels/source/<task>_sorted.zip`(CVAT for images 1.1)에서 읽는다.
 
 ---
 
@@ -39,7 +39,7 @@ python yolo_det\scripts\prepare_data.py
 # 2) 학습 (GPU) — pose 실험과 같은 조건: COCO 사전학습, 640, epoch 200, 조기 종료 끔
 python yolo_det\scripts\train.py --sizes m --run ep200 --device 0
 python yolo_det\scripts\train.py --sizes n s m l --run ep200 --device 0      # 사이즈 전부
-python yolo_det\scripts\train.py --sizes m --run ep200_poseinit --init yolo_det\pig_pose_best.pt --device 0   # 서인 pose 가중치에서 시작
+python yolo_det\scripts\train.py --sizes m --run ep200_poseinit --init yolo_det\pig_pose_best.pt --device 0   # 돼지 pose model 가중치에서 시작
 
 # 3) 평가 (test = 000)
 python yolo_det\scripts\evaluate.py --run ep200 --size m
@@ -70,7 +70,7 @@ python yolo_det\scripts\evaluate.py --run ep200 --size m
   python yolo_det/scripts/train.py --sizes m --run ep200_sorted --device 0
   python yolo_det/scripts/evaluate.py --run ep200_sorted --size m
   ```
-  - 서인 pose 가중치는 random 분할로 학습됐으므로 `--split sorted` 상태에서 `--init`을 주면 train.py가 멈춤(valid 누수 방지).
+  - 돼지 pose model 가중치는 random 분할로 학습됐으므로 `--split sorted` 상태에서 `--init`을 주면 train.py가 멈춤(valid 누수 방지).
   - 분할 방식은 `data/split.json`에 기록되고 train.py가 `models/<run>/<size>/split.json`으로 복사함.
     evaluate.py는 지금 `data/`가 학습 때와 다른 분할이면 멈춤 → 예전 random run을 다시 평가하려면 `--split random`으로 다시 준비.
 - **사진 이름의 시각 = 실제 촬영 시각 − 9시간** (실제 KST = 이름 시각 + 9시간. 예: 002 `20260716012647` → 실제 10:26:47,
@@ -131,8 +131,8 @@ python yolo_det\scripts\evaluate.py --run ep200 --size m
 test = 000(1분 샘플 영상 86장, 학습에 없는 카메라). 모든 run 공통: YOLOv8m detect, imgsz 640, 조기 종료 끔, seed 42.
 conf 임계값은 각 run의 valid에서 사진당 MAE가 가장 작은 값(000은 보지 않음). 요약: `reports/<run>/m/summary.md` / `.json`.
 환경(연구실 서버 RTX 6000 Ada): python 3.10.12, torch 2.11.0+cu128, CUDA 12.8, ultralytics 8.4.108. 학습 1회 ep200 약 8분, ep300 약 12~20분.
-서인 pose 가중치 `pig_pose_best.pt`(YOLOv8m-pose, ep200, seed 42 random 분할 train 162장으로 학습 — 서인 확인) sha256 앞 16자리 `5e23e8ccc106557a`.
-(seed 42는 **분할** seed임. 이 모델의 학습 seed는 0(Ultralytics 기본, `training/models/results/ep200/m/args.yaml`), best.pt는 valid pose + box mAP50-95 합 기준 — 11/18 서인 확인)
+돼지 포즈 모델 가중치 pig_pose_best.pt(YOLOv8m-pose, ep200, seed 42 랜덤 분할 train 162장으로 학습) sha256 앞 16자리 `5e23e8ccc106557a`.
+(seed 42는 **분할** seed임. 이 모델의 학습 seed는 0(Ultralytics 기본, `training/models/results/ep200/m/args.yaml`), best.pt는 valid pose + box mAP50-95 합 기준 — 11/18 학습 기록으로 확인)
 `--init` 시 backbone·neck만 옮기고 detect head는 새로 학습(Transferred 469/475).
 
 ### 사진당 visiting 마릿수 (000)
@@ -140,9 +140,9 @@ conf 임계값은 각 run의 valid에서 사진당 MAE가 가장 작은 값(000�
 | run | 시작 가중치 | 분할 (train / valid) | epoch | conf | 사진당 MAE (bias) | 정확 일치 | ±1 이내 | 1분 총 점유량 오차 | 10초 구간 평균 오차 | box mAP50-95 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `ep200` | COCO | 랜덤 (162 / 28) | 200 | 0.55 | 0.198 (−0.151) | 80.2% | 100.0% | −9.8% | 0.150 | 0.601 |
-| `ep200_poseinit` | 서인 pose | 랜덤 (162 / 28) | 200 | 0.75 | 0.174 (−0.081) | 82.6% | 100.0% | −5.3% | 0.094 | 0.645 |
+| `ep200_poseinit` | 돼지 pose model 가중치 | 랜덤 (162 / 28) | 200 | 0.75 | 0.174 (−0.081) | 82.6% | 100.0% | −5.3% | 0.094 | 0.645 |
 | `ep300` | COCO | 랜덤 (162 / 28) | 300 | 0.45 | 0.221 (+0.012) | 77.9% | 100.0% | +0.8% | 0.057 | 0.598 |
-| `ep300_poseinit` | 서인 pose | 랜덤 (162 / 28) | 300 | 0.25 | 0.209 (−0.116) | 80.2% | 98.8% | −7.5% | 0.075 | 0.623 |
+| `ep300_poseinit` | 돼지 pose model 가중치 | 랜덤 (162 / 28) | 300 | 0.25 | 0.209 (−0.116) | 80.2% | 98.8% | −7.5% | 0.075 | 0.623 |
 | `ep200_sorted` | COCO | 시간대 (159 / 31) | 200 | 0.85 | 0.186 (−0.163) | 81.4% | 100.0% | −10.5% | 0.130 | 0.614 |
 | `ep300_sorted` | COCO | 시간대 (159 / 31) | 300 | 0.65 | 0.221 (+0.012) | 77.9% | 100.0% | +0.8% | 0.081 | 0.592 |
 | `ep200_k5` (5-fold 평균 ± 표준편차) | COCO | 시간대 5-fold (148~155 / 34~42) | 200 | 0.49 ± 0.19 | 0.223 ± 0.048 (−0.065) | 77.9% ± 4.4% | 99.8% | −4.2 ± 1.6% | 0.111 ± 0.042 | 0.601 ± 0.016 |
@@ -207,7 +207,7 @@ conf 임계값은 각 run의 valid에서 사진당 MAE가 가장 작은 값(000�
   (통일 기준 랜덤 · 시간대 5-fold 평균으로도 같음. fold 단위 예외는 시간대 f0 하나로, YOLO 0.151이 같은 fold RF 단독 0.163보다 좋음.) 단, Geo / RF는 카메라마다
   사료통 원 좌표를 받고(`counting/configs/eval_cameras.yaml`, 000은 SAMPLE) YOLO는 사진만으로 판정 → 처음 보는 카메라에서 불리한 조건.
 - **epoch 300은 이득 없음.** COCO·랜덤, COCO·시간대, pose·랜덤 세 조건 모두 사진당 MAE가 나빠짐 → ep200 유지
-  (서인 pose 실험의 ep300 결론과 같음). 총 점유량·구간 오차가 좋아 보이는 run(`ep300`, `ep300_sorted`)은 많이 센 사진과
+  (포즈 모델 실험(PROGRESS.md 2장)의 ep300 결론과 같음). 총 점유량·구간 오차가 좋아 보이는 run(`ep300`, `ep300_sorted`)은 많이 센 사진과
   적게 센 사진이 비슷해서 상쇄된 결과. 두 run은 지표가 우연히 같지만 best.pt 해시와 오류 내역이 다른 별개 모델.
 - **pose 시작 vs COCO 시작, 랜덤 vs 시간대 분할 차이는 확정 불가.** 5-fold에서 valid 구간만 바꿔도 MAE가 0.151~0.279
   (틀린 사진 13~23장)로 흔들림 → run 하나씩의 1~3장 차이(예: COCO 0.198 vs pose 0.174)는 우연 범위.
@@ -233,6 +233,6 @@ Geo·RF 계열도 이 분할 3가지(같은 사진 목록, `training/scripts/mak
 
 - 임계값 안정화: 5-fold valid 예측을 모아 임계값 하나로 고르거나 고정값(예: 0.5)으로 재평가.
 - pose vs COCO 확정: 랜덤 분할에서 seed를 바꿔 반복(pose 가중치가 seed 42 random 분할로 학습돼서 시간대 분할에서는
-  `--init`을 쓸 수 없음 → 쓰려면 서인이 같은 분할로 pose 재학습).
+  `--init`을 쓸 수 없음 → 쓰려면 같은 분할로 포즈 모델을 재학습해야 함).
 - ~~RF 계열도 같은 방식의 변동 폭(교차검증)을 확인해야 같은 기준의 비교가 됨.~~ → 완료(위 "Geo / RF 계열과 같은 분할로 비교"). RF 계열 5-fold 표준편차 ±0.02\~0.03, YOLO ±0.05.
 - 메모의 "8/1/1 분할" 의미(000 포함 여부) 확인 필요.

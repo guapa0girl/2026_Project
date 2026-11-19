@@ -280,25 +280,66 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 - **Geo(60° 규칙)는 test에서 약 18% 적게 셈.** 찾은 visiting 중 fold당 약 20마리를 방향 조건에서 탈락시킴. 학습이 없어 분할과 상관없이 결과가 거의 같음(0.293 / 0.293).
 - **분할 방식(Random 5-fold vs Time 5-fold)은 test 성능을 바꾸지 않음**(Geo · RF 계열 p > 0.69). 대신 val은 Time 5-fold에서 크게 나빠져, Random 5-fold val은 실제(새 장면) 성능을 낙관적으로 보여 줌.
 - **Geo · RF 계열에 남은 오차의 상당 부분은 포즈 모델 단계에서 생김**(못 찾은 visiting fold당 6\~9마리, 급이 파이프 가림 · 밀집). 판정보다 검출을 개선하는 것이 다음 과제임(7장).
+- **속도는 5가지 방법 모두 실시간 카운팅에 충분함**(6장). GPU에서 사진 1장 21\~28 ms로 30 fps 가능하고, RF 판정은 Geo보다 약 4 ms만 더 듦. CPU에서도 약 0.2초라 1초 1프레임 카운팅은 가능함.
 
 결과 파일: `counting/reports/fold_study/` (`fold_study.md`, `fold_metrics.csv`, `fold_summary.csv`, `pose_folds.csv`, `pose_keypoints.csv`, `fold_composition.csv`, `frames/ep200_<split>/<방법>_<val|test>.csv`, 그래프 A\~D, `paper/`, `per_image/`, `error_cases/`), YOLO 원자료는 `yolo_det/reports/ep200_<fold>/m/` (PR #4).
 
 ---
 
-## 6. 추론 시간 (YOLO 측정 완료, Geo · RF 계열은 같은 장비에서 측정 예정)
+## 6. 추론 시간
 
-| 분할 | 방법 | 장비 | 중앙값 (ms) | p95 (ms) | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |
-|---|---|---|---|---|---|---|
-| Random 5-fold | YOLO | NVIDIA RTX 6000 Ada | 22.1 ± 0.2 | 24.0 ± 0.2 | ✅ | ✅ |
-| Time 5-fold | YOLO | NVIDIA RTX 6000 Ada | 21.6 ± 0.3 | 23.4 ± 0.7 | ✅ | ✅ |
-| Random 5-fold · Time 5-fold | Geo · RF 계열 | (같은 장비에서 측정 예정) | – | – | – | – |
+5가지 방법 모두 같은 서버 한 대(GPU NVIDIA RTX 6000 Ada, CPU AMD EPYC 7513)에서 `counting/scripts/benchmark_speed.py`로 측정함. Random 5-fold · Time 5-fold 모델 10개를 fold마다 따로 쟀음. 값은 fold 5개의 평균 ± 표본 표준편차이고 단위는 ms임.
 
-- YOLO: YOLO 학습 서버에서 측정(`summary.json`의 `timing`), fold마다 그 fold 모델로 재서 fold 5개 평균 ± 표본 표준편차. 사진 읽기 → 예측(conf 0.01로 예측 후 그 fold conf로 거름, agnostic NMS IoU 0.7) → visiting 마릿수.
+| 분할 | 장비 | 방법 | 중앙값 | p95 | 사진 읽기 | 모델 추론 | 특징 계산 | RF 판정 | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Random 5-fold | GPU | Geo | 23.8 ± 0.5 | 24.5 ± 0.3 | 13.0 | 10.1 | 0.8 | – | ✅ | ✅ |
+| Random 5-fold | GPU | RF | 28.0 ± 0.5 | 28.6 ± 0.3 | 13.0 | 10.1 | 0.8 | 4.1 | ✅ | ✅ |
+| Random 5-fold | GPU | RF+Geo | 27.9 ± 0.5 | 28.6 ± 0.3 | 13.0 | 10.1 | 0.8 | 4.1 | ✅ | ✅ |
+| Random 5-fold | GPU | RF+Geo+Leg | 27.9 ± 0.5 | 28.6 ± 0.3 | 13.0 | 10.1 | 0.8 | 4.1 | ✅ | ✅ |
+| Random 5-fold | GPU | YOLO | 21.3 ± 0.1 | 21.4 ± 0.2 | 12.6 | 8.6 | – | – | ✅ | ✅ |
+| Time 5-fold | GPU | Geo | 23.7 ± 0.1 | 24.1 ± 0.3 | 13.0 | 10.0 | 0.8 | – | ✅ | ✅ |
+| Time 5-fold | GPU | RF | 27.8 ± 0.1 | 28.2 ± 0.3 | 13.0 | 10.0 | 0.8 | 4.1 | ✅ | ✅ |
+| Time 5-fold | GPU | RF+Geo | 27.8 ± 0.1 | 28.2 ± 0.2 | 13.0 | 10.0 | 0.8 | 4.1 | ✅ | ✅ |
+| Time 5-fold | GPU | RF+Geo+Leg | 27.8 ± 0.1 | 28.2 ± 0.3 | 13.0 | 10.0 | 0.8 | 4.1 | ✅ | ✅ |
+| Time 5-fold | GPU | YOLO | 21.3 ± 0.1 | 21.5 ± 0.1 | 12.6 | 8.6 | – | – | ✅ | ✅ |
+| Random 5-fold | CPU | Geo | 185.8 ± 4.1 | 192.7 ± 4.6 | 12.9 | 171.5 | 1.0 | – | ✅ | ❌ |
+| Random 5-fold | CPU | RF | 190.4 ± 4.0 | 197.4 ± 4.6 | 12.9 | 171.5 | 1.0 | 4.7 | ✅ | ❌ |
+| Random 5-fold | CPU | RF+Geo | 190.0 ± 4.1 | 196.9 ± 4.6 | 12.9 | 171.5 | 1.0 | 4.2 | ✅ | ❌ |
+| Random 5-fold | CPU | RF+Geo+Leg | 190.0 ± 4.1 | 196.8 ± 4.6 | 12.9 | 171.5 | 1.0 | 4.2 | ✅ | ❌ |
+| Random 5-fold | CPU | YOLO | 179.5 ± 3.2 | 186.4 ± 2.3 | 13.0 | 166.5 | – | – | ✅ | ❌ |
+| Time 5-fold | CPU | Geo | 191.6 ± 4.0 | 200.4 ± 8.1 | 12.9 | 177.3 | 1.1 | – | ✅ | ❌ |
+| Time 5-fold | CPU | RF | 196.3 ± 4.0 | 205.2 ± 8.0 | 12.9 | 177.3 | 1.1 | 4.7 | ✅ | ❌ |
+| Time 5-fold | CPU | RF+Geo | 195.9 ± 4.0 | 204.7 ± 8.1 | 12.9 | 177.3 | 1.1 | 4.2 | ✅ | ❌ |
+| Time 5-fold | CPU | RF+Geo+Leg | 195.8 ± 4.0 | 204.6 ± 8.1 | 12.9 | 177.3 | 1.1 | 4.2 | ✅ | ❌ |
+| Time 5-fold | CPU | YOLO | 183.3 ± 4.9 | 189.5 ± 2.6 | 13.1 | 169.9 | – | – | ✅ | ❌ |
 
-추론 시간 측정 · 실시간 판정 · Discussion은 YOLO 실험 쪽이 맡음(11/16 랩미팅 분담). 측정 조건(통일): 같은 장비 한 대에서 5가지 방법 모두, batch 1, imgsz 640, 예열 5장 제외, 000 86장 × 3회, 사진 읽기부터 마릿수까지 end-to-end, 중앙값 · p95(ms). 실시간 기준: p95 ≤ 1000 ms(1초 1프레임), ≤ 33.3 ms(30 fps).
+측정 조건은 다음과 같음.
+- batch 1, imgsz 640, 예열 5장은 제외함.
+- test(000) 86장을 3회씩 처리해 fold마다 258회를 잼.
+- 사진 읽기부터 마릿수까지 end-to-end로 잼.
+- 각 fold는 그 fold의 모델을 씀:
+  - 포즈: conf 0.4
+  - RF: 그 fold train 사진으로 학습한 것
+  - YOLO: 그 fold conf
+- 단계별 칸(사진 읽기 · 모델 추론 · 특징 계산 · RF 판정)은 fold 중앙값의 평균임.
+  - 모델 추론에는 전처리 · NMS · 후처리가 포함됨.
+  - Geo 판정 시간은 특징 계산 칸에 들어 있음.
+- 실시간 판정 기준은 p95 평균이 1000 ms 이하이면 1 fps(1초 1프레임), 33.3 ms 이하이면 30 fps임.
+- 원자료: `counting/reports/speed/NVIDIA_RTX_6000_Ada_Generation/`
+  - `speed.md`
+  - `speed_summary.csv`
+  - fold별 값: `speed_folds.csv`
+  - 사진 · 회차별 값: `speed_raw.csv`
 
-- Geo · RF 계열 측정 도구: `counting/scripts/benchmark_speed.py` — Random 5-fold · Time 5-fold 모델 10개를 fold마다 재서 분할 방식별 fold 5개 평균 ± 표본 표준편차로 냄. `--yolo-weights "yolo_det/models/ep200_{split}/m/weights/best.pt"`를 주면 YOLO도 같은 장비 · 같은 fold · 그 fold conf로 함께 잼.
-- 측정에 필요한 포즈 · RF 쪽 파일(포즈 가중치 10개, 라벨, 000 사진, 분할 목록)은 git 밖에서 측정 담당에게 따로 전달.
+결과는 다음과 같음.
+- **GPU**: 5가지 방법 모두 p95가 29 ms 이하라 30 fps를 만족함.
+- **CPU**: 모두 약 0.2초라 1 fps(1초 1프레임 카운팅)는 만족하지만 30 fps는 못 함.
+- **YOLO vs Geo**: YOLO가 Geo보다 약 2.5 ms 빠름. 차이는 모델 추론에서 나옴(검출 8.6 ms vs 포즈 10.0 ms).
+- **RF 계열**: Geo보다 약 4 ms 느림. 늘어난 시간은 RF predict(100 trees)임. RF / RF+Geo / RF+Geo+Leg 사이 차이는 0.1 ms 이하임.
+- **사진 읽기**(약 13 ms)가 GPU 전체 시간의 절반 이상을 차지함. 영상에서 바로 프레임을 받으면 이 부분이 줄어듦.
+- **분할 방식(Random 5-fold vs Time 5-fold)**: 같은 구조의 모델이라 GPU 속도 차이가 없음. CPU에서 생긴 약 6 ms 차이는 측정 시점의 서버 부하 차이로 보임.
+
+YOLO 실험 기록(`yolo_det/reports/ep200_<fold>/m/summary.json`의 `timing`, 22.1 / 21.6 ms)은 conf 0.01로 예측한 뒤 거르는 다른 방식으로 잰 값임. 5가지 방법 비교에는 위 표(같은 도구 · 같은 장비)를 씀.
 
 ---
 

@@ -612,7 +612,8 @@ test(000) 사진당 MAE (fold 5개 평균 ± 표본 표준편차):
 - RF 계열이 가장 좋음. RF+Geo+Leg는 Geo · YOLO보다 test 사진 단위로 유의하게 좋음(Wilcoxon p ≤ 0.007), RF 계열 3가지 사이는 유의하지 않음(p > 0.3).
 - test에서는 Geo · RF 계열의 Random 5-fold vs Time 5-fold 차이가 없음(p > 0.69). YOLO만 Random 5-fold에서 나빠짐(fold 2개가 101 · 152마리로 크게 틀림, conf 임계값 영향).
 - val은 Time 5-fold가 나쁘고 크게 흔들림(Time 5-fold RF 0.400\~1.054) → Random 5-fold val은 새 장면 성능을 낙관적으로 보여 줌.
-- 추가 결과: 실제 센 마릿수, test 사진별 카운트(모델 50개), 오차 원인, 논문용 지표(P/R/F1, bootstrap CI, Wilcoxon), 가림 · 밀집 오차 사례 → [RESULTS.md](RESULTS.md) 4\~7장, `counting/reports/fold_study/`. 추론 시간은 같은 장비에서 5가지 방법을 함께 재는 측정 담당이 맡음.
+- 추가 결과: 실제 센 마릿수, test 사진별 카운트(모델 50개), 오차 원인, 논문용 지표(P/R/F1, bootstrap CI, Wilcoxon), 가림 · 밀집 오차 사례 → [RESULTS.md](RESULTS.md) 4\~7장, `counting/reports/fold_study/`.
+- 추론 시간(5가지 방법 × 모델 10개, 같은 서버 RTX 6000 Ada / EPYC 7513, `benchmark_speed.py`): GPU에서 사진 1장 중앙값 YOLO 21.3 ms, Geo 23.7\~23.8 ms, RF 계열 27.8\~28.0 ms → 모두 30 fps 가능. CPU는 약 180\~196 ms로 1 fps만 가능 → [RESULTS.md](RESULTS.md) 6장.
 
 ### 정리
 

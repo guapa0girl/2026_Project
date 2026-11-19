@@ -20,6 +20,7 @@ counting/
 ├── outputs/         추론·평가 결과 (git 제외)
 ├── reports/split_comparison/  분할 방식별 5가지 방법 비교 (통일 기준 전, md / csv / png, git에 올림)
 ├── reports/fold_study/        Random 5-fold vs Time 5-fold, 11/16 통일 기준 (표 · 그래프 · 논문 지표 · 사진별 · 오차 사례, git에 올림)
+├── reports/speed/<GPU>/       추론 시간 (benchmark_speed.py 결과: speed.md, summary · fold별 · 원자료 csv, git에 올림)
 ├── scripts/
 │   ├── count_day.py          폴더의 클립 전체를 순서대로 추론 (클립마다 KST 시작 시각 자동 계산, 이어하기 가능)
 │   ├── count_full_video.py   클립 1개를 1초 샘플링으로 추론 → 1초 CSV + 집계 CSV/그래프 (+ _dets.csv)
@@ -35,7 +36,7 @@ counting/
 │   ├── paper_tables.py       논문용 지표 (P/R/F1, bootstrap CI, Wilcoxon, 포즈 · YOLO 표) → reports/fold_study/paper/
 │   ├── per_image_000.py      000 사진별 카운트 (모델별 csv · 그림, 그래프 E · F) → reports/fold_study/per_image/
 │   ├── error_cases.py        가림 · 밀집 오차 사례 그림 (10개 모델 나란히) → reports/fold_study/error_cases/
-│   ├── benchmark_speed.py    추론 시간 측정 도구 (같은 장비에서 5가지 방법 측정용; Random 5-fold · Time 5-fold 모델 10개, GPU · CPU, YOLO는 --yolo-weights)
+│   ├── benchmark_speed.py    추론 시간 측정 (같은 장비에서 5가지 방법; Random 5-fold · Time 5-fold 모델 10개, GPU · CPU, YOLO는 --yolo-weights) → reports/speed/<GPU>/
 │   ├── run_geo_ablation.ps1  Geo 조건 5종 Stage 2 평가 (000)
 │   ├── apply_methods.py      _dets.csv에 모든 방법 적용 → 방법별 10분 그래프 (YOLO 재실행 없음)
 │   ├── plot_methods.py / plot_geo_ablation.py   평가 결과 그림 (사진당 마릿수 오차, 총 점유량 오차)

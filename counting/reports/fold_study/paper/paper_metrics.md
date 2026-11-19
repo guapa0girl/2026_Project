@@ -130,14 +130,30 @@ conf = 그 fold valid에서 사진당 MAE 최소. 값 출처: `yolo_det/reports/
 
 ## Table 8. Inference time (end-to-end per image)
 
-| Split | Method | Device | Median (ms) | p95 (ms) | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |
-|---|---|---|---|---|---|---|
-| Random 5-fold | YOLO | NVIDIA RTX 6000 Ada | 22.1 ± 0.2 | 24.0 ± 0.2 | ✅ | ✅ |
-| Random 5-fold | Geo · RF 계열 | – | – | – | – | – |
-| Time 5-fold | YOLO | NVIDIA RTX 6000 Ada | 21.6 ± 0.3 | 23.4 ± 0.7 | ✅ | ✅ |
-| Time 5-fold | Geo · RF 계열 | – | – | – | – | – |
+| Split | Device | Method | Median (ms) | p95 (ms) | Read | Model | Features | RF | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Random 5-fold | GPU (RTX 6000 Ada) | Geo | 23.8 ± 0.5 | 24.5 ± 0.3 | 13.0 | 10.1 | 0.8 | 0.0 | ✅ | ✅ |
+| Random 5-fold | GPU (RTX 6000 Ada) | RF | 28.0 ± 0.5 | 28.6 ± 0.3 | 13.0 | 10.1 | 0.8 | 4.1 | ✅ | ✅ |
+| Random 5-fold | GPU (RTX 6000 Ada) | RF+Geo | 27.9 ± 0.5 | 28.6 ± 0.3 | 13.0 | 10.1 | 0.8 | 4.1 | ✅ | ✅ |
+| Random 5-fold | GPU (RTX 6000 Ada) | RF+Geo+Leg | 27.9 ± 0.5 | 28.6 ± 0.3 | 13.0 | 10.1 | 0.8 | 4.1 | ✅ | ✅ |
+| Random 5-fold | GPU (RTX 6000 Ada) | YOLO | 21.3 ± 0.1 | 21.4 ± 0.2 | 12.6 | 8.6 | 0.0 | 0.0 | ✅ | ✅ |
+| Random 5-fold | CPU (AMD EPYC 7513) | Geo | 185.8 ± 4.1 | 192.7 ± 4.6 | 12.9 | 171.5 | 1.0 | 0.0 | ✅ | ❌ |
+| Random 5-fold | CPU (AMD EPYC 7513) | RF | 190.4 ± 4.0 | 197.4 ± 4.6 | 12.9 | 171.5 | 1.0 | 4.7 | ✅ | ❌ |
+| Random 5-fold | CPU (AMD EPYC 7513) | RF+Geo | 190.0 ± 4.1 | 196.9 ± 4.6 | 12.9 | 171.5 | 1.0 | 4.2 | ✅ | ❌ |
+| Random 5-fold | CPU (AMD EPYC 7513) | RF+Geo+Leg | 190.0 ± 4.1 | 196.8 ± 4.6 | 12.9 | 171.5 | 1.0 | 4.2 | ✅ | ❌ |
+| Random 5-fold | CPU (AMD EPYC 7513) | YOLO | 179.5 ± 3.2 | 186.4 ± 2.3 | 13.0 | 166.5 | 0.0 | 0.0 | ✅ | ❌ |
+| Time 5-fold | GPU (RTX 6000 Ada) | Geo | 23.7 ± 0.1 | 24.1 ± 0.3 | 13.0 | 10.0 | 0.8 | 0.0 | ✅ | ✅ |
+| Time 5-fold | GPU (RTX 6000 Ada) | RF | 27.8 ± 0.1 | 28.2 ± 0.3 | 13.0 | 10.0 | 0.8 | 4.1 | ✅ | ✅ |
+| Time 5-fold | GPU (RTX 6000 Ada) | RF+Geo | 27.8 ± 0.1 | 28.2 ± 0.2 | 13.0 | 10.0 | 0.8 | 4.1 | ✅ | ✅ |
+| Time 5-fold | GPU (RTX 6000 Ada) | RF+Geo+Leg | 27.8 ± 0.1 | 28.2 ± 0.3 | 13.0 | 10.0 | 0.8 | 4.1 | ✅ | ✅ |
+| Time 5-fold | GPU (RTX 6000 Ada) | YOLO | 21.3 ± 0.1 | 21.5 ± 0.1 | 12.6 | 8.6 | 0.0 | 0.0 | ✅ | ✅ |
+| Time 5-fold | CPU (AMD EPYC 7513) | Geo | 191.6 ± 4.0 | 200.4 ± 8.1 | 12.9 | 177.3 | 1.1 | 0.0 | ✅ | ❌ |
+| Time 5-fold | CPU (AMD EPYC 7513) | RF | 196.3 ± 4.0 | 205.2 ± 8.0 | 12.9 | 177.3 | 1.1 | 4.7 | ✅ | ❌ |
+| Time 5-fold | CPU (AMD EPYC 7513) | RF+Geo | 195.9 ± 4.0 | 204.7 ± 8.1 | 12.9 | 177.3 | 1.1 | 4.2 | ✅ | ❌ |
+| Time 5-fold | CPU (AMD EPYC 7513) | RF+Geo+Leg | 195.8 ± 4.0 | 204.6 ± 8.1 | 12.9 | 177.3 | 1.1 | 4.2 | ✅ | ❌ |
+| Time 5-fold | CPU (AMD EPYC 7513) | YOLO | 183.3 ± 4.9 | 189.5 ± 2.6 | 13.1 | 169.9 | 0.0 | 0.0 | ✅ | ❌ |
 
-조건: batch 1, imgsz 640, 예열 5장 제외, test(000) 86장 × 3회, 사진 읽기부터 마릿수까지, fold마다 그 fold 모델 → fold 5개 평균 ± 표본 표준편차. YOLO는 YOLO 학습 서버에서 측정, Geo · RF 계열은 같은 장비에서 `counting/scripts/benchmark_speed.py`로 측정 예정.
+조건: 5가지 방법 모두 같은 서버 한 대, batch 1, imgsz 640, 예열 5장 제외, test(000) 86장 × 3회, 사진 읽기부터 마릿수까지, fold마다 그 fold 모델(YOLO는 그 fold conf) → fold 5개 중앙값 · p95의 평균 ± 표본 표준편차. 단계별 칸(Read · Model · Features · RF)은 fold 중앙값의 평균(ms). 실시간 판정은 p95 평균 기준. 원자료: `counting/reports/speed/NVIDIA_RTX_6000_Ada_Generation/` (`benchmark_speed.py`).
 
 ## Table 9. Visiting pigs per image (human labels)
 

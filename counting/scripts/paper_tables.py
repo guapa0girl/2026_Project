@@ -6,7 +6,8 @@
     reports/fold_study/pose_keypoints.csv         keypoint별 PCK@0.1
     ../training/reports/metrics/ep200_<split>/m/summary.json   포즈 모델 지표
 출력: reports/fold_study/paper/
-    paper_metrics.md        표 1~7 (아래)
+    ../speed/<GPU>/speed_summary.csv              추론 시간 (benchmark_speed.py, 표 8)
+    paper_metrics.md        표 1~11 (아래)
     count_metrics.csv       표 1·2 (방법 × 분할 × val/test, 평균·표본 표준편차)
     bootstrap_ci.csv        표 3 (test MAE 95% CI)
     wilcoxon.csv            표 4 (사진 단위 짝비교)
@@ -38,6 +39,7 @@ OUT = FS / "paper"
 K = 5
 METHODS = [("geo", "Geo"), ("rf", "RF"), ("rf_geo", "RF+Geo"), ("rf_geo_leg", "RF+Geo+Leg"), ("yolo", "YOLO")]
 LABEL = dict(METHODS)
+SPEED_GPU, SPEED_CPU = "RTX 6000 Ada", "AMD EPYC 7513"   # 추론 시간 측정 서버 (speed_summary.csv의 CPU 이름은 x86_64로만 찍힘)
 SCHEMES = [("random_5fold", "Random 5-fold", "rk5"), ("time_5fold", "Time 5-fold", "k5")]
 SETS = [("test", "test(000)"), ("val", "Validation")]
 RF_BEST = "rf_geo_leg"   # 두 분할 모두 5-fold 평균 val MAE 최소 (fold_study.md 1장)
@@ -270,19 +272,31 @@ def main():
                       " | ".join(ms(g[c]) if c in g else "–" for c in ycols) + " |")
     md += ["", "conf = 그 fold valid에서 사진당 MAE 최소. 값 출처: `yolo_det/reports/ep200_<fold>/m/summary.json`.", ""]
 
-    # 표 8: 추론 시간
-    t = y[(y.set == "test")]
-    md += ["## Table 8. Inference time (end-to-end per image)", "",
-           "| Split | Method | Device | Median (ms) | p95 (ms) | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |", "|---|---|---|---|---|---|---|"]
-    for key, slab, _ in SCHEMES:
-        g = t[t.scheme == key]
-        if "time_p95_ms" in g and g.time_p95_ms.notna().any():
-            p95 = g.time_p95_ms.mean()
-            md.append(f"| {slab} | YOLO | NVIDIA RTX 6000 Ada | {ms(g.time_median_ms, '.1f')} | {ms(g.time_p95_ms, '.1f')} | "
-                      f"{'✅' if p95 <= 1000 else '❌'} | {'✅' if p95 <= 1000 / 30 else '❌'} |")
-        md.append(f"| {slab} | Geo · RF 계열 | – | – | – | – | – |")
-    md += ["", "조건: batch 1, imgsz 640, 예열 5장 제외, test(000) 86장 × 3회, 사진 읽기부터 마릿수까지, fold마다 그 fold 모델 → "
-           "fold 5개 평균 ± 표본 표준편차. YOLO는 YOLO 학습 서버에서 측정, Geo · RF 계열은 같은 장비에서 `counting/scripts/benchmark_speed.py`로 측정 예정.", ""]
+    # 표 8: 추론 시간 (benchmark_speed.py 결과, 5가지 방법 같은 장비)
+    md += ["## Table 8. Inference time (end-to-end per image)", ""]
+    sp_files = sorted((ROOT / "reports" / "speed").glob("*/speed_summary.csv"))
+    if sp_files:
+        sp = pd.read_csv(sp_files[0], encoding="utf-8-sig")
+        sp_dev = {"GPU": f"GPU ({SPEED_GPU})", "CPU": f"CPU ({SPEED_CPU})"}
+        md += ["| Split | Device | Method | Median (ms) | p95 (ms) | Read | Model | Features | RF | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |",
+               "|---|---|---|---|---|---|---|---|---|---|---|"]
+        for key, slab, _ in SCHEMES:
+            for dev in ["GPU", "CPU"]:
+                for m, mlab in METHODS:
+                    r = sp[(sp.scheme == key) & (sp.device == dev) & (sp.method == m)]
+                    if r.empty:
+                        continue
+                    r = r.iloc[0]
+                    md.append(f"| {slab} | {sp_dev[dev]} | {mlab} | {r.median_ms:.1f} ± {r.median_ms_sd:.1f} | "
+                              f"{r.p95_ms:.1f} ± {r.p95_ms_sd:.1f} | {r.read_median_ms:.1f} | {r.infer_median_ms:.1f} | "
+                              f"{r.feature_median_ms:.1f} | {r.classify_median_ms:.1f} | "
+                              f"{'✅' if r.p95_ms <= 1000 else '❌'} | {'✅' if r.p95_ms <= 1000 / 30 else '❌'} |")
+        md += ["", "조건: 5가지 방법 모두 같은 서버 한 대, batch 1, imgsz 640, 예열 5장 제외, test(000) 86장 × 3회, "
+               "사진 읽기부터 마릿수까지, fold마다 그 fold 모델(YOLO는 그 fold conf) → fold 5개 중앙값 · p95의 평균 ± 표본 표준편차. "
+               "단계별 칸(Read · Model · Features · RF)은 fold 중앙값의 평균(ms). 실시간 판정은 p95 평균 기준. "
+               f"원자료: `counting/reports/speed/{sp_files[0].parent.name}/` (`benchmark_speed.py`).", ""]
+    else:
+        md += ["(측정 결과 없음: `counting/scripts/benchmark_speed.py`를 먼저 실행)", ""]
 
     # 표 9: 사진당 visiting 마릿수 분포 (데이터)
     gt_test = pd.read_csv(FS / "per_frame_000" / "geo.csv", encoding="utf-8-sig")["gt"]

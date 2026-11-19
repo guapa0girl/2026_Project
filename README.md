@@ -23,6 +23,7 @@ test = 000(1분 샘플 영상 86장, 사람 visiting 133마리). 11/16 통일 �
 
 - RF 계열 3가지가 가장 좋음. RF best(5-fold 평균 val MAE 최소)는 두 분할 모두 RF+Geo+Leg이고, Geo · YOLO보다 test 사진 단위로 유의하게 좋음(Wilcoxon p ≤ 0.007). RF 계열 3가지 사이 차이는 유의하지 않음(p > 0.3).
 - YOLO는 Random 5-fold에서 fold마다 크게 흔들림(MAE 0.174\~0.477). Geo는 test에서 약 18% 적게 셈.
+- 추론 시간(같은 서버, 사진 1장 end-to-end 중앙값): GPU(RTX 6000 Ada)에서 YOLO 21.3 ms, Geo 23.8 ms, RF 계열 약 28 ms로 모두 30 fps 가능. CPU(EPYC 7513)에서는 약 0.18\~0.20초로 1 fps 가능.
 - 분할 · 조건 · 결과 · 추론 시간 · 한계점: **[RESULTS.md](RESULTS.md)** (모두 Random 5-fold · Time 5-fold 평균), 표 전체: [fold_study.md](counting/reports/fold_study/fold_study.md), 논문용 지표: [paper_metrics.md](counting/reports/fold_study/paper/paper_metrics.md), test 사진별 카운트: [per_image_000.md](counting/reports/fold_study/per_image/per_image_000.md).
 - 진행 과정 전체 기록: [PROGRESS.md](PROGRESS.md)
 

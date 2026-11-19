@@ -36,6 +36,7 @@ counting/
 │   ├── paper_tables.py       논문용 지표 (P/R/F1, bootstrap CI, Wilcoxon, 포즈 · YOLO 표) → reports/fold_study/paper/
 │   ├── per_image_000.py      000 사진별 카운트 (모델별 csv · 그림, 그래프 E · F) → reports/fold_study/per_image/
 │   ├── error_cases.py        가림 · 밀집 오차 사례 그림 (10개 모델 나란히) → reports/fold_study/error_cases/
+│   ├── plot_counts_3methods.py  test(000) 사람 정답 vs Geo · RF+Geo+Leg · YOLO, 가로축 초(0~60 s) (그래프 H 사진별 · I 누적) → reports/fold_study/
 │   ├── benchmark_speed.py    추론 시간 측정 (같은 장비에서 5가지 방법; Random 5-fold · Time 5-fold 모델 10개, GPU · CPU, YOLO는 --yolo-weights) → reports/speed/<GPU>/
 │   ├── run_geo_ablation.ps1  Geo 조건 5종 Stage 2 평가 (000)
 │   ├── apply_methods.py      _dets.csv에 모든 방법 적용 → 방법별 10분 그래프 (YOLO 재실행 없음)
@@ -77,7 +78,7 @@ powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1   # → outp
 # training/에서: make_study_splits.py --export-images ..\counting\data\raw\train_img, run_split_study.ps1 -Splits k5_f0,...,rk5_f4
 cd counting
 powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1 -Valid -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4
-python scripts\paper_tables.py; python scripts\per_image_000.py; python scripts\error_cases.py
+python scripts\paper_tables.py; python scripts\per_image_000.py; python scripts\error_cases.py; python scripts\plot_counts_3methods.py
 ```
 
 - val = 그 fold의 valid 사진(001+002), test = 000. RF best = RF / RF+Geo / RF+Geo+Leg 중 5-fold 평균 val MAE 최소.

@@ -357,6 +357,8 @@ def main():
            "| E | `../per_image/graph_E_per_image_counts.png` | Visiting pigs counted per test(000) image, every method vs GT (mean over 5 folds, band = min–max) |",
            "| F | `../per_image/graph_F_per_image_error_heatmap.png` | Per-image counting error of all 50 models on test(000) |",
            "| G | `../error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases: all 10 pose models side by side |",
+           "| H | `../graph_H_counts_3methods.png` | Visiting count per image over the 60-s test(000) video: human GT vs Geo, RF+Geo+Leg, YOLO (mean of 5 folds, band = min–max; lower strip = mean error) |",
+           "| I | `../graph_I_cumulative_3methods.png` | Cumulative visiting count over the 60-s test(000) video: human GT vs Geo, RF+Geo+Leg, YOLO |",
            "| – | `../per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |", ""]
     (OUT / "paper_metrics.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md))

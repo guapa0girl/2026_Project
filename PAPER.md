@@ -519,6 +519,25 @@ YOLO:          사진 → YOLOv8m detect (클래스 visiting / other) → conf �
 - 86장 × 모델 50개: [per_image_000.md](counting/reports/fold_study/per_image/per_image_000.md)
 - 방법별 csv · 그림: `counting/reports/fold_study/per_image/by_model/`
 
+**사람 정답 vs Geo · RF+Geo+Leg(RF 계열 대표) · YOLO** (그래프 H, I)
+- 가로축은 000 영상의 시간(초)임. 프레임 번호 0\~1440을 24 fps로 환산해 0\~60초로 나타냄.
+- 세로축은 카운팅 횟수(visiting 마릿수)임.
+- 선은 fold 모델 5개의 평균이고, 띠는 최소\~최대 범위임.
+- 그래프 H: 방법마다 칸을 나눠 사진별 카운트와 사진별 오차(예측 − 정답)를 보여 줌.
+- 그래프 I: 60초 동안의 누적 카운트임.
+- 그래프 H에서 읽을 수 있는 것:
+  - Geo는 26초 이후, 특히 43\~59초 구간에서 계속 적게 셈.
+  - RF+Geo+Leg는 정답과 거의 겹침. 어긋나는 곳은 몇 군데뿐임:
+    - 43\~44초(#56\~58): 급이 파이프에 가린 돼지를 놓쳐 1마리 적게 셈.
+    - 57\~58초: 적게 셈.
+    - 25.7초(#34) · 51.3초(#65): 1마리 많이 셈.
+  - YOLO는 Random 5-fold에서 0\~40초 동안 fold에 따라 1\~3마리로 흔들림.
+
+![그래프 H: 사진별 카운트, 사람 정답 vs Geo · RF+Geo+Leg · YOLO](counting/reports/fold_study/graph_H_counts_3methods.png)
+![그래프 I: 60초 누적 카운트](counting/reports/fold_study/graph_I_cumulative_3methods.png)
+
+5가지 방법 전체를 그린 그래프 A · E와 모델 50개의 오차를 담은 그래프 F는 아래와 같음.
+
 ![그래프 A: test(000) 사진별 마릿수](counting/reports/fold_study/graph_A_frame_counts_000.png)
 ![그래프 E: 방법별 사진별 카운트](counting/reports/fold_study/per_image/graph_E_per_image_counts.png)
 ![그래프 F: 모델 50개 사진별 오차](counting/reports/fold_study/per_image/graph_F_per_image_error_heatmap.png)
@@ -670,6 +689,8 @@ Time 5-fold의 CH010(못 본 시간대)에서 RF 단독이 크게 나빠짐(0.96
 | E | `counting/reports/fold_study/per_image/graph_E_per_image_counts.png` | Visiting pigs counted per test(000) image, every method vs GT |
 | F | `counting/reports/fold_study/per_image/graph_F_per_image_error_heatmap.png` | Per-image counting error of all 50 models on test(000) |
 | G | `counting/reports/fold_study/error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases, all 10 pose models side by side |
+| H | `counting/reports/fold_study/graph_H_counts_3methods.png` | Visiting count per image over the 60-s test(000) video: human GT vs Geo, RF+Geo+Leg, YOLO (mean of 5 fold models, band = min–max; lower strip = mean error) |
+| I | `counting/reports/fold_study/graph_I_cumulative_3methods.png` | Cumulative visiting count over the 60-s test(000) video: human GT (133) vs Geo, RF+Geo+Leg, YOLO |
 | – | `training/reports/data/time_distribution.png` | Capture-time distribution of tasks 001 / 002 |
 | – | `counting/reports/fold_study/per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |
 
@@ -684,8 +705,8 @@ cd training; python scripts\make_study_splits.py --export-images ..\counting\dat
 powershell -ExecutionPolicy Bypass -File scripts\run_split_study.ps1 -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4
 # 3) Geo / RF 계열 val + test 평가 → fold_study 표 · 그래프 A~D
 cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1 -Valid -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4
-# 4) 논문 표 · 사진별 카운트(그래프 E · F) · 오차 사례(그래프 G)
-python scripts\paper_tables.py; python scripts\per_image_000.py; python scripts\error_cases.py
+# 4) 논문 표 · 사진별 카운트(그래프 E · F) · 오차 사례(그래프 G) · 3방법 비교(그래프 H · I)
+python scripts\paper_tables.py; python scripts\per_image_000.py; python scripts\error_cases.py; python scripts\plot_counts_3methods.py
 # 5) 추론 시간 (같은 장비에서 5가지 방법, YOLO 가중치 경로를 함께 줌)
 python scripts\benchmark_speed.py --yolo-weights "../yolo_det/models/ep200_{split}/m/weights/best.pt"
 ```

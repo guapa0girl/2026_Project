@@ -42,7 +42,7 @@ test = 000(1분 샘플 영상 86장, 사람 visiting 133마리). 11/16 통일 �
 |---|---|
 | [training/](training/README.md) | 라벨 변환, 분할, 포즈 모델 학습·평가 |
 | [counting/](counting/README.md) | Geo · RF 계열 판정 평가, 분할별 비교 |
-| [yolo_det/](yolo_det/README.md) | YOLO 직접 판정 (수아) |
+| [yolo_det/](yolo_det/README.md) | YOLO 직접 판정 (사진에서 visiting / other 바로 검출) |
 
 ## 설치 (Windows, NVIDIA GPU)
 

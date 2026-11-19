@@ -9,8 +9,8 @@
                   포즈 = training/models/results/ep200_<split>/m (seed 42, best.pt = val pose mAP50-95 최고)
                   RF  = 그 fold train 사진으로 학습 (나무 100개, balanced, seed 42, 기준 0.5)
     YOLO        : ../yolo_det/reports/ep200_<split>/m/summary.json  ("test", 있으면 "valid") 우선, 빈 값은
-                  reports/fold_study/inputs/yolo_fold_metrics.csv      (수아 노션 11/17 표: conf, box P/R/mAP, val MAE/RMSE)
-                  reports/fold_study/inputs/yolo_000_per_frame_counts.csv (수아, 000 사진별 카운트 → test 지표·그래프 A)
+                  reports/fold_study/inputs/yolo_fold_metrics.csv      (YOLO 실험 노트 11/17 표: conf, box P/R/mAP, val MAE/RMSE)
+                  reports/fold_study/inputs/yolo_000_per_frame_counts.csv (YOLO 실험, 000 사진별 카운트 → test 지표·그래프 A)
     포즈 지표   : ../training/reports/metrics/ep200_<split>/m/summary.json
 선택 기준 (val만 사용, test를 보고 고르지 않음):
     RF best = RF / RF+Geo / RF+Geo+Leg 중 5-fold 평균 val MAE 최소 (분할 방식마다 따로)
@@ -92,7 +92,7 @@ def load_geo_rf(split, part, eval_root, frames_out):
     return rows
 
 
-YOLO_INPUTS = ROOT / "reports" / "fold_study" / "inputs"   # 수아 노션(11/17) 값 + 000 사진별 카운트 csv
+YOLO_INPUTS = ROOT / "reports" / "fold_study" / "inputs"   # YOLO 실험 노트(11/17) 값 + 000 사진별 카운트 csv
 YOLO_DET_COLS = ["conf", "box_P", "box_R", "box_mAP50", "box_mAP50-95", "box_mAP50-95_visiting", "box_mAP50-95_other",
                  "time_median_ms", "time_p95_ms"]
 
@@ -114,7 +114,7 @@ def counts_from_frames(gt, pred):
 
 
 def load_yolo(split, part):
-    """YOLO 값: yolo_det/reports/ep200_<split>/m/summary.json 우선, 빈 값은 inputs/ (수아 노션 표 + 000 사진별 csv)로 채움."""
+    """YOLO 값: yolo_det/reports/ep200_<split>/m/summary.json 우선, 빈 값은 inputs/ (YOLO 실험 노트 표 + 000 사진별 csv)로 채움."""
     rec = {"split": split, "set": part, "method": "yolo", **{c: np.nan for c in COLS + YOLO_DET_COLS}}
     d = REPO / "yolo_det" / "reports" / f"ep200_{split}" / "m"
     if (d / "summary.json").exists():
@@ -125,7 +125,7 @@ def load_yolo(split, part):
             rec["conf"] = y.get("conf_threshold", np.nan)
             box = y.get("box_map_test" if part == "test" else "box_map_valid") or {}
             rec.update({c: box[c] for c in YOLO_DET_COLS if c in box})
-            if part == "test" and "timing" in y:                           # 수아 측정 (RTX 6000 Ada, 그 fold 모델)
+            if part == "test" and "timing" in y:                           # YOLO 학습 서버에서 측정 (RTX 6000 Ada, 그 fold 모델)
                 rec["time_median_ms"], rec["time_p95_ms"] = y["timing"]["median_ms"], y["timing"]["p95_ms"]
     pf = yolo_per_frame()
     if part == "test" and pf is not None and split in pf:
@@ -187,11 +187,11 @@ def composition(split):
 
 
 def write_per_frame_000(out):
-    """000 사진별 카운트를 방법마다 한 파일로 (수아 000_per_frame_counts.csv와 같은 형식):
+    """000 사진별 카운트를 방법마다 한 파일로 (YOLO 실험의 000_per_frame_counts.csv와 같은 형식):
     frame_idx, image, gt, k5_f0..k5_f4, rk5_f0..rk5_f4  → per_frame_000/<method>.csv"""
     d = out / "per_frame_000"
     d.mkdir(exist_ok=True)
-    splits = [s for _, _, p in SCHEMES[::-1] for s in splits_of(p)]          # k5 먼저, rk5 다음 (수아 순서)
+    splits = [s for _, _, p in SCHEMES[::-1] for s in splits_of(p)]          # k5 먼저, rk5 다음 (YOLO csv와 같은 순서)
     for m, _ in METHODS[:-1]:
         wide = None
         for s in splits:
@@ -371,8 +371,8 @@ def main():
         md.append("")
     y = df[df.method == "yolo"]
     if len(y) and y["box_mAP50-95"].notna().any():
-        md += ["## 8. YOLO 검출 성능 (수아, conf = 그 fold valid에서 사진당 MAE 최소)", "",
-               "val은 conf를 같은 valid에서 골라 낙관적임. 값 출처: 수아 노션(11/17), 000 사진별 카운트 csv.", "",
+        md += ["## 8. YOLO 검출 성능 (conf = 그 fold valid에서 사진당 MAE 최소)", "",
+               "val은 conf를 같은 valid에서 골라 낙관적임. 값 출처: `yolo_det/reports/ep200_<fold>/m/summary.json` (없으면 YOLO 실험 노트 11/17 · 000 사진별 카운트 csv).", "",
                "| 분할 | 세트 | fold | conf | P | R | mAP50 | mAP50-95 | MAE | RMSE |", "|---|---|---|---|---|---|---|---|---|---|"]
         for key, slab, _ in SCHEMES:
             for part, plab in SETS:
@@ -388,7 +388,7 @@ def main():
         md.append("")
     md += ["## 9. 000 사진별 카운트 csv", "",
            "`per_frame_000/<geo|rf|rf_geo|rf_geo_leg|yolo>.csv` — 열: frame_idx, image, gt, k5_f0~f4, rk5_f0~f4 "
-           "(수아 `000_per_frame_counts.csv`와 같은 형식, 값 = 그 fold 모델이 센 visiting 마릿수).", ""]
+           "(YOLO 실험 `000_per_frame_counts.csv`와 같은 형식, 값 = 그 fold 모델이 센 visiting 마릿수).", ""]
     (out / "fold_study.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md))
 

@@ -1,7 +1,7 @@
 # 결과 — visiting 판정 5가지 방법 비교 (Random 5-fold · Time 5-fold, 동일 조건)
 
 돈방 CCTV 사진에서 사료통을 차지한(visiting) 돼지 수를 세는 방법 5가지(Geo / RF / RF+Geo / RF+Geo+Leg / YOLO)를 **같은 train 사진, 같은 선택 기준, 같은 test(000)**로 비교한 결과.
-11/16 랩미팅 통일 기준으로 **Random 5-fold와 Time 5-fold**를 모두 학습 · 평가함(Geo · RF 계열 = 서인, YOLO = 수아).
+11/16 랩미팅 통일 기준으로 **Random 5-fold와 Time 5-fold**를 모두 학습 · 평가함(Geo · RF 계열 = 포즈 추정 + 판정 파이프라인 `training/` · `counting/`, YOLO = 사진에서 바로 검출하는 `yolo_det/`).
 모든 결과는 **Random 5-fold · Time 5-fold의 fold 5개 평균 ± 표본 표준편차**임(fold별 표는 fold 단위 값). 진행 과정과 통일 기준 전 실험 기록은 [PROGRESS.md](PROGRESS.md).
 
 ---
@@ -86,7 +86,7 @@ Geo와 RF 계열은 돼지마다 찍힌 관절 좌표로 판정하므로 포즈 
 | **RF** | 포즈 관절 + 사료통 구역 | 자세 특징 6개 → RandomForest | train 사진 |
 | **RF+Geo** | 〃 | RF 특징 6개 + Geo 값 5개 → RandomForest | train 사진 |
 | **RF+Geo+Leg** | 〃 | RF+Geo 특징 11개 + 다리 특징 5개 → RandomForest | train 사진 |
-| **YOLO** | 사진만 | YOLOv8m detect가 돼지를 visiting / other 클래스로 바로 검출 | train 사진 (수아, `yolo_det/`) |
+| **YOLO** | 사진만 | YOLOv8m detect가 돼지를 visiting / other 클래스로 바로 검출 | train 사진 (`yolo_det/`) |
 
 - **RF 특징 6개**: 코가 사료통 구역 안인지, 코-구역 거리(박스 대각선으로 나눔), 머리 숙임 각도, 척추 기울기, 목 상대 높이, 주요 관절 신뢰도.
 - **Geo 값 5개**: 코-사료통 중심 거리 ÷ 반지름 r, 머리 방향 각도(Geo 규칙 ③의 각도), confidence 기반 누움 신호 3개.
@@ -117,10 +117,10 @@ Geo와 RF 계열은 돼지마다 찍힌 관절 좌표로 판정하므로 포즈 
 
 ### 3-4. 같은 조건 확인
 
-| 항목 | YOLO (수아) | 포즈 모델 → Geo · RF 계열 (서인) | 확인 방법 |
+| 항목 | YOLO (`yolo_det/`) | 포즈 모델 → Geo · RF 계열 (`training/` · `counting/`) | 확인 방법 |
 |---|---|---|---|
 | 분할 목록 | `prepare_data.py --split kfold\|rkfold` | `make_study_splits.py` (같은 함수 import) | 정렬된 `<task>__<사진>` 목록의 SHA-256 앞 12자리, 10개 fold 모두 일치 |
-| test 정답 | 000 86장 | 000 86장 | 수아 000 사진별 csv의 gt가 우리 라벨과 86장 모두 일치 |
+| test 정답 | 000 86장 | 000 86장 | YOLO 쪽 000 사진별 csv의 gt가 Geo · RF 쪽 라벨과 86장 모두 일치 |
 | 모델 크기 · 시작 | YOLOv8m detect, COCO `yolov8m.pt` | YOLOv8m-pose, COCO `yolov8m-pose.pt` | 같은 크기, 둘 다 COCO에서 처음부터 |
 | epoch / 조기 종료 | 200 / 끔 | 200 / 끔 | YOLO: 10개 모델 `summary.json`의 `env_train`(epochs 200, patience 0, imgsz 640, batch 8, seed 42, COCO `yolov8m.pt`) 직접 확인. 포즈: 10개 모델의 `args.yaml` 직접 확인 |
 | imgsz / batch / seed / optimizer | 640 / 8 / 42 / auto | 640 / 8 / 42 / auto | 〃 |
@@ -142,8 +142,8 @@ Geo와 RF 계열은 돼지마다 찍힌 관절 좌표로 판정하므로 포즈 
 
 **실행 환경**: YOLO는 RTX 6000 Ada · Python 3.10.12, 포즈 · RF는 RTX 5060 8GB · Python 3.14. GPU가 달라 seed가 같아도 비트 단위로 같은 결과는 아님(결과 비교에는 영향 거의 없음).
 
-- YOLO Time 5-fold `ep200_k5_f*`는 11/14\~15 학습 후 11/17 재평가, Random 5-fold `ep200_rk5_f*`는 11/17 학습 · 평가(git 커밋 c1df046, 미커밋 변경 없음). 값은 수아 PR #4(11/19 main에 합침)의 `yolo_det/reports/ep200_<fold>/m/summary.json` · `test_frames.csv`. 이전에 쓰던 노션 값(`counting/reports/fold_study/inputs/`)과 반올림 범위(±0.0005) 안에서 모두 일치함.
-- val 확인 완료: Random 5-fold f2 · f3 · f4와 Time 5-fold f2 · f3 · f4의 val MAE · RMSE가 같은 것은 우연임. val GT(73 / 44, 54 / 61, 56 / 51)와 YOLO가 센 마릿수가 서로 달라 각 fold의 valid 사진으로 제대로 평가됐고, GT는 서인 쪽 fold별 valid GT와 일치함.
+- YOLO Time 5-fold `ep200_k5_f*`는 11/14\~15 학습 후 11/17 재평가, Random 5-fold `ep200_rk5_f*`는 11/17 학습 · 평가(git 커밋 c1df046, 미커밋 변경 없음). 값은 YOLO 결과 PR #4(11/19 main에 합침)의 `yolo_det/reports/ep200_<fold>/m/summary.json` · `test_frames.csv`. 이전에 쓰던 노션 값(`counting/reports/fold_study/inputs/`)과 반올림 범위(±0.0005) 안에서 모두 일치함.
+- val 확인 완료: Random 5-fold f2 · f3 · f4와 Time 5-fold f2 · f3 · f4의 val MAE · RMSE가 같은 것은 우연임. val GT(73 / 44, 54 / 61, 56 / 51)와 YOLO가 센 마릿수가 서로 달라 각 fold의 valid 사진으로 제대로 평가됐고, GT는 Geo · RF 쪽 fold별 valid GT와 일치함.
 
 ```powershell
 cd training; python scripts\make_study_splits.py --export-images ..\counting\data\raw\train_img   # 분할 목록 + valid 평가용 사진
@@ -281,11 +281,11 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 - **분할 방식(Random 5-fold vs Time 5-fold)은 test 성능을 바꾸지 않음**(Geo · RF 계열 p > 0.69). 대신 val은 Time 5-fold에서 크게 나빠져, Random 5-fold val은 실제(새 장면) 성능을 낙관적으로 보여 줌.
 - **Geo · RF 계열에 남은 오차의 상당 부분은 포즈 모델 단계에서 생김**(못 찾은 visiting fold당 6\~9마리, 급이 파이프 가림 · 밀집). 판정보다 검출을 개선하는 것이 다음 과제임(7장).
 
-결과 파일: `counting/reports/fold_study/` (`fold_study.md`, `fold_metrics.csv`, `fold_summary.csv`, `pose_folds.csv`, `pose_keypoints.csv`, `fold_composition.csv`, `frames/ep200_<split>/<방법>_<val|test>.csv`, 그래프 A\~D, `paper/`, `per_image/`, `error_cases/`), YOLO 원자료는 `yolo_det/reports/ep200_<fold>/m/` (수아 PR #4).
+결과 파일: `counting/reports/fold_study/` (`fold_study.md`, `fold_metrics.csv`, `fold_summary.csv`, `pose_folds.csv`, `pose_keypoints.csv`, `fold_composition.csv`, `frames/ep200_<split>/<방법>_<val|test>.csv`, 그래프 A\~D, `paper/`, `per_image/`, `error_cases/`), YOLO 원자료는 `yolo_det/reports/ep200_<fold>/m/` (PR #4).
 
 ---
 
-## 6. 추론 시간 (수아 담당 — YOLO 측정 완료, Geo · RF 계열 측정 예정)
+## 6. 추론 시간 (YOLO 측정 완료, Geo · RF 계열은 같은 장비에서 측정 예정)
 
 | 분할 | 방법 | 장비 | 중앙값 (ms) | p95 (ms) | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |
 |---|---|---|---|---|---|---|
@@ -293,12 +293,12 @@ YOLO 학습·평가 명령은 [yolo_det/README.md](yolo_det/README.md).
 | Time 5-fold | YOLO | NVIDIA RTX 6000 Ada | 21.6 ± 0.3 | 23.4 ± 0.7 | ✅ | ✅ |
 | Random 5-fold · Time 5-fold | Geo · RF 계열 | (같은 장비에서 측정 예정) | – | – | – | – |
 
-- YOLO: 수아 측정(`summary.json`의 `timing`), fold마다 그 fold 모델로 재서 fold 5개 평균 ± 표본 표준편차. 사진 읽기 → 예측(conf 0.01로 예측 후 그 fold conf로 거름, agnostic NMS IoU 0.7) → visiting 마릿수.
+- YOLO: YOLO 학습 서버에서 측정(`summary.json`의 `timing`), fold마다 그 fold 모델로 재서 fold 5개 평균 ± 표본 표준편차. 사진 읽기 → 예측(conf 0.01로 예측 후 그 fold conf로 거름, agnostic NMS IoU 0.7) → visiting 마릿수.
 
-추론 시간 측정 · 실시간 판정 · Discussion은 수아 담당(11/16 랩미팅). 측정 조건(통일): 같은 장비 한 대에서 5가지 방법 모두, batch 1, imgsz 640, 예열 5장 제외, 000 86장 × 3회, 사진 읽기부터 마릿수까지 end-to-end, 중앙값 · p95(ms). 실시간 기준: p95 ≤ 1000 ms(1초 1프레임), ≤ 33.3 ms(30 fps).
+추론 시간 측정 · 실시간 판정 · Discussion은 YOLO 실험 쪽이 맡음(11/16 랩미팅 분담). 측정 조건(통일): 같은 장비 한 대에서 5가지 방법 모두, batch 1, imgsz 640, 예열 5장 제외, 000 86장 × 3회, 사진 읽기부터 마릿수까지 end-to-end, 중앙값 · p95(ms). 실시간 기준: p95 ≤ 1000 ms(1초 1프레임), ≤ 33.3 ms(30 fps).
 
 - Geo · RF 계열 측정 도구: `counting/scripts/benchmark_speed.py` — Random 5-fold · Time 5-fold 모델 10개를 fold마다 재서 분할 방식별 fold 5개 평균 ± 표본 표준편차로 냄. `--yolo-weights "yolo_det/models/ep200_{split}/m/weights/best.pt"`를 주면 YOLO도 같은 장비 · 같은 fold · 그 fold conf로 함께 잼.
-- 측정에 필요한 서인 쪽 파일(포즈 가중치 10개, 라벨, 000 사진, 분할 목록)은 수아에게 따로 전달.
+- 측정에 필요한 포즈 · RF 쪽 파일(포즈 가중치 10개, 라벨, 000 사진, 분할 목록)은 git 밖에서 측정 담당에게 따로 전달.
 
 ---
 

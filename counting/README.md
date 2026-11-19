@@ -35,7 +35,7 @@ counting/
 │   ├── paper_tables.py       논문용 지표 (P/R/F1, bootstrap CI, Wilcoxon, 포즈 · YOLO 표) → reports/fold_study/paper/
 │   ├── per_image_000.py      000 사진별 카운트 (모델별 csv · 그림, 그래프 E · F) → reports/fold_study/per_image/
 │   ├── error_cases.py        가림 · 밀집 오차 사례 그림 (10개 모델 나란히) → reports/fold_study/error_cases/
-│   ├── benchmark_speed.py    추론 시간 측정 도구 (수아 담당 측정용; Random 5-fold · Time 5-fold 모델 10개, GPU · CPU, YOLO는 --yolo-weights)
+│   ├── benchmark_speed.py    추론 시간 측정 도구 (같은 장비에서 5가지 방법 측정용; Random 5-fold · Time 5-fold 모델 10개, GPU · CPU, YOLO는 --yolo-weights)
 │   ├── run_geo_ablation.ps1  Geo 조건 5종 Stage 2 평가 (000)
 │   ├── apply_methods.py      _dets.csv에 모든 방법 적용 → 방법별 10분 그래프 (YOLO 재실행 없음)
 │   ├── plot_methods.py / plot_geo_ablation.py   평가 결과 그림 (사진당 마릿수 오차, 총 점유량 오차)
@@ -80,7 +80,7 @@ python scripts\paper_tables.py; python scripts\per_image_000.py; python scripts\
 ```
 
 - val = 그 fold의 valid 사진(001+002), test = 000. RF best = RF / RF+Geo / RF+Geo+Leg 중 5-fold 평균 val MAE 최소.
-- YOLO 값: `yolo_det/reports/ep200_<분할>/m/summary.json`이 있으면 그것을, 없으면 `reports/fold_study/inputs/`(수아 노션 표, 000 사진별 csv)를 씀.
+- YOLO 값: `yolo_det/reports/ep200_<분할>/m/summary.json`이 있으면 그것을, 없으면 `reports/fold_study/inputs/`(YOLO 실험 노트 표, 000 사진별 csv)를 씀.
 - 결과 해석: [PROGRESS.md](../PROGRESS.md) 3장 결과 4.
 
 ### 영상 추론

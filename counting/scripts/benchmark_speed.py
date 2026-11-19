@@ -225,7 +225,7 @@ def main():
            "실시간 판정은 fold 5개 p95 평균 기준. fold별 값은 `speed_folds.csv`.", ""]
     if not a.yolo_weights:
         md += ["YOLO는 이 장비에서 재지 않음 (`--yolo-weights` 없음). 같은 장비 비교를 위해 YOLO 가중치로 다시 재거나, "
-               "수아 서버에서 이 스크립트로 Geo · RF 계열을 같이 재야 함.", ""]
+               "YOLO를 학습한 서버에서 이 스크립트로 Geo · RF 계열을 같이 재야 함.", ""]
     (out / "speed.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md))
     print("saved", out)

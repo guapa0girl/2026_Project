@@ -268,11 +268,11 @@ def main():
             g = y[(y.scheme == key) & (y.set == part)]
             md.append(f"| {slab} | {plab} | {ms(g.conf, '.2f')} | " +
                       " | ".join(ms(g[c]) if c in g else "–" for c in ycols) + " |")
-    md += ["", "conf = 그 fold valid에서 사진당 MAE 최소. 값 출처: `yolo_det/reports/ep200_<fold>/m/summary.json` (수아).", ""]
+    md += ["", "conf = 그 fold valid에서 사진당 MAE 최소. 값 출처: `yolo_det/reports/ep200_<fold>/m/summary.json`.", ""]
 
-    # 표 8: 추론 시간 (수아 측정)
+    # 표 8: 추론 시간
     t = y[(y.set == "test")]
-    md += ["## Table 8. Inference time (Sua, end-to-end per image)", "",
+    md += ["## Table 8. Inference time (end-to-end per image)", "",
            "| Split | Method | Device | Median (ms) | p95 (ms) | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |", "|---|---|---|---|---|---|---|"]
     for key, slab, _ in SCHEMES:
         g = t[t.scheme == key]
@@ -282,7 +282,7 @@ def main():
                       f"{'✅' if p95 <= 1000 else '❌'} | {'✅' if p95 <= 1000 / 30 else '❌'} |")
         md.append(f"| {slab} | Geo · RF 계열 | – | – | – | – | – |")
     md += ["", "조건: batch 1, imgsz 640, 예열 5장 제외, test(000) 86장 × 3회, 사진 읽기부터 마릿수까지, fold마다 그 fold 모델 → "
-           "fold 5개 평균 ± 표본 표준편차. Geo · RF 계열은 같은 장비에서 수아가 `counting/scripts/benchmark_speed.py`로 측정 예정.", ""]
+           "fold 5개 평균 ± 표본 표준편차. YOLO는 YOLO 학습 서버에서 측정, Geo · RF 계열은 같은 장비에서 `counting/scripts/benchmark_speed.py`로 측정 예정.", ""]
 
     # 표 9: 사진당 visiting 마릿수 분포 (데이터)
     gt_test = pd.read_csv(FS / "per_frame_000" / "geo.csv", encoding="utf-8-sig")["gt"]

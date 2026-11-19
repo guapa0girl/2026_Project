@@ -1,4 +1,4 @@
-"""학습 전에 분할 목록이 서인(노션)이 올린 값과 같은지 확인. 학습·데이터 폴더 변경 없음 (분할 함수만 호출).
+"""학습 전에 분할 목록이 포즈 · RF 쪽(노션)에 올라온 값과 같은지 확인. 학습·데이터 폴더 변경 없음 (분할 함수만 호출).
 
 목록 = prepare_data.py의 split_kfold(시간대) / split_random_kfold(랜덤) 결과, 항목 = "<task>__<원래 이름 stem>"
 해시 계산 방식은 정해진 게 없어서 흔한 방식 여러 개를 모두 계산하고, 노션 값과 맞는 방식을 표시함.
@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import DEFAULT_SOURCE_DIR  # noqa: E402
 from prepare_data import read_task, split_kfold, split_random_kfold  # noqa: E402
 
-# 노션(서인, 11/17)에 올라온 값: fold → (train 장수, valid 장수, train 해시, valid 해시)
+# 노션(포즈 · RF 쪽, 11/17)에 올라온 값: fold → (train 장수, valid 장수, train 해시, valid 해시)
 EXPECTED = {
     "rk5_f0": (148, 42, "a4ea95beb91e", "f1619ccbdeaa"),
     "rk5_f1": (155, 34, "fcae5d2afec0", "3c0cc9ac12ed"),
@@ -113,7 +113,7 @@ def main():
     if matched_methods:
         print(f"\n해시 방식: {sorted(matched_methods)[0]} 로 노션 값과 일치")
     elif any(n in EXPECTED for n in folds):
-        print("\n[주의] ❌ 표시된 fold가 노션 값과 다름 (모든 fold에서 맞는 해시 방식 없음) → 서인에게 해시 계산 코드(무엇을 어떻게 이어 붙였는지) 확인 필요."
+        print("\n[주의] ❌ 표시된 fold가 노션 값과 다름 (모든 fold에서 맞는 해시 방식 없음) → 포즈 · RF 쪽 해시 계산 코드(training/scripts/make_study_splits.py, 무엇을 어떻게 이어 붙였는지) 확인 필요."
               " 장수가 맞으면 분할 자체는 같을 가능성도 있음.")
     print("\n결과:", "모두 일치 → 학습 진행 OK" if all_ok and matched_methods else "확인 필요 (학습 보류)")
     sys.exit(0 if all_ok and matched_methods else 1)

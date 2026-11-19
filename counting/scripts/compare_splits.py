@@ -3,7 +3,7 @@
 입력 (모두 test = 000, 같은 count_metrics):
     Geo·RF 계열 : outputs/eval/split_<name>/stage2_metrics.csv   (run_split_eval.ps1)
                   포즈 모델 = 그 분할 train으로 학습한 medium ep200, RF = 그 분할 train 사진으로 학습
-    YOLO        : ../yolo_det/reports/ep200[_sorted|_k5_f<i>]/m/summary.json  (수아, COCO 시작, epoch 200)
+    YOLO        : ../yolo_det/reports/ep200[_sorted|_k5_f<i>]/m/summary.json  (COCO 시작, epoch 200)
     포즈 지표   : ../training/reports/metrics/ep200[_<name>]/m/summary.json
 
 출력: reports/split_comparison/ (git에 올림)

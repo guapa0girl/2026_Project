@@ -126,9 +126,9 @@ PCK@α = 정답과 예측 keypoint 거리가 α × 정답 박스 긴 변(max(w, 
 | Time 5-fold | test(000) | 0.49 ± 0.19 | 0.911 ± 0.032 | 0.859 ± 0.022 | 0.879 ± 0.008 | 0.601 ± 0.016 | 0.555 ± 0.045 | 0.646 ± 0.016 |
 | Time 5-fold | Validation | 0.49 ± 0.19 | 0.921 ± 0.036 | 0.838 ± 0.066 | 0.899 ± 0.059 | 0.610 ± 0.042 | 0.516 ± 0.097 | 0.704 ± 0.043 |
 
-conf = 그 fold valid에서 사진당 MAE 최소. 값 출처: `yolo_det/reports/ep200_<fold>/m/summary.json` (수아).
+conf = 그 fold valid에서 사진당 MAE 최소. 값 출처: `yolo_det/reports/ep200_<fold>/m/summary.json`.
 
-## Table 8. Inference time (Sua, end-to-end per image)
+## Table 8. Inference time (end-to-end per image)
 
 | Split | Method | Device | Median (ms) | p95 (ms) | 1 fps (≤1000 ms) | 30 fps (≤33.3 ms) |
 |---|---|---|---|---|---|---|
@@ -137,7 +137,7 @@ conf = 그 fold valid에서 사진당 MAE 최소. 값 출처: `yolo_det/reports/
 | Time 5-fold | YOLO | NVIDIA RTX 6000 Ada | 21.6 ± 0.3 | 23.4 ± 0.7 | ✅ | ✅ |
 | Time 5-fold | Geo · RF 계열 | – | – | – | – | – |
 
-조건: batch 1, imgsz 640, 예열 5장 제외, test(000) 86장 × 3회, 사진 읽기부터 마릿수까지, fold마다 그 fold 모델 → fold 5개 평균 ± 표본 표준편차. Geo · RF 계열은 같은 장비에서 수아가 `counting/scripts/benchmark_speed.py`로 측정 예정.
+조건: batch 1, imgsz 640, 예열 5장 제외, test(000) 86장 × 3회, 사진 읽기부터 마릿수까지, fold마다 그 fold 모델 → fold 5개 평균 ± 표본 표준편차. YOLO는 YOLO 학습 서버에서 측정, Geo · RF 계열은 같은 장비에서 `counting/scripts/benchmark_speed.py`로 측정 예정.
 
 ## Table 9. Visiting pigs per image (human labels)
 

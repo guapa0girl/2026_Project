@@ -118,7 +118,7 @@ python yolo_det\scripts\evaluate.py --run ep200 --size m
 (임계값을 valid에서 골랐으므로 낙관적), 000 사진별 카운트를 팀 통일 형식(`image, frame_idx, gt, pred, error=pred−gt`)으로
 `reports/<run>/<size>/test_frames.csv`에 저장한다(git에 올림).
 
-결과의 `reports/<run>/<size>/summary.md` 표 한 줄을 루트 README·PROGRESS.md 비교표의 "YOLO (수아)" 줄에 옮긴다.
+결과의 `reports/<run>/<size>/summary.md` 표 한 줄을 루트 README·PROGRESS.md 비교표의 "YOLO" 줄에 옮긴다.
 
 - **버전 기록**: train.py가 `models/<run>/<size>/env.json`에 python·torch·CUDA·ultralytics 버전, GPU, git 커밋,
   시작 가중치 sha256(앞 16자리), 학습 설정을 저장 → evaluate.py가 `summary.json`(`env_train`, `env_eval`)과
@@ -184,7 +184,7 @@ conf 임계값은 각 run의 valid에서 사진당 MAE가 가장 작은 값(000�
 
 ### 랜덤 5-fold (`ep200_rk5_f0`~`f4`, COCO 시작, epoch 200, 11/17)
 
-`SPLIT=rkfold bash yolo_det/scripts/run_kfold.sh 0 0 1 2 3 4`. fold별 train / valid 장수는 시간대 5-fold와 같음(148/42, 155/34, 151/37, 151/37, 149/40), 분할 목록 해시 10개 서인 쪽과 일치.
+`SPLIT=rkfold bash yolo_det/scripts/run_kfold.sh 0 0 1 2 3 4`. fold별 train / valid 장수는 시간대 5-fold와 같음(148/42, 155/34, 151/37, 151/37, 149/40), 분할 목록 해시 10개가 포즈 · RF 쪽(`training/scripts/make_study_splits.py`)과 일치.
 
 | fold | conf | 사진당 MAE (bias) | RMSE | 정확 일치 | ±1 이내 | 총 visiting (사람 133) | 못 찾음 | other로 판정 | box mAP50-95 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -198,7 +198,7 @@ conf 임계값은 각 run의 valid에서 사진당 MAE가 가장 작은 값(000�
 - 시간대 5-fold 평균: MAE 0.223 ± 0.048, RMSE 0.475 ± 0.059, 정확 일치 77.9 ± 4.4%, box mAP50-95 0.601 ± 0.016.
 - 랜덤은 box mAP50-95가 시간대와 같은데 f2(덜 셈) · f3(더 셈)에서 크게 틀림 → 흔들림은 검출이 아니라 conf 임계값 · visiting / other 판정에서 생김.
 - val(conf를 같은 valid에서 골라 낙관적): 시간대 MAE 0.347 ± 0.166, 랜덤 0.252 ± 0.128, box mAP50-95 0.610 / 0.713.
-- 값 출처: 수아 노션(11/17), 000 사진별 카운트 csv(`counting/reports/fold_study/inputs/`). RMSE · bias · 정확 일치 · ±1 이내는 그 csv에서 계산.
+- 값 출처: `reports/ep200_rk5_f0~f4/m/summary.json` · `test_frames.csv`.
 - Geo · RF 계열과의 비교(같은 분할, 통일 기준): [RESULTS.md](../RESULTS.md) 4장.
 
 ### 해석

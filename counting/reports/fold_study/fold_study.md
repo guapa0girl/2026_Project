@@ -211,9 +211,9 @@ RF best (5-fold 평균 val MAE 최소, test는 보지 않음): Random 5-fold →
 | r_ear_tip | 0.613 ± 0.026 | 0.489 ± 0.050 | 0.527 ± 0.053 | 0.518 ± 0.065 |
 | r_hand | 0.519 ± 0.053 | 0.271 ± 0.041 | 0.407 ± 0.048 | 0.271 ± 0.032 |
 
-## 8. YOLO 검출 성능 (수아, conf = 그 fold valid에서 사진당 MAE 최소)
+## 8. YOLO 검출 성능 (conf = 그 fold valid에서 사진당 MAE 최소)
 
-val은 conf를 같은 valid에서 골라 낙관적임. 값 출처: 수아 노션(11/17), 000 사진별 카운트 csv.
+val은 conf를 같은 valid에서 골라 낙관적임. 값 출처: `yolo_det/reports/ep200_<fold>/m/summary.json` (없으면 YOLO 실험 노트 11/17 · 000 사진별 카운트 csv).
 
 | 분할 | 세트 | fold | conf | P | R | mAP50 | mAP50-95 | MAE | RMSE |
 |---|---|---|---|---|---|---|---|---|---|
@@ -244,5 +244,5 @@ val은 conf를 같은 valid에서 골라 낙관적임. 값 출처: 수아 노션
 
 ## 9. 000 사진별 카운트 csv
 
-`per_frame_000/<geo|rf|rf_geo|rf_geo_leg|yolo>.csv` — 열: frame_idx, image, gt, k5_f0~f4, rk5_f0~f4 (수아 `000_per_frame_counts.csv`와 같은 형식, 값 = 그 fold 모델이 센 visiting 마릿수).
+`per_frame_000/<geo|rf|rf_geo|rf_geo_leg|yolo>.csv` — 열: frame_idx, image, gt, k5_f0~f4, rk5_f0~f4 (YOLO 실험 `000_per_frame_counts.csv`와 같은 형식, 값 = 그 fold 모델이 센 visiting 마릿수).
 

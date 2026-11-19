@@ -6,7 +6,7 @@
 |---|---|---|
 | 1. 데이터 준비 | 001·002 학습용, 000 test용 정리 → YOLO-Pose 라벨 변환 → 분할 | ✅ 완료 |
 | 2. 포즈 추정 | YOLOv8-pose n/s/m/l × epoch 100·200·300 학습·비교 → 사용할 모델 선택 | ✅ 완료 — 300은 valid만 오르고 000에서는 이득 없음, medium ep200 사용 |
-| 3. visiting 판정 | Geo / RF / RF+Geo / RF+Geo+Leg 학습·평가, YOLO 직접 판정(수아), 분할 3가지(랜덤 / 시간대 / 시간대 5-fold)별 비교 | ✅ 완료 — (통일 기준 전) 세 분할 모두 RF 계열 > YOLO > Geo, 5-fold 평균 RF+Geo+Leg 사진당 0.119마리 / YOLO 0.223. (11/18 통일 기준 재학습, Random 5-fold / Time 5-fold) RF+Geo+Leg 0.121 / 0.109, YOLO 0.300 / 0.223, Geo 0.293 / 0.293 → [RESULTS.md](RESULTS.md) |
+| 3. visiting 판정 | Geo / RF / RF+Geo / RF+Geo+Leg 학습·평가, YOLO 직접 판정(`yolo_det/`), 분할 3가지(랜덤 / 시간대 / 시간대 5-fold)별 비교 | ✅ 완료 — (통일 기준 전) 세 분할 모두 RF 계열 > YOLO > Geo, 5-fold 평균 RF+Geo+Leg 사진당 0.119마리 / YOLO 0.223. (11/18 통일 기준 재학습, Random 5-fold / Time 5-fold) RF+Geo+Leg 0.121 / 0.109, YOLO 0.300 / 0.223, Geo 0.293 / 0.293 → [RESULTS.md](RESULTS.md) |
 
 **정답**: 000(1분 샘플 영상 86장)의 사람 라벨만 사용.
 
@@ -66,7 +66,7 @@
 
 ### 분할 3가지 (YOLO 직접 판정과 같은 사진 목록)
 
-수아의 YOLO 실험(`yolo_det/scripts/prepare_data.py`)과 같은 분할 함수로 목록을 만들어(`training/scripts/make_study_splits.py` → `training/data/splits/<이름>.json`) 포즈 모델·RF·YOLO가 **완전히 같은 train 사진**으로 학습하게 맞춤. test는 모두 000.
+YOLO 실험(`yolo_det/scripts/prepare_data.py`)과 같은 분할 함수로 목록을 만들어(`training/scripts/make_study_splits.py` → `training/data/splits/<이름>.json`) 포즈 모델·RF·YOLO가 **완전히 같은 train 사진**으로 학습하게 맞춤. test는 모두 000.
 
 | 분할 | 방법 | train / valid | 왜 |
 |---|---|---|---|
@@ -274,7 +274,7 @@ medium ep200의 test 관절별 PCK (판정에 쓰는 관절 굵게):
 | **RF** | 자세 특징 6개 → RandomForest | 001+002 | |
 | **RF+Geo** | RF 특징 + Geo 값 5개 → RandomForest | 001+002 | |
 | **RF+Geo+Leg** | RF+Geo 특징 + 다리 모양 누움 특징 5개 → RandomForest | 001+002 | |
-| **YOLO** | 포즈 없이 YOLOv8m detect가 돼지를 visiting / other로 바로 검출. conf 임계값은 valid에서 사진당 MAE가 가장 작은 값 | 001+002 (train만) | 수아 (`yolo_det/`) |
+| **YOLO** | 포즈 없이 YOLOv8m detect가 돼지를 visiting / other로 바로 검출. conf 임계값은 valid에서 사진당 MAE가 가장 작은 값 | 001+002 (train만) | `yolo_det/` |
 
 - **RF 특징 6개**: 코가 사료통 구역 안인지, 코-구역 거리(돼지 박스 대각선으로 나눔), 머리 숙임 각도, 척추 기울기, 목 상대 높이, 주요 관절 신뢰도.
 - **Geo 값 5개**: 코-사료통 중심 거리 ÷ 사료통 반지름 r, 목→코 방향과 사료통 중심 사이 각도, confidence 기반 누움 신호 3개.
@@ -311,7 +311,7 @@ medium ep200의 test 관절별 PCK (판정에 쓰는 관절 굵게):
 - MAE와 bias는 **항상 같이** 봄: 많이 센 사진과 적게 센 사진은 bias·총 점유량에서 서로 상쇄됨.
 - 000은 사진당 visiting이 0\~2마리(평균 1.55)라 MAE가 작게 나옴 → 다른 데이터와 비교할 때는 MAE ÷ 평균 마릿수로 봄.
 - Stage 2 매칭: 모델이 찾은 돼지와 사람 라벨 돼지를 관절 거리로 짝지음(헝가리안, 기준 0.25). 모델이 못 찾은 돼지는 "visiting 아님"으로 계산(실제 운용과 같음). 마릿수는 짝 여부와 상관없이 모델이 찾은 돼지 전체로 셈.
-- YOLO 직접 판정(수아)도 같은 000에서 같은 지표로 비교.
+- YOLO 직접 판정도 같은 000에서 같은 지표로 비교.
 - 포즈 모델: 2단계의 medium ep200 `best.pt`를 `counting/models/pig_pose_best.pt`로 복사해서 사용(설정 파일 `weights:`가 이 이름을 가리킴). 검출 conf 0.4, imgsz 640.
 - Stage 2 이미지: `training/data/raw/data/000.zip`의 사진 86장을 `counting/data/raw/000_img/`에 풀어서 사용(git 제외).
 
@@ -338,7 +338,7 @@ python scripts\plot_geo_ablation.py
 | **RF+Geo+Leg** | **0.093** | **0.000** | **90.7%** | **100%** | **133 / 133 (0.0%)** | 4 / 4 |
 | YOLO (참고) | 0.198 | −0.151 | 80.2% | 100% | 120 / 133 (−9.8%) | 2 / 15 |
 
-- **YOLO는 참고용임 (조건이 다름)**: 위 RF 계열은 001+002 전체 190장으로 학습했고, YOLO(수아, `yolo_det/reports/ep200/m/summary.json`)는 랜덤 분할 train 162장으로만 학습했음(valid 28장은 best.pt와 conf 0.55 선택에 사용). 학습 사진을 똑같이 맞춘 비교는 결과 4.
+- **YOLO는 참고용임 (조건이 다름)**: 위 RF 계열은 001+002 전체 190장으로 학습했고, YOLO(`yolo_det/reports/ep200/m/summary.json`)는 랜덤 분할 train 162장으로만 학습했음(valid 28장은 best.pt와 conf 0.55 선택에 사용). 학습 사진을 똑같이 맞춘 비교는 결과 4.
 
 구간 집계 — 1분을 6구간(약 10초씩)으로 나눠 구간별 평균 visiting 마릿수 비교:
 
@@ -352,7 +352,7 @@ python scripts\plot_geo_ablation.py
 | 6 | 25 | 0.88 | **0.32** | 0.92 | 0.96 | 0.96 | – |
 | **구간 MAE (bias)** | | | 0.234 (−0.234) | **0.062** (−0.029) | 0.069 (−0.022) | 0.069 (−0.022) | 0.150 (−0.100) |
 
-- YOLO는 수아 결과 파일에 구간 MAE·bias·최대 오차(0.48)만 있고 구간별 평균값은 없어서 "–"로 둠.
+- YOLO는 결과 파일에 구간 MAE·bias·최대 오차(0.48)만 있고 구간별 평균값은 없어서 "–"로 둠.
 
 오차 원인 (개체 단위):
 
@@ -387,8 +387,8 @@ python scripts\plot_geo_ablation.py
 | **RF+Geo+Leg** | **0.079** | **+0.047** | **92.1%** | **100%** | **324 / 315 (+2.9%)** | **0.081 ± 0.069** |
 | YOLO (참고) | – | – | – | – | – | – |
 
-- **YOLO는 이 단계 값이 없음 (참고)**: Stage 1은 사람이 찍은 관절을 넣어 판정 방법만 비교하는 단계라, 관절을 쓰지 않고 사진에서 바로 판정하는 YOLO와는 조건이 다름. 또 수아 결과 파일에는 000(test) 점수만 있고 001+002 valid의 마릿수 결과가 없음.
-  - 넣으려면: 수아의 시간대 5-fold 모델(`ep200_k5_f0`\~`f4`)로 각 fold의 valid 사진 마릿수를 세면 됨(5-fold 분할도 클립 단위라 비슷한 교차검증이 됨). 이 경우에도 관절 조건이 달라서 참고용.
+- **YOLO는 이 단계 값이 없음 (참고)**: Stage 1은 사람이 찍은 관절을 넣어 판정 방법만 비교하는 단계라, 관절을 쓰지 않고 사진에서 바로 판정하는 YOLO와는 조건이 다름. 또 YOLO 결과 파일에는 000(test) 점수만 있고 001+002 valid의 마릿수 결과가 없음.
+  - 넣으려면: YOLO 시간대 5-fold 모델(`ep200_k5_f0`\~`f4`)로 각 fold의 valid 사진 마릿수를 세면 됨(5-fold 분할도 클립 단위라 비슷한 교차검증이 됨). 이 경우에도 관절 조건이 달라서 참고용.
 
 카메라별 사진당 MAE (bias):
 
@@ -436,7 +436,7 @@ Geo 규칙의 방향 조건 각도와 누움 조건(confidence 기반)을 바꿔
 
 결과 1\~3은 RF를 001+002 **전체 190장**으로 학습한 결과. 여기서는 YOLO와 조건을 똑같이 맞춤:
 
-| | Geo · RF 계열 | YOLO (수아) |
+| | Geo · RF 계열 | YOLO (`yolo_det/`) |
 |---|---|---|
 | 분할 | 1장의 분할 3가지 (사진 목록 동일) | 같음 |
 | 학습 사진 | 그 분할의 **train만** (RF와 포즈 모델 모두) | 그 분할의 train |
@@ -558,7 +558,7 @@ cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.
 - **가장 안정적인 방법**: Stage 1 1위, 랜덤 1위, 5-fold 1위, 시간대 2위. 어느 비교에서도 큰 약점이 없음.
 - 한계: 포즈 모델의 발 관절이 가장 부정확해서(2장 결과 3), 모델 관절(000)에서는 Leg 효과가 줄어듦.
 
-#### YOLO (수아, 포즈 없이 visiting / other 직접 검출)
+#### YOLO (포즈 없이 visiting / other 직접 검출)
 
 - **성능**: 사진당 0.19\~0.22마리. RF 계열(0.09\~0.15)보다 약 1.5\~2배, Geo(0.28\~0.29)보다는 작음. 5-fold 표준편차가 가장 큼(±0.048) → train 사진에 따라 가장 많이 흔들림.
 - **오차 원인이 판정 단계에 몰림**: 랜덤 분할에서 찾은 visiting 11마리를 other로 판정, 5-fold에서는 찾았지만 other로 10.8마리 + other를 visiting으로 8.4마리. 같은 5-fold에서 RF+Geo+Leg는 3.0 + 2.4마리.
@@ -593,7 +593,7 @@ cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.
 
 ### 결과 6 — 통일 기준: Random 5-fold vs Time 5-fold, 5가지 방법 (11/18) ✅
 
-11/16 랩미팅 통일 기준: 같은 분할 목록(해시 10개 일치), 포즈 · YOLO seed 42, 선택은 val만(포즈 best.pt = val pose mAP50-95, YOLO conf = val MAE 최소, RF best = 5-fold 평균 val MAE 최소), 지표 `count_metrics()` + RMSE. YOLO는 수아(Time 5-fold 11/17 재평가, Random 5-fold 11/17 학습 · 평가). 11/19 수아 PR #4(`yolo_det/reports/ep200_{k5,rk5}_f*`)를 main에 합쳐 YOLO 값을 원본 summary.json으로 바꿈(노션 값과 반올림 범위 안에서 일치, val f2~f4 같은 값은 우연으로 확인).
+11/16 랩미팅 통일 기준: 같은 분할 목록(해시 10개 일치), 포즈 · YOLO seed 42, 선택은 val만(포즈 best.pt = val pose mAP50-95, YOLO conf = val MAE 최소, RF best = 5-fold 평균 val MAE 최소), 지표 `count_metrics()` + RMSE. YOLO는 Time 5-fold 11/17 재평가, Random 5-fold 11/17 학습 · 평가. 11/19 YOLO 결과 PR #4(`yolo_det/reports/ep200_{k5,rk5}_f*`)를 main에 합쳐 YOLO 값을 원본 summary.json으로 바꿈(노션 값과 반올림 범위 안에서 일치, val f2~f4 같은 값은 우연으로 확인).
 
 ```powershell
 cd counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1 -Valid -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4
@@ -612,7 +612,7 @@ test(000) 사진당 MAE (fold 5개 평균 ± 표본 표준편차):
 - RF 계열이 가장 좋음. RF+Geo+Leg는 Geo · YOLO보다 test 사진 단위로 유의하게 좋음(Wilcoxon p ≤ 0.007), RF 계열 3가지 사이는 유의하지 않음(p > 0.3).
 - test에서는 Geo · RF 계열의 Random 5-fold vs Time 5-fold 차이가 없음(p > 0.69). YOLO만 Random 5-fold에서 나빠짐(fold 2개가 101 · 152마리로 크게 틀림, conf 임계값 영향).
 - val은 Time 5-fold가 나쁘고 크게 흔들림(Time 5-fold RF 0.400\~1.054) → Random 5-fold val은 새 장면 성능을 낙관적으로 보여 줌.
-- 추가 결과: 실제 센 마릿수, test 사진별 카운트(모델 50개), 오차 원인, 논문용 지표(P/R/F1, bootstrap CI, Wilcoxon), 가림 · 밀집 오차 사례 → [RESULTS.md](RESULTS.md) 4\~7장, `counting/reports/fold_study/`. 추론 시간은 수아 담당.
+- 추가 결과: 실제 센 마릿수, test 사진별 카운트(모델 50개), 오차 원인, 논문용 지표(P/R/F1, bootstrap CI, Wilcoxon), 가림 · 밀집 오차 사례 → [RESULTS.md](RESULTS.md) 4\~7장, `counting/reports/fold_study/`. 추론 시간은 같은 장비에서 5가지 방법을 함께 재는 측정 담당이 맡음.
 
 ### 정리
 

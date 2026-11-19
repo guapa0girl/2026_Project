@@ -6,6 +6,9 @@
                                       위 = 사진별 visiting 마릿수(회색 면 = 사람 정답, 선 = fold 5개 평균, 띠 = 최소~최대),
                                       아래 = 사진별 평균 오차(예측 − 정답). 칸마다 MAE · 총 마릿수 표시
     graph_I_cumulative_3methods.png   사진 순서대로 누적한 visiting 총 마릿수 (사람 133 vs 방법별 fold 평균)
+    graph_J_counts_overlay.png        한 칸에 사람 정답 + 세 방법 겹침 (위 Random 5-fold, 아래 Time 5-fold).
+                                      맞게 센 구간은 선이 정답 위에 겹치고 틀린 곳만 갈라짐. 선은 −0.06 / 0 / +0.06 띄움
+가로축 = 000 영상 시간(초, 프레임 번호 / 24), 세로축 = 카운팅 횟수(visiting 마릿수).
 사용법 (counting/ 에서):  python scripts/plot_counts_3methods.py
 """
 from pathlib import Path
@@ -144,7 +147,42 @@ def plot_i():
     plt.close(fig)
 
 
+def plot_j():
+    """그래프 J: 한 칸에 사람 정답 + 세 방법을 겹쳐 그림. 맞게 센 구간은 선이 정답 위에 겹치고, 틀린 곳만 갈라짐.
+    세 선이 서로 가리지 않게 방법마다 세로로 조금 띄움(OFFSET, 캡션에 표시)."""
+    offset = {"geo": -0.06, "rf_geo_leg": 0.0, "yolo": 0.06}
+    fig, axes = plt.subplots(2, 1, figsize=(14, 7.6), sharex=True)
+    for ax, (p, slab) in zip(axes, SCHEMES):
+        gt = x = None
+        for m, mlab in METHODS:
+            gt, pred, x = load(m, p)
+            if m == METHODS[0][0]:
+                ax.step(x, gt, where="mid", color="#c8c8c8", lw=7, solid_capstyle="butt", label="Human GT", zorder=1)
+            mae, _, tot, _ = fold_stats(gt, pred)
+            ax.step(x, pred.mean(0) + offset[m], where="mid", color=COLOR[m], lw=1.8, zorder=3,
+                    label=f"{mlab}: MAE {mae:.3f}, counted {tot:.1f} / {gt.sum():.0f}")
+        ax.set_ylim(-0.3, 3.2)
+        ax.set_yticks([0, 1, 2, 3])
+        ax.set_xlim(-0.5, 60.5)
+        ax.set_xticks(range(0, 61, 5))
+        ax.set_ylabel("Count")
+        ax.set_title(slab, loc="left", fontweight="bold")
+        ax.grid(axis="y", color="#ececec", lw=0.8)
+        ax.grid(axis="x", color="#f4f4f4", lw=0.6)
+        ax.set_axisbelow(True)
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.legend(frameon=True, framealpha=0.95, edgecolor="#dddddd", fontsize=9, loc="upper right", ncol=2)
+    axes[-1].set_xlabel("Time in test(000) video (s)")
+    fig.suptitle("Visiting pigs counted per image on test(000): human GT vs Geo, RF+Geo+Leg, YOLO\n"
+                 "(line = mean of 5 fold models; lines offset by −0.06 / 0 / +0.06 so overlapping lines stay visible)",
+                 fontsize=11.5)
+    fig.tight_layout()
+    fig.savefig(FS / "graph_J_counts_overlay.png", dpi=170, bbox_inches="tight")
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     plot_h()
     plot_i()
-    print(f"[saved] {FS / 'graph_H_counts_3methods.png'}, {FS / 'graph_I_cumulative_3methods.png'}")
+    plot_j()
+    print(f"[saved] {FS}: graph_H_counts_3methods.png, graph_I_cumulative_3methods.png, graph_J_counts_overlay.png")

@@ -519,7 +519,13 @@ YOLO:          사진 → YOLOv8m detect (클래스 visiting / other) → conf �
 - 86장 × 모델 50개: [per_image_000.md](counting/reports/fold_study/per_image/per_image_000.md)
 - 방법별 csv · 그림: `counting/reports/fold_study/per_image/by_model/`
 
-**사람 정답 vs Geo · RF+Geo+Leg(RF 계열 대표) · YOLO** (그래프 H, I)
+**사람 정답 vs Geo · RF+Geo+Leg(RF 계열 대표) · YOLO** (그래프 J, H, I)
+- 그래프 J: 한 칸에 사람 정답(굵은 회색)과 세 방법을 겹쳐 그림.
+  - 맞게 센 구간은 세 선이 정답 위에 한 묶음으로 겹치고, 틀린 구간에서만 선이 갈라짐.
+  - 겹친 선이 서로 가리지 않게 Geo −0.06, RF+Geo+Leg 0, YOLO +0.06만큼 세로로 띄움.
+
+![그래프 J: 한 칸에 사람 정답 + 세 방법](counting/reports/fold_study/graph_J_counts_overlay.png)
+
 - 가로축은 000 영상의 시간(초)임. 프레임 번호 0\~1440을 24 fps로 환산해 0\~60초로 나타냄.
 - 세로축은 카운팅 횟수(visiting 마릿수)임.
 - 선은 fold 모델 5개의 평균이고, 띠는 최소\~최대 범위임.
@@ -691,6 +697,7 @@ Time 5-fold의 CH010(못 본 시간대)에서 RF 단독이 크게 나빠짐(0.96
 | G | `counting/reports/fold_study/error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases, all 10 pose models side by side |
 | H | `counting/reports/fold_study/graph_H_counts_3methods.png` | Visiting count per image over the 60-s test(000) video: human GT vs Geo, RF+Geo+Leg, YOLO (mean of 5 fold models, band = min–max; lower strip = mean error) |
 | I | `counting/reports/fold_study/graph_I_cumulative_3methods.png` | Cumulative visiting count over the 60-s test(000) video: human GT (133) vs Geo, RF+Geo+Leg, YOLO |
+| J | `counting/reports/fold_study/graph_J_counts_overlay.png` | Visiting count per image over the 60-s test(000) video, human GT and Geo, RF+Geo+Leg, YOLO in one panel per split (mean of 5 folds; lines offset by −0.06 / 0 / +0.06 for visibility) |
 | – | `training/reports/data/time_distribution.png` | Capture-time distribution of tasks 001 / 002 |
 | – | `counting/reports/fold_study/per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |
 
@@ -705,7 +712,7 @@ cd training; python scripts\make_study_splits.py --export-images ..\counting\dat
 powershell -ExecutionPolicy Bypass -File scripts\run_split_study.ps1 -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4
 # 3) Geo / RF 계열 val + test 평가 → fold_study 표 · 그래프 A~D
 cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.ps1 -Valid -Splits k5_f0,k5_f1,k5_f2,k5_f3,k5_f4,rk5_f0,rk5_f1,rk5_f2,rk5_f3,rk5_f4
-# 4) 논문 표 · 사진별 카운트(그래프 E · F) · 오차 사례(그래프 G) · 3방법 비교(그래프 H · I)
+# 4) 논문 표 · 사진별 카운트(그래프 E · F) · 오차 사례(그래프 G) · 3방법 비교(그래프 H · I · J)
 python scripts\paper_tables.py; python scripts\per_image_000.py; python scripts\error_cases.py; python scripts\plot_counts_3methods.py
 # 5) 추론 시간 (같은 장비에서 5가지 방법, YOLO 가중치 경로를 함께 줌)
 python scripts\benchmark_speed.py --yolo-weights "../yolo_det/models/ep200_{split}/m/weights/best.pt"

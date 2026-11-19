@@ -48,6 +48,9 @@ REPO = ROOT.parent
 sys.path.insert(0, str(REPO / "yolo_det" / "scripts"))
 from prepare_data import time_key  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from frame_axis import frame_ticks  # noqa: E402
+
 K = 5
 METHODS = [("geo", "Geo"), ("rf", "RF"), ("rf_geo", "RF+Geo"), ("rf_geo_leg", "RF+Geo+Leg"), ("yolo", "YOLO")]
 RF_FAMILY = ["rf", "rf_geo", "rf_geo_leg"]
@@ -455,7 +458,7 @@ def plot_a(out, rf_best):
                     fr.append(pd.read_csv(f, encoding="utf-8-sig").sort_values("frame_idx").reset_index(drop=True))
             if not fr:
                 continue
-            x = np.arange(len(fr[0]))
+            x = np.arange(1, len(fr[0]) + 1)                  # 사진 번호 1~86 (오차 사례 #57 · #76과 같은 번호)
             if not gt_drawn:
                 ax.step(x, fr[0]["gt"], where="mid", color=COLOR["gt"], lw=1.8, label="GT (human)")
                 gt_drawn = True
@@ -466,10 +469,12 @@ def plot_a(out, rf_best):
         ax.set_title("Random 5-fold" if key == "random_5fold" else "Time 5-fold", loc="left", fontsize=10)
         ax.set_ylabel("Visiting pigs")
         ax.set_yticks([0, 1, 2, 3])
+        ax.set_xlim(0, 86.5)
         ax.grid(axis="y", color="#e5e5e5")
         ax.spines[["top", "right"]].set_visible(False)
         ax.legend(frameon=False, fontsize=8, ncol=4, loc="lower left")
-    axes[-1].set_xlabel("Image order in test(000) (time →)")
+        frame_ticks(ax, lines=True)
+    axes[-1].set_xlabel("test(000) image (time order, 1–86; red = error cases #57, #76)")
     fig.suptitle("Per-image visiting count on test(000) (line = mean over folds, band = min–max)")
     fig.tight_layout()
     fig.savefig(out / "graph_A_frame_counts_000.png", dpi=150)

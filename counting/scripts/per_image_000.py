@@ -26,6 +26,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.colors import BoundaryNorm, ListedColormap  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from frame_axis import frame_ticks  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[1]
 FS = ROOT / "reports" / "fold_study"
 OUT = FS / "per_image"
@@ -147,7 +150,7 @@ def plot_e(base, frames):
     """그래프 E: 행 = 방법, 열 = 분할. GT 계단선 + fold 평균선 + fold 최소~최대 띠."""
     ms = [(m, lab) for m, lab in METHODS if m in frames]
     fig, axes = plt.subplots(len(ms), 2, figsize=(15, 2.0 * len(ms) + 1.2), sharex=True, sharey=True)
-    x = np.arange(len(base))
+    x = np.arange(1, len(base) + 1)                      # 사진 번호 1~86
     for c, (key, elab, _, p) in enumerate(SCHEMES):
         for r, (m, lab) in enumerate(ms):
             ax = axes[r, c]
@@ -165,12 +168,13 @@ def plot_e(base, frames):
                 ax.set_ylabel(lab, fontsize=10)
             ax.set_yticks([0, 1, 2, 3])
             ax.set_ylim(-0.25, 3.25)
+            ax.set_xlim(0, len(base) + 0.5)
             ax.grid(axis="y", color="#e5e5e5", lw=0.8)
             ax.set_axisbelow(True)
             ax.spines[["top", "right"]].set_visible(False)
+            frame_ticks(ax, lines=True)
     for ax in axes[-1]:
-        ax.set_xlabel("test(000) image (time order, 1–86)")
-        ax.set_xticks(np.arange(0, 86, 10), [str(i + 1) for i in range(0, 86, 10)])
+        ax.set_xlabel("test(000) image (time order, 1–86; red = error cases #57, #76)")
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
     h = [Line2D([], [], color="#000", ls="--", lw=1.4, label="GT (human)"),
@@ -206,7 +210,7 @@ def plot_model(base, fr, m, lab, path):
                     color="#ffffff" if dark else "#222222",
                     fontweight="bold" if (e is not None and e[j] != 0) else "normal")
     ax.set_yticks(np.arange(R), [r[0] for r in rows], fontsize=9)
-    ax.set_xticks(np.arange(0, n, 5), [str(i + 1) for i in range(0, n, 5)], fontsize=8)
+    frame_ticks(ax, offset=-1, first=1, fontsize=8)
     ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
     ax.set_yticks(np.arange(-0.5, R, 1), minor=True)
     ax.grid(which="minor", color="#ffffff", lw=0.8)
@@ -215,7 +219,7 @@ def plot_model(base, fr, m, lab, path):
     ax.axhline(K + 0.5, color="#333", lw=1.0)
     for s in ax.spines.values():
         s.set_visible(False)
-    ax.set_xlabel("test(000) image (time order, 1–86)")
+    ax.set_xlabel("test(000) image (time order, 1–86; red = error cases #57, #76)")
     cb = fig.colorbar(im, ax=ax, ticks=ERR_LEVELS, fraction=0.015, pad=0.01)
     cb.ax.set_yticklabels(["≤ −3", "−2", "−1", "0", "+1", "+2", "≥ +3"], fontsize=8)
     cb.set_label("Error = model − GT")
@@ -262,8 +266,8 @@ def plot_f(base, frames):
 
     im = ax.imshow(E, aspect="auto", cmap=cmap, norm=norm, interpolation="nearest")
     ax.set_yticks(np.arange(n_models), labels, fontsize=6.5)
-    ax.set_xticks(np.arange(0, 86, 5), [str(i + 1) for i in range(0, 86, 5)], fontsize=8)
-    ax.set_xlabel("test(000) image (time order, 1–86)")
+    frame_ticks(ax, offset=-1, first=1, fontsize=8)
+    ax.set_xlabel("test(000) image (time order, 1–86; red = error cases #57, #76)")
     ax.set_xticks(np.arange(-0.5, 86, 1), minor=True)
     ax.set_yticks(np.arange(-0.5, n_models, 1), minor=True)
     ax.grid(which="minor", color="#ffffff", lw=0.6)

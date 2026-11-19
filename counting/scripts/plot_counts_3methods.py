@@ -13,6 +13,7 @@
 가로축 = 000 영상 시간(초, 프레임 번호 / 24), 세로축 = 카운팅 횟수(visiting 마릿수).
 사용법 (counting/ 에서):  python scripts/plot_counts_3methods.py
 """
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -21,6 +22,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from frame_axis import frame_ticks  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 FS = ROOT / "reports" / "fold_study"
@@ -189,7 +193,7 @@ def plot_j_single(axis="sec"):
         for m, mlab in METHODS:
             gt, pred, x = load(m, p)
             if axis == "frame":
-                x = np.arange(len(gt))                                   # 000 이미지 순번 0~85 (시간순)
+                x = np.arange(1, len(gt) + 1)                            # 000 사진 번호 1~86 (시간순, 오차 사례 #57 · #76과 같은 번호)
             if m == METHODS[0][0]:
                 ax.step(x, gt, where="mid", color="#c8c8c8", lw=7, solid_capstyle="butt", label="Human GT", zorder=1)
             mae, _, tot, _ = fold_stats(gt, pred)
@@ -197,12 +201,13 @@ def plot_j_single(axis="sec"):
                     label=f"{mlab}: MAE {mae:.3f}, counted {tot:.1f} / {gt.sum():.0f}")
         ax.set_ylim(-0.3, 3.2)
         ax.set_yticks([0, 1, 2, 3])
-        ax.xaxis.set_major_locator(MultipleLocator(5))
         ax.xaxis.set_minor_locator(MultipleLocator(1))
         if axis == "frame":
-            ax.set_xlim(-0.7, len(gt) - 0.3)
-            ax.set_xlabel(f"Frame (test(000) image index, 0–{len(gt) - 1})")
+            ax.set_xlim(0, len(gt) + 0.5)
+            frame_ticks(ax, lines=True)
+            ax.set_xlabel(f"Frame (test(000) image no. 1–{len(gt)}; red = error cases #57, #76)")
         else:
+            ax.xaxis.set_major_locator(MultipleLocator(5))
             ax.set_xlim(-0.5, 60.5)
             ax.set_xlabel("Time (s)")
         ax.set_ylabel("Number of visiting pigs")

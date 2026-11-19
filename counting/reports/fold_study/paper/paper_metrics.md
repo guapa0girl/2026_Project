@@ -215,6 +215,6 @@ fold마다 그 fold valid 중 그 카메라 사진만으로 MAE를 계산 후 �
 | E | `../per_image/graph_E_per_image_counts.png` | Visiting pigs counted per test(000) image, every method vs GT (mean over 5 folds, band = min–max) |
 | F | `../per_image/graph_F_per_image_error_heatmap.png` | Per-image counting error of all 50 models on test(000) |
 | G | `../error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases: all 10 pose models side by side |
-| J | `../graph_J_random_5fold_frames.png`, `../graph_J_time_5fold_frames.png` | Visiting pigs per test(000) image (frame 0–85), human GT vs Geo, RF+Geo+Leg, YOLO, one figure per split (mean of 5 fold models; lines offset by −0.06 / 0 / +0.06) |
+| J | `../graph_J_random_5fold_frames.png`, `../graph_J_time_5fold_frames.png` | Visiting pigs per test(000) image (image no. 1–86; error cases #57, #76 marked in red), human GT vs Geo, RF+Geo+Leg, YOLO, one figure per split (mean of 5 fold models; lines offset by −0.06 / 0 / +0.06) |
 | – | `../per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |
 

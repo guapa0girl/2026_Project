@@ -520,18 +520,19 @@ YOLO:          사진 → YOLOv8m detect (클래스 visiting / other) → conf �
 - 방법별 csv · 그림: `counting/reports/fold_study/per_image/by_model/`
 
 **사람 정답 vs Geo · RF+Geo+Leg(RF 계열 대표) · YOLO** (그래프 J, 분할별 한 장)
-- 가로축은 test(000) 사진 순번(frame 0\~85, 시간순)이고, 세로축은 visiting 돼지 수임.
-  - frame 번호는 0부터 셈. 위 표 · per_image_000.md의 사진 번호(#)는 1부터 셈(frame 55 = #56).
+- 가로축은 test(000) 사진 번호(frame 1\~86, 시간순)이고, 세로축은 visiting 돼지 수임.
+  - 눈금은 5 단위이고, 가림 · 밀집 오차 사례 사진 57 · 76은 빨간 숫자와 점선으로 따로 표시함(6-14).
+  - 사진 번호는 위 표 · per_image_000.md의 #, 오차 사례 그림 번호와 같음. 그래프 A · E · F와 모델별 그림도 같은 눈금임.
 - 사람 정답은 굵은 회색 선, 세 방법은 fold 모델 5개의 평균선임.
   - 맞게 센 구간은 세 선이 정답 위에 한 묶음으로 겹치고, 틀린 구간에서만 선이 갈라짐.
   - 겹친 선이 서로 가리지 않게 Geo −0.06, RF+Geo+Leg 0, YOLO +0.06만큼 세로로 띄움.
 - 그래프에서 읽을 수 있는 것:
-  - Geo는 frame 34 이후, 특히 frame 53\~80에서 계속 적게 셈.
+  - Geo는 #35 이후, 특히 #54\~81에서 계속 적게 셈.
   - RF+Geo+Leg는 정답과 거의 겹침. 어긋나는 곳은 몇 군데뿐임:
-    - frame 55\~57(#56\~58): 급이 파이프에 가린 돼지를 놓쳐 1마리 적게 셈.
-    - frame 75\~80: 적게 셈.
-    - frame 33(#34) · 64(#65): 1마리 많이 셈.
-  - YOLO는 Random 5-fold에서 frame 0\~52 동안 fold에 따라 1\~3마리로 흔들림. Time 5-fold에서는 안정적임.
+    - #56\~58(오차 사례 #57 포함): 급이 파이프에 가린 돼지를 놓쳐 1마리 적게 셈.
+    - #76\~81(오차 사례 #76 포함): 겹친 돼지의 관절이 어긋나 적게 셈.
+    - #34 · #65: 1마리 많이 셈.
+  - YOLO는 Random 5-fold에서 #1\~53 동안 fold에 따라 1\~3마리로 흔들림. Time 5-fold에서는 안정적임.
 
 ![그래프 J: test(000) — Random 5-fold](counting/reports/fold_study/graph_J_random_5fold_frames.png)
 ![그래프 J: test(000) — Time 5-fold](counting/reports/fold_study/graph_J_time_5fold_frames.png)
@@ -689,7 +690,7 @@ Time 5-fold의 CH010(못 본 시간대)에서 RF 단독이 크게 나빠짐(0.96
 | E | `counting/reports/fold_study/per_image/graph_E_per_image_counts.png` | Visiting pigs counted per test(000) image, every method vs GT |
 | F | `counting/reports/fold_study/per_image/graph_F_per_image_error_heatmap.png` | Per-image counting error of all 50 models on test(000) |
 | G | `counting/reports/fold_study/error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases, all 10 pose models side by side |
-| J | `counting/reports/fold_study/graph_J_random_5fold_frames.png`, `graph_J_time_5fold_frames.png` | Visiting pigs per test(000) image (frame 0–85), human GT vs Geo, RF+Geo+Leg, YOLO, one figure per split (mean of 5 fold models; lines offset by −0.06 / 0 / +0.06 for visibility) |
+| J | `counting/reports/fold_study/graph_J_random_5fold_frames.png`, `graph_J_time_5fold_frames.png` | Visiting pigs per test(000) image (image no. 1–86; error cases #57, #76 marked in red), human GT vs Geo, RF+Geo+Leg, YOLO, one figure per split (mean of 5 fold models; lines offset by −0.06 / 0 / +0.06 for visibility) |
 | – | `training/reports/data/time_distribution.png` | Capture-time distribution of tasks 001 / 002 |
 | – | `counting/reports/fold_study/per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |
 

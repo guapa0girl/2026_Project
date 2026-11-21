@@ -100,6 +100,7 @@ python yolo_det\scripts\evaluate.py --run ep200 --size m
   ```
   `TIMING=1`: batch 1, 640, 예열 5장 제외, 000 × 3회, 사진 읽기→마릿수 end-to-end, 중앙값·p95(ms). 같은 GPU 한 대로 잴 것.
   - valid도 test와 같은 개체 단위 진단(IoU ≥ 0.5: 못 찾음 / other로 판정 / other→visiting / 라벨 없는 박스→visiting)을 `summary.json`의 `valid`에 기록함 → val visiting Precision / Recall / F1 계산용. 이 기능 전에 평가한 fold는 `EVAL_ONLY=1`로 재평가하면 추가됨.
+  - 11/21: `ep200_k5_f0\~f4`, `ep200_rk5_f0\~f4` 10개를 `EVAL_ONLY=1`로 재평가해 `valid` 진단을 추가함. 기존 conf · val/test 카운트 지표 · box mAP · `test_frames.csv`는 재평가 전 백업과 모두 같음을 확인했고, `timing`은 11/19 측정값을 그대로 유지함.
 - **사람 정답 마릿수**: clip 전 XML 기준으로 `data/gt_counts.csv`에 저장(evaluate.py가 사용).
 
 ---

@@ -45,7 +45,11 @@
     "total_human": 76,
     "total_error_pct": 2.631578947368421,
     "over_frames": 5,
-    "under_frames": 3
+    "under_frames": 3,
+    "missed_visiting_undetected": 1,
+    "missed_visiting_judged": 3,
+    "wrong_visiting": 5,
+    "extra_visiting": 1
   },
   "box_map_valid": {
     "box_P": 0.9477920755015681,

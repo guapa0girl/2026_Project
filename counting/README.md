@@ -36,6 +36,7 @@ counting/
 │   ├── paper_tables.py       논문용 지표 (P/R/F1, bootstrap CI, Wilcoxon, 포즈 · YOLO 표) → reports/fold_study/paper/
 │   ├── per_image_000.py      000 사진별 카운트 (모델별 csv · 그림, 그래프 E · F) → reports/fold_study/per_image/
 │   ├── error_cases.py        가림 · 밀집 오차 사례 그림 (10개 모델 나란히) → reports/fold_study/error_cases/
+│   ├── analyze_leg_effect.py RF+Geo → RF+Geo+Leg 차이 분석 (방법별 Gini 중요도, test(000) 개체별 특징 값 · 판정, 코 위치별 정확도) → reports/fold_study/paper/leg_effect.md
 │   ├── plot_counts_3methods.py  test(000) 사람 정답 vs Geo · RF+Geo+Leg · YOLO, 가로축 초(0~60 s) (그래프 H 사진별 · I 누적 · J 한 칸 겹침) → reports/fold_study/
 │   ├── benchmark_speed.py    추론 시간 측정 (같은 장비에서 5가지 방법; Random 5-fold · Time 5-fold 모델 10개, GPU · CPU, YOLO는 --yolo-weights) → reports/speed/<GPU>/
 │   ├── run_geo_ablation.ps1  Geo 조건 5종 Stage 2 평가 (000)

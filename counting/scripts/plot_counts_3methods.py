@@ -183,12 +183,16 @@ def plot_j():
     plt.close(fig)
 
 
-def plot_j_single(axis="sec"):
+def plot_j_single(axis="sec", test_label="test(000)", out_dir=None, only=None):
+    """test_label: 그림 속 테스트 세트 이름 (논문 표기 "000-test" 등), out_dir: 저장 폴더 (기본 reports/fold_study),
+    only: "rk5" 또는 "k5"만 그릴 때."""
     """그래프 J를 분할마다 한 장씩: graph_J_random_5fold.png, graph_J_time_5fold.png.
     가로축 = 000 영상 시간(초, 1초 눈금 · 5초마다 숫자), 세로축 = visiting 돼지 수."""
     from matplotlib.ticker import MultipleLocator
     offset = {"geo": -0.06, "rf_geo_leg": 0.0, "yolo": 0.06}
     for p, slab in SCHEMES:
+        if only and p != only:
+            continue
         fig, ax = plt.subplots(figsize=(14, 4.6))
         for m, mlab in METHODS:
             gt, pred, x = load(m, p)
@@ -205,7 +209,7 @@ def plot_j_single(axis="sec"):
         if axis == "frame":
             ax.set_xlim(0, len(gt) + 0.5)
             frame_ticks(ax, lines=True)
-            ax.set_xlabel(f"Frame (test(000) image no. 1–{len(gt)}; red = error cases #57, #76)")
+            ax.set_xlabel(f"Frame ({test_label} image no. 1–{len(gt)}; red = error cases #57, #76)")
         else:
             ax.xaxis.set_major_locator(MultipleLocator(5))
             ax.set_xlim(-0.5, 60.5)
@@ -217,10 +221,11 @@ def plot_j_single(axis="sec"):
         ax.set_axisbelow(True)
         ax.spines[["top", "right"]].set_visible(False)
         ax.legend(frameon=True, framealpha=0.95, edgecolor="#dddddd", fontsize=9, loc="upper right", ncol=2)
-        ax.set_title(f"test(000) — {slab}", fontsize=12, loc="left")
+        ax.set_title(f"{test_label} — {slab}", fontsize=12, loc="left")
         fig.tight_layout()
         suffix = "_frames" if axis == "frame" else ""
-        fig.savefig(FS / f"graph_J_{'random' if p == 'rk5' else 'time'}_5fold{suffix}.png", dpi=170, bbox_inches="tight")
+        out = Path(out_dir) if out_dir else FS
+        fig.savefig(out / f"graph_J_{'random' if p == 'rk5' else 'time'}_5fold{suffix}.png", dpi=170, bbox_inches="tight")
         plt.close(fig)
 
 

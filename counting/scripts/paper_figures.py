@@ -342,6 +342,59 @@ def fig_cases(out, split, cases, case_titles):
     plt.close(fig)
 
 
+def fig_cases_rf(out, split, cases, case_titles, method="rf_geo_leg"):
+    """그림 5 (RF best만): 열 = 사례(순서대로), 행 = 정답 / RF best. 대표 fold 1개."""
+    import cv2
+    cams, _, test = cams_rows()
+    cache = build_cache(split, out)
+    order, _ = test_order(test)
+    te_img = em.find_images(ROOT / "data" / "raw" / "000_img")
+    bi = by_image(test)
+    counts = pd.read_csv(FS / "per_frame_000" / f"{method}.csv", encoding="utf-8-sig").set_index("image")[split]
+    fig, axes = plt.subplots(2, len(cases), figsize=(2.75 * len(cases), 4.9))
+    for c_i, no in enumerate(cases):
+        stem = order[no]
+        rows = bi[stem]
+        feeder = cams.cfg[rows[0]["camera"]].feeder
+        im = cv2.cvtColor(cv2.imread(str(te_img[stem])), cv2.COLOR_BGR2RGB)
+        crop = crop_box(feeder, im.shape)
+        sub = im[crop[1]:crop[3], crop[0]:crop[2]]
+        n_gt = sum(r["label"] for r in rows)
+        rec = cache[stem]
+        p = rec["pred"].get(method, [])
+        n = int(np.sum(p))
+        assert n == int(counts[stem]), (no, n, counts[stem])
+        for r_i in range(2):
+            ax = axes[r_i, c_i]
+            ax.imshow(sub)
+            ax.add_patch(Circle((feeder.cx - crop[0], feeder.cy - crop[1]), feeder.r, fill=False, ec="white", ls="--", lw=0.9))
+            if r_i == 0:
+                for r in rows:
+                    if r["label"] == 1:
+                        x1, y1, x2, y2 = r["det"].box
+                        ax.add_patch(Rectangle((x1 - crop[0], y1 - crop[1]), x2 - x1, y2 - y1, fill=False, ec=VIS_C, lw=1.8))
+                ax.set_title(f"{no}번 · {case_titles[no]}\n정답 visiting {n_gt}마리", fontsize=8.5)
+            else:
+                for b, v in zip(rec["boxes"], p):
+                    if v == 1:
+                        x1, y1, x2, y2 = b
+                        ax.add_patch(Rectangle((x1 - crop[0], y1 - crop[1]), x2 - x1, y2 - y1, fill=False,
+                                               ec=COLOR[method], lw=1.8))
+                ax.set_title(f"{NAME[method]}: {n}마리", fontsize=8.5, color="#000000" if n == n_gt else "#c0392b")
+            ax.set_xticks([])
+            ax.set_yticks([])
+    axes[0, 0].set_ylabel("정답", fontsize=9)
+    axes[1, 0].set_ylabel(NAME[method], fontsize=9)
+    from matplotlib.lines import Line2D
+    fig.legend(handles=[Line2D([], [], color=VIS_C, lw=2, label="정답 visiting"),
+                        Line2D([], [], color=COLOR[method], lw=2, label=f"{NAME[method]}가 센 visiting"),
+                        Line2D([], [], color="#777", ls="--", lw=1, label="사료통 원")],
+               loc="lower center", ncol=3, frameon=False, fontsize=8.5, bbox_to_anchor=(0.5, -0.01))
+    fig.subplots_adjust(left=0.04, right=0.995, top=0.9, bottom=0.08, wspace=0.06, hspace=0.32)
+    fig.savefig(out / "fig_cases_rf.png", dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------ 그림: 대시보드
 def fig_dashboard(out, day_dir):
     files = sorted(Path(day_dir).glob("*_methods_1s_all.csv"))
@@ -410,6 +463,7 @@ def main():
     fig_counts(out, a.cases)
     fig_importance(out)
     fig_cases(out, a.split, a.cases, titles)
+    fig_cases_rf(out, a.split, [72, 81, 57, 65], {72: "잘 찾은 사례", 81: "잘 찾은 사례", 57: "가림", 65: "과대 집계"})
     print("dashboard:", fig_dashboard(out, a.day_dir))
     print("[saved]", out)
 

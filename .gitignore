@@ -14,6 +14,10 @@ venv/
 *.avi
 *.mp4
 
+# 논문 원고(Word)는 레포에 올리지 않음
+*.docx
+~$*.docx
+
 # training: 학습 산출물(그림·체크포인트)과 과거 실행은 커밋하지 않고, 지표(reports/)만 남긴다
 training/models/results/
 training/past_train/

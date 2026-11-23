@@ -10,6 +10,7 @@
 - 이 문서는 위 파일들의 값을 옮겨 정리한 것임. 설명이 더 긴 결과 해석은 [RESULTS.md](RESULTS.md)에 있음.
 
 목차
+0. 원고(HCI 2027) 그림 1\~6
 1. 연구 요약
 2. 데이터
 3. 실험 설계 (분할)
@@ -20,6 +21,115 @@
 8. 한계점
 9. 그림 목록
 10. 재현 방법 · 파일 위치
+
+---
+
+## 0. 원고(HCI 2027) 그림 1\~6
+
+원고 docx(교수님 첨삭 반영본)에 들어간 그림을 300 dpi로 모은 것임.
+- 위치: [counting/reports/fold_study/paper_figures/](counting/reports/fold_study/paper_figures/)
+- 그림 안의 글자는 원고 용어(자세 추정, 기하 규칙, RF(자세+기하+다리), 객체 검출, Train1 · Train2 · Test)와 나눔고딕 글꼴을 씀.
+- 다시 만들기: `counting/`에서 `python scripts\paper_figures.py` 실행
+  - 출력 위치: `C:/ETRI/share/hci2027_figs` (fold별 추론 캐시도 이곳에 만들어짐)
+  - 파일 이름 대응: `fig_data_examples.png` → `fig1_data_examples.png`, `fig_pipeline.png` → `fig2_pipeline.png`, `fig_counts_time.png` → `fig3_counts_time.png`, `fig_importance.png` → `fig4_importance.png`, `fig_cases_rf.png` → `fig5_cases_rf.png`, `fig_dashboard.png` → `fig6_dashboard.png`
+
+원고 용어와 이 문서 용어의 대응:
+
+| 원고 | 이 문서 · 코드 |
+|---|---|
+| 기하 규칙 | Geo |
+| RF(자세) / RF(자세+기하) / RF(자세+기하+다리) | RF / RF+Geo / RF+Geo+Leg |
+| 객체 검출 | YOLO |
+| 자세 추정 | 포즈 추정 (YOLOv8m-pose) |
+| Train1 / Train2 / Test | 001 (CH005) / 002 (CH010) / test(000) |
+| validation | valid |
+
+### 그림 1. 세트별 예시 사진과 밀집 장면 예시
+
+![그림 1](counting/reports/fold_study/paper_figures/fig1_data_examples.png)
+
+- 구성: Train1 · Train2 · Test에서 각 1장, 밀집 장면 1장
+  - 세 세트 예시: visiting 2마리인 사진 중 돼지 수가 중간인 사진
+  - 밀집 장면: 학습 사진 190장 중 visiting이 가장 많은 사진(7마리). 모든 학습 사진은 어느 한 fold의 validation에 들어가므로 "validation" 사진으로 표기함.
+- 표시: 주황 = 정답 visiting, 회색 = 정답 other, 흰 점선 = 사료통 원(카메라별로 지정한 좌표)
+
+### 그림 2. 비교한 두 접근의 처리 흐름
+
+![그림 2](counting/reports/fold_study/paper_figures/fig2_pipeline.png)
+
+- (a) 자세 추정 기반 판정: YOLOv8m-pose로 관절 18종을 찾고, 자세 · 기하 · 다리 특징을 계산한 뒤, 기하 규칙 또는 랜덤 포레스트로 판정함.
+- (b) 객체 검출 기반 판정: YOLOv8m이 visiting / other를 검출하고, NMS로 겹친 상자를 정리한 뒤, 신뢰도가 임계값 이상인 visiting 상자를 셈.
+
+### 그림 3. Test 사진별 visiting 마릿수 (Time 5-fold)
+
+![그림 3](counting/reports/fold_study/paper_figures/fig3_counts_time.png)
+
+- 표시: 회색 = 정답, 선 = fold 모델 5개 평균. 겹침을 피하려고 기하 규칙은 −0.06, 객체 검출은 +0.06만큼 띄움.
+- 빨간 번호(72 · 81 · 57 · 65)는 그림 5의 사례 사진임.
+- 범례의 MAE는 표 5의 Time 5-fold Test 값과 같음(0.293 / 0.109 / 0.223).
+
+### 그림 4. RF(자세+기하+다리)의 특징 중요도
+
+![그림 4](counting/reports/fold_study/paper_figures/fig4_importance.png)
+
+- 막대: Gini 중요도, fold 10개 평균 ± SD. 색 = 특징 그룹(자세 · 기하 · 다리).
+- ◇: 같은 특징의 RF(자세+기하)에서의 중요도
+- 읽는 법:
+  - 코-사료통 거리비 · 코-구역 거리 · 코의 구역 포함 여부가 가장 중요함.
+  - 다리 특징(합계 0.27)은 RF(자세+기하)에서 몸통 종횡비가 맡던 자세 구분을 대신함.
+  - 다리 가시성 · 좌우 비대칭 · 주요 관절 검출 비율은 사람 관절에서 신뢰도가 모두 1이라 구분력이 없고, 중요도도 거의 0임.
+- 원자료: `paper/rf_importance_by_method.csv` ([leg_effect.md](counting/reports/fold_study/paper/leg_effect.md))
+
+### 그림 5. RF(자세+기하+다리)의 판정 사례 (Time 5-fold 대표 fold f3)
+
+![그림 5](counting/reports/fold_study/paper_figures/fig5_cases_rf.png)
+
+- 순서: 72 · 81번 = 잘 찾은 사례, 57번 = 가림, 65번 = 과대 집계
+- 표시: 위 = 정답, 아래 = RF(자세+기하+다리)가 센 visiting. 빨간 제목 = 마릿수 오차.
+
+| 사진 | 정답 | 기하 규칙 | RF(자세+기하+다리) | 객체 검출 | 설명 |
+|---|---|---|---|---|---|
+| 72번 | 1 | 0 | **1** | 0 | 사료통 가장자리에 머리를 댄 돼지를 RF만 맞힘 |
+| 81번 | 1 | 0 | **1** | 0 | 〃 |
+| 57번 | 2 | 1 | 1 | 1 | 급이 파이프 아래로 머리를 넣은 돼지를 자세 추정 모델 10개 모두 검출하지 못함 |
+| 65번 | 1 | 0 | 2 | 2 | 급이 파이프 옆 돼지까지 visiting으로 세어 과대 집계 |
+
+- 세 방법을 모두 보여 주는 비교판은 `C:/ETRI/share/hci2027_figs/fig_cases.png`에 있음(레포 밖).
+- 객체 검출 상자는 YOLO 가중치가 이 PC에 없어서 그리지 못하고 마릿수만 씀.
+
+### 그림 6. 대시보드 활용 예시
+
+![그림 6](counting/reports/fold_study/paper_figures/fig6_dashboard.png)
+
+- 데이터: 2026-07-16 Train2(CH010) 카메라 영상 약 3.1시간(10:26\~13:32), 1초마다 RF(자세+기하+다리)로 판정한 결과
+  - 이전 실행분임: 포즈 모델은 001+002 전체로 학습한 모델, RF는 사람 관절 전체로 학습한 모델
+  - 원자료 위치: `C:/ETRI/2026_Project_old/counting_outputs/ch010_20260716_day/*_methods_1s_all.csv` (레포 밖)
+- 내용:
+  - 요약 타일: 관측 시간 3.1시간, 평균 점유 0.74마리, 누적 점유량 273 돼지·분
+  - 1분 · 10분 평균 점유 마릿수
+  - 누적 점유량
+  - 이상 알림 예시: 10분 평균이 관측 구간 중앙값(0.50마리)의 50% 미만인 구간. 예시로 정한 규칙임.
+
+### 원고에서 바뀐 수치: 헝가리안 짝짓기 기준 통일
+
+교수님 첨삭("헝가리안 기준 통일")에 따라, 원고는 모든 방법의 개체 짝짓기를 **상자 IoU ≥ 0.5**로 통일했음.
+- 이 문서 6-7절과 `paper_metrics.md` Table 5는 기존 기준(자세 추정 기반 = 관절 평균 거리 ÷ 박스 대각선 ≤ 0.25)으로 낸 값임.
+- 통일 기준 값의 출처: [iou_matching.md](counting/reports/fold_study/paper/iou_matching.md) (`scripts/analyze_iou_matching.py`)
+- 사진당 마릿수 지표(MAE, RMSE, Acc, TCE)는 짝짓기와 무관해서 바뀌지 않음.
+
+| 항목 (Test) | 기존 기준 | 통일 기준 (원고) |
+|---|---|---|
+| 자세 추정 기반 미검출 (Time 5-fold, fold당) | 6.2마리 | 4.6마리 |
+| RF(자세+기하+다리) 판정 오류 (visiting → other + other → visiting) | 5.6마리 | 6.0마리 |
+| 객체 검출 판정 오류 ÷ RF(자세+기하+다리) 판정 오류 | 약 3.4배 | 약 3.2배 |
+| RF 계열 visiting F1 범위 | 0.920\~0.945 | 0.943\~0.955 |
+| 가장자리 visiting 판정 비율, RF(자세+기하) → RF(자세+기하+다리) | 0.681 → 0.809 | 0.689 → 0.808 |
+| 가장자리 other를 visiting으로 판정한 비율 | 0.155 → 0.183 | 0.151 → 0.178 |
+| RF(자세+기하)가 놓친 visiting을 RF(자세+기하+다리)가 바로잡은 경우 | 18건 (반대 0건) | 18건 (반대 0건) |
+
+그 밖의 원고 수정:
+- 촬영 일자: Train1 2026-07-08, Train2 2026-07-16 (KST). 파일명 시각은 UTC라서 Train1의 날짜가 하루 다르게 보임.
+- 표 3: 학습 데이터(사람 관절)의 visiting / other 중앙값을 추가했음.
 
 ---
 
@@ -691,6 +801,7 @@ Time 5-fold의 CH010(못 본 시간대)에서 RF 단독이 크게 나빠짐(0.96
 | F | `counting/reports/fold_study/per_image/graph_F_per_image_error_heatmap.png` | Per-image counting error of all 50 models on test(000) |
 | G | `counting/reports/fold_study/error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases, all 10 pose models side by side |
 | J | `counting/reports/fold_study/graph_J_random_5fold_frames.png`, `graph_J_time_5fold_frames.png` | Visiting pigs per test(000) image (image no. 1–86; error cases #57, #76 marked in red), human GT vs Geo, RF+Geo+Leg, YOLO, one figure per split (mean of 5 fold models; lines offset by −0.06 / 0 / +0.06 for visibility) |
+| 원고 1\~6 | `counting/reports/fold_study/paper_figures/fig1_data_examples.png` \~ `fig6_dashboard.png` | 원고(HCI 2027) 그림, 한국어 라벨, 300 dpi (0장) |
 | – | `training/reports/data/time_distribution.png` | Capture-time distribution of tasks 001 / 002 |
 | – | `counting/reports/fold_study/per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |
 
@@ -709,6 +820,8 @@ cd ..\counting; powershell -ExecutionPolicy Bypass -File scripts\run_split_eval.
 python scripts\paper_tables.py; python scripts\per_image_000.py; python scripts\error_cases.py; python scripts\plot_counts_3methods.py
 # 5) 추론 시간 (같은 장비에서 5가지 방법, YOLO 가중치 경로를 함께 줌)
 python scripts\benchmark_speed.py --yolo-weights "../yolo_det/models/ep200_{split}/m/weights/best.pt"
+# 6) 원고 그림 1~6 (C:/ETRI/share/hci2027_figs → paper_figures/로 복사), 짝짓기 기준 통일 · 다리 특징 분석
+python scripts\paper_figures.py; python scripts\analyze_iou_matching.py; python scripts\analyze_leg_effect.py
 ```
 
 - YOLO 학습 · 평가 명령은 [yolo_det/README.md](yolo_det/README.md)에 있음(`SPLIT=kfold|rkfold bash yolo_det/scripts/run_kfold.sh`).
@@ -720,6 +833,8 @@ python scripts\benchmark_speed.py --yolo-weights "../yolo_det/models/ep200_{spli
 | fold별 전체 표 · fold 구성 · 포즈 관절별 | `counting/reports/fold_study/fold_study.md`, `fold_metrics.csv`, `fold_summary.csv`, `fold_composition.csv`, `pose_folds.csv`, `pose_keypoints.csv` |
 | 사진별 카운트 | `counting/reports/fold_study/per_image/`, `per_frame_000/`, `frames/ep200_<split>/<방법>_<val\|test>.csv` |
 | 오차 사례 | `counting/reports/fold_study/error_cases/` |
+| 원고 그림 1\~6 (300 dpi) | `counting/reports/fold_study/paper_figures/` |
+| 짝짓기 기준 통일 · 다리 특징 분석 | `counting/reports/fold_study/paper/iou_matching.md`, `leg_effect.md` |
 | 추론 시간 | `counting/reports/speed/NVIDIA_RTX_6000_Ada_Generation/` (`speed.md`, `speed_summary.csv`, `speed_folds.csv`, `speed_raw.csv`) |
 | YOLO 원자료 | `yolo_det/reports/ep200_<fold>/m/summary.json`, `test_frames.csv` |
 | 포즈 모델 지표 | `training/reports/metrics/ep200_<split>/m/` |

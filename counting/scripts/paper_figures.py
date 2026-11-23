@@ -169,7 +169,7 @@ def fig_data_examples(out):
                         Line2D([], [], color="#777", ls="--", lw=1, label="사료통 원")],
                loc="lower center", ncol=3, frameon=False, fontsize=8.5, bbox_to_anchor=(0.5, -0.01))
     fig.tight_layout(rect=(0, 0.05, 1, 1))
-    fig.savefig(out / "fig_data_examples.png", dpi=220, bbox_inches="tight")
+    fig.savefig(out / "fig_data_examples.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
     return [s for _, s, _ in sel]
 
@@ -247,7 +247,7 @@ def fig_counts(out, cases):
     ax.spines[["top", "right"]].set_visible(False)
     ax.legend(frameon=True, framealpha=0.95, edgecolor="#dddddd", fontsize=9, loc="upper right", ncol=2)
     fig.tight_layout()
-    fig.savefig(out / "fig_counts_time.png", dpi=220, bbox_inches="tight")
+    fig.savefig(out / "fig_counts_time.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -275,7 +275,7 @@ def fig_importance(out):
     h.append(ax.collections[-1])
     ax.legend(handles=h, loc="lower right", fontsize=8, frameon=True, edgecolor="#dddddd")
     fig.tight_layout()
-    fig.savefig(out / "fig_importance.png", dpi=250, bbox_inches="tight")
+    fig.savefig(out / "fig_importance.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -338,7 +338,7 @@ def fig_cases(out, split, cases, case_titles):
                loc="lower center", ncol=4, frameon=True, facecolor="#9e9e9e", edgecolor="none", fontsize=8.5,
                bbox_to_anchor=(0.5, -0.02))
     fig.tight_layout(rect=(0, 0.03, 1, 1))
-    fig.savefig(out / "fig_cases.png", dpi=200, bbox_inches="tight")
+    fig.savefig(out / "fig_cases.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -391,7 +391,7 @@ def fig_cases_rf(out, split, cases, case_titles, method="rf_geo_leg"):
                         Line2D([], [], color="#777", ls="--", lw=1, label="사료통 원")],
                loc="lower center", ncol=3, frameon=False, fontsize=8.5, bbox_to_anchor=(0.5, -0.01))
     fig.subplots_adjust(left=0.04, right=0.995, top=0.9, bottom=0.08, wspace=0.06, hspace=0.32)
-    fig.savefig(out / "fig_cases_rf.png", dpi=220, bbox_inches="tight")
+    fig.savefig(out / "fig_cases_rf.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -440,7 +440,7 @@ def fig_dashboard(out, day_dir):
     ax2.grid(color="#ececec")
     for a in (ax, ax2):
         a.tick_params(axis="x", labelsize=8)
-    fig.savefig(out / "fig_dashboard.png", dpi=220, bbox_inches="tight")
+    fig.savefig(out / "fig_dashboard.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
     return {"start": str(s.index[0]), "end": str(s.index[-1]), "mean": float(s.mean()), "cum": float(cum.iloc[-1]),
             "median10": float(base), "low_bins": [str(t) for t in low.index]}

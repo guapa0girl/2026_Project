@@ -152,7 +152,8 @@ def fig_data_examples(out):
            ("Test", pick(te_by, "SAMPLE", 2), te_img)]
     dense = max(tr_by.items(), key=lambda kv: (sum(r["label"] for r in kv[1]), len(kv[1])))[0]
     sel.append(("밀집 장면 (validation)", dense, tr_img))
-    fig, axes = plt.subplots(1, 4, figsize=(13, 2.9))
+    fig, axes = plt.subplots(2, 2, figsize=(6.6, 4.6))
+    axes = axes.ravel()
     for ax, (lab, stem, imgs) in zip(axes, sel):
         im = cv2.cvtColor(cv2.imread(str(imgs[stem])), cv2.COLOR_BGR2RGB)
         rows = bi[stem]
@@ -160,13 +161,13 @@ def fig_data_examples(out):
         ax.imshow(im)
         draw_gt(ax, rows, feeder)
         n_v = sum(r["label"] for r in rows)
-        ax.set_title(f"{lab}\n{im.shape[1]}×{im.shape[0]}, 돼지 {len(rows)}마리 (visiting {n_v})", fontsize=9)
+        ax.set_title(f"{lab}: {im.shape[1]}×{im.shape[0]}\n돼지 {len(rows)}마리 (visiting {n_v})", fontsize=8.5)
         ax.axis("off")
     from matplotlib.lines import Line2D
     fig.legend(handles=[Line2D([], [], color=VIS_C, lw=2, label="visiting (정답)"),
                         Line2D([], [], color=OTH_C, lw=1, label="other (정답)"),
                         Line2D([], [], color="#777", ls="--", lw=1, label="사료통 원")],
-               loc="lower center", ncol=3, frameon=False, fontsize=9, bbox_to_anchor=(0.5, -0.04))
+               loc="lower center", ncol=3, frameon=False, fontsize=8.5, bbox_to_anchor=(0.5, -0.01))
     fig.tight_layout(rect=(0, 0.05, 1, 1))
     fig.savefig(out / "fig_data_examples.png", dpi=220, bbox_inches="tight")
     plt.close(fig)
@@ -352,8 +353,8 @@ def fig_dashboard(out, day_dir):
     cum = (s.cumsum() / 60.0)                      # 점유 돼지-분 (1초 샘플)
     base = m10.median()
     low = m10[m10 < 0.5 * base]
-    fig = plt.figure(figsize=(11, 4.6))
-    gs = fig.add_gridspec(2, 3, height_ratios=[1, 1.15], hspace=0.55, wspace=0.28)
+    fig = plt.figure(figsize=(6.4, 6.2))
+    gs = fig.add_gridspec(3, 3, height_ratios=[0.55, 1.25, 0.9], hspace=0.75, wspace=0.12)
     # 요약 타일
     tiles = [("관측 시간", f"{(s.index[-1] - s.index[0]).total_seconds() / 3600:.1f}시간"),
              ("평균 점유 마릿수", f"{s.mean():.2f}마리"),
@@ -363,9 +364,9 @@ def fig_dashboard(out, day_dir):
         ax.axis("off")
         ax.add_patch(FancyBboxPatch((0.02, 0.05), 0.96, 0.9, boxstyle="round,pad=0.02,rounding_size=0.06",
                                     transform=ax.transAxes, fc="#f5f7fa", ec="#d0d7e0"))
-        ax.text(0.5, 0.66, k, transform=ax.transAxes, ha="center", fontsize=10, color="#555")
-        ax.text(0.5, 0.3, v, transform=ax.transAxes, ha="center", fontsize=17, fontweight="bold", color="#08519c")
-    ax = fig.add_subplot(gs[1, :2])
+        ax.text(0.5, 0.66, k, transform=ax.transAxes, ha="center", fontsize=8.5, color="#555")
+        ax.text(0.5, 0.25, v, transform=ax.transAxes, ha="center", fontsize=12, fontweight="bold", color="#08519c")
+    ax = fig.add_subplot(gs[1, :])
     ax.bar(m10.index, m10.values, width=pd.Timedelta(minutes=9), align="edge", color="#c6dbef", label="10분 평균")
     ax.plot(m1.index, m1.values, color="#08519c", lw=1.0, label="1분 평균")
     for t in low.index:
@@ -378,7 +379,7 @@ def fig_dashboard(out, day_dir):
     ax.legend(fontsize=8, loc="upper center", frameon=False, ncol=3, bbox_to_anchor=(0.5, -0.16))
     ax.spines[["top", "right"]].set_visible(False)
     ax.grid(axis="y", color="#ececec")
-    ax2 = fig.add_subplot(gs[1, 2])
+    ax2 = fig.add_subplot(gs[2, :])
     ax2.plot(cum.index, cum.values, color="#08519c", lw=1.5)
     ax2.set_title("누적 점유량 (돼지·분)", fontsize=10, loc="left")
     ax2.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%H:%M"))

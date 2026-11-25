@@ -1,15 +1,53 @@
-"""HCI 2027 논문 그림 (교수님 첨삭 반영) — 한국어 라벨, 나눔고딕.
+"""HCI 2027 논문 그림 (교수님 첨삭 · 검토 메모 반영) — 한국어 라벨, 나눔고딕, 모두 300 dpi.
 
-  fig_data_examples.png   그림: 세트별 예시 사진(Train1 · Train2 · Test) + 밀집 장면(validation 세트), 사료통 원 · 정답 visiting 상자
-  fig_pipeline.png        그림: 처리 흐름 (a) 자세 추정 기반 판정, (b) 객체 검출 기반 판정
-  fig_counts_time.png     그림: Test 사진별 visiting 마릿수 (Time 5-fold), 정성 사례 사진 번호 표시
-  fig_importance.png      그림: RF(자세+기하+다리) 특징 중요도 (한국어 특징 이름, RF(자세+기하) 비교)
-  fig_cases.png           그림: 정성 사례 (오차 2장 + 잘된 사례 2장) × (정답 · 기하 규칙 · RF(자세+기하+다리) · 객체 검출), 대표 fold 1개
-  fig_dashboard.png       그림: 대시보드 활용 예시 (7/16 CH010 약 3시간, 1초 판정 → 1분 평균 · 10분 막대 · 누적 점유량)
+출력 파일 (--out 폴더, 기본 C:/ETRI/share/hci2027_figs)
+  fig_data_examples.png   그림 1: 세트별 예시 사진(Train1 · Train2 · Test, 1×3), 사료통 원 · 정답 상자
+  fig_pipeline.png        그림 2: 처리 흐름(무채색 순서도) (a) 자세 추정 기반 방법, (b) 객체 검출 기반 방법
+  fig_counts_time.png     그림 3: Test 사진별 visiting 수 (Time 5-fold), 그림 5 사례 사진 번호 빨간 표시
+  fig_importance.png      그림 4: RF(자세+기하+다리) 특징 중요도 (RF(자세+기하) 비교)
+  fig5a_cases_good.png    그림 5(a): RF(자세+기하+다리)가 잘 찾은 사례 (72 · 81번)
+  fig5b_cases_error.png   그림 5(b): 오차 사례 (57번 가림 · 65번 과대 집계), 1×4 = 57 정답 · 57 RF · 65 정답 · 65 RF
+  fig_cases.png / fig_cases_rf.png   이전 판 사례 그림 (방법 4개 비교 / RF 한 장)
+  fig_dashboard.png       (원고에서 삭제됨) 대시보드 활용 예시
+  ※ 그림 6(밀집 장면)은 scripts/dense_case.py 가 따로 만듦
 
-농장 사진이 들어가므로 출력은 레포 밖(--out, 기본 C:/ETRI/share/hci2027_figs)에 둔다.
-추론 캐시(cache_<split>.pkl)는 처음 한 번 만든다 (포즈 모델 + RF, GPU 권장).
-사용법 (counting/ 에서):  python scripts/paper_figures.py [--split k5_f3] [--cases 57 65 72 81]
+==================================================================================================
+다른 PC에서 그림 · 그래프를 다시 출력하는 방법
+==================================================================================================
+0) 공통 준비
+   - 레포를 받고 counting/ 폴더에서 실행함 (모든 경로는 이 파일 위치 기준으로 자동 계산됨).
+   - 파이썬 패키지: numpy, pandas, matplotlib, scikit-learn, opencv-python, ultralytics, torch
+     (기존 PC: C:/ETRI/Piggy_Feeding_Counting/.venv). 예) pip install -r counting/requirements.txt
+   - 한글 글꼴: 나눔고딕(NanumGothic-Regular.ttf, NanumGothic-Bold.ttf)이 든 폴더를 아래 중 하나로 알려 줌.
+       a. 실행 옵션  --font-dir <폴더>
+       b. 환경 변수  HCI_FONT_DIR=<폴더>
+       c. 기본 위치  C:/ETRI/share/hci2027_overleaf/fonts  (Overleaf 프로젝트의 fonts/ 폴더와 같음)
+     셋 다 없으면 시스템 글꼴(맑은 고딕 / AppleGothic)로 그림. 글꼴이 바뀌면 글자 폭이 달라져 배치가 약간 달라질 수 있음.
+
+1) 레포만 있어도 다시 그릴 수 있는 그림 (원본 사진 · 라벨 · 가중치 불필요)
+   - 그림 2 (pipeline), 그림 3 (counts), 그림 4 (importance)
+   - 입력: reports/fold_study/per_frame_000/*.csv, reports/fold_study/paper/rf_importance_by_method.csv (레포에 있음)
+   - 명령:  python scripts/paper_figures.py --only pipeline counts importance --out <출력 폴더>
+
+2) 농장 원본 데이터가 있어야 하는 그림 (GitHub에 올리지 않는 자료이므로 공유 드라이브 등에서 복사)
+   - 그림 1 (examples), 그림 5 (cases), 대시보드 (dashboard)
+   - 필요한 파일 (레포 기준 경로에 그대로 둠)
+       counting/data/labels/state_000.xml, state_001.xml, state_002.xml   CVAT 라벨 (Test, Train1, Train2)
+       counting/data/raw/000_img/, counting/data/raw/train_img/            원본 사진
+       training/data/splits/k5_f0~4.json, rk5_f0~4.json                     fold 목록
+       training/models/results/ep200_<split>/m/weights/best.pt             자세 추정 가중치 (그림 5의 대표 fold = k5_f3)
+       대시보드만: --day-dir 의 *_methods_1s_all.csv (CH010 7/16 1초 판정 결과)
+   - 그림 5는 처음 한 번 자세 추정 + RF 추론 결과를 <출력 폴더>/cache_<split>.pkl 로 저장해 두고, 다음부터는 캐시를 씀
+     (GPU 권장, CPU도 가능하지만 느림). 다른 fold로 바꾸면 --split k5_f0 처럼 지정.
+     기존 PC의 cache_*.pkl 을 같이 복사해 오면 가중치 · 원본 사진 없이도 그림 5의 판정 상자는 다시 그릴 수 있으나,
+     배경 사진이 필요하므로 원본 사진(000_img)은 있어야 함.
+   - 명령:  python scripts/paper_figures.py                              (전부)
+            python scripts/paper_figures.py --only examples cases       (일부만)
+
+3) 출력은 농장 사진이 들어가므로 기본적으로 레포 밖(--out)에 저장함. 논문 · PAPER.md 용 고해상도 사본은
+   reports/fold_study/paper_figures/ 에 복사해 커밋함 (원본 데이터 · 라벨 · 가중치는 커밋 금지).
+4) 숫자 확인: 그림 5는 사진별 판정 마릿수가 per_frame_000 CSV와 같은지 assert로 확인함 (다르면 중단).
+==================================================================================================
 """
 import argparse
 import json
@@ -34,10 +72,22 @@ import evaluate_methods as em  # noqa: E402
 from feeding_monitor.method_features import METHOD_FEATURES  # noqa: E402
 
 FS = ROOT / "reports" / "fold_study"
-FONT_DIR = Path(r"C:/ETRI/share/hci2027_overleaf/fonts")
-for f in FONT_DIR.glob("NanumGothic*.ttf"):
-    font_manager.fontManager.addfont(str(f))
-plt.rcParams.update({"font.family": ["NanumGothic", "DejaVu Sans"], "axes.unicode_minus": False, "font.size": 9})
+DEFAULT_FONT_DIR = Path(r"C:/ETRI/share/hci2027_overleaf/fonts")
+
+
+def setup_fonts(font_dir=None):
+    """한글 글꼴 등록. 우선순위: 인자(--font-dir) > 환경 변수 HCI_FONT_DIR > 기본 위치 > 시스템 글꼴."""
+    import os
+    for d in (font_dir, os.environ.get("HCI_FONT_DIR"), DEFAULT_FONT_DIR):
+        if d and Path(d).is_dir():
+            for f in Path(d).glob("NanumGothic*.ttf"):
+                font_manager.fontManager.addfont(str(f))
+    have = {f.name for f in font_manager.fontManager.ttflist}
+    fams = [f for f in ("NanumGothic", "Malgun Gothic", "AppleGothic") if f in have] + ["DejaVu Sans"]   # 설치된 것만
+    plt.rcParams.update({"font.family": fams, "axes.unicode_minus": False, "font.size": 9})
+
+
+setup_fonts()        # 다른 스크립트(dense_case.py)에서 import 할 때도 기본 글꼴이 잡히도록
 
 NAME = {"geo": "기하 규칙", "rf": "RF(자세)", "rf_geo": "RF(자세+기하)", "rf_geo_leg": "RF(자세+기하+다리)", "yolo": "객체 검출"}
 COLOR = {"gt": "#000000", "geo": "#5a5a5a", "rf_geo_leg": "#08519c", "yolo": "#e8710a"}
@@ -150,9 +200,8 @@ def fig_data_examples(out):
     tr_by, te_by = by_image(train), by_image(test)
     sel = [("Train1", pick(tr_by, "CH005", 2), tr_img), ("Train2", pick(tr_by, "CH010", 2), tr_img),
            ("Test", pick(te_by, "SAMPLE", 2), te_img)]
-    dense = max(tr_by.items(), key=lambda kv: (sum(r["label"] for r in kv[1]), len(kv[1])))[0]
-    sel.append(("밀집 장면 (validation)", dense, tr_img))
-    fig, axes = plt.subplots(2, 2, figsize=(6.6, 4.6))
+    # 밀집 장면은 논의 · 한계 절의 그림(scripts/dense_case.py)으로 옮김
+    fig, axes = plt.subplots(1, 3, figsize=(6.6, 2.15))
     axes = axes.ravel()
     for ax, (lab, stem, imgs) in zip(axes, sel):
         im = cv2.cvtColor(cv2.imread(str(imgs[stem])), cv2.COLOR_BGR2RGB)
@@ -161,14 +210,14 @@ def fig_data_examples(out):
         ax.imshow(im)
         draw_gt(ax, rows, feeder)
         n_v = sum(r["label"] for r in rows)
-        ax.set_title(f"{lab}: {im.shape[1]}×{im.shape[0]}\n돼지 {len(rows)}마리 (visiting {n_v})", fontsize=8.5)
+        ax.set_title(f"{lab}: 돼지 {len(rows)}마리 (visiting {n_v})", fontsize=8)
         ax.axis("off")
     from matplotlib.lines import Line2D
     fig.legend(handles=[Line2D([], [], color=VIS_C, lw=2, label="visiting (정답)"),
                         Line2D([], [], color=OTH_C, lw=1, label="other (정답)"),
                         Line2D([], [], color="#777", ls="--", lw=1, label="사료통 원")],
-               loc="lower center", ncol=3, frameon=False, fontsize=8.5, bbox_to_anchor=(0.5, -0.01))
-    fig.tight_layout(rect=(0, 0.05, 1, 1))
+               loc="lower center", ncol=3, frameon=False, fontsize=8, bbox_to_anchor=(0.5, -0.04))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
     fig.savefig(out / "fig_data_examples.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
     return [s for _, s, _ in sel]
@@ -176,38 +225,53 @@ def fig_data_examples(out):
 
 # ------------------------------------------------------------------ 그림: 처리 흐름
 def fig_pipeline(out):
-    fig, ax = plt.subplots(figsize=(7.2, 3.0))
+    """무채색 흐름도: 처리 상자(사각형) + 판정(마름모) + 예/아니오 분기."""
+    from matplotlib.patches import Polygon
+    fig, ax = plt.subplots(figsize=(7.2, 3.3))
     ax.set_xlim(0, 100)
-    ax.set_ylim(0, 44)
+    ax.set_ylim(0, 48)
     ax.axis("off")
+    K, FC, FC2 = "#333333", "#f2f2f2", "#d9d9d9"
 
-    def box(x, y, w, h, t, fc, bold=False):
-        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.3,rounding_size=1", fc=fc, ec="#444", lw=0.8))
-        ax.text(x + w / 2, y + h / 2, t, ha="center", va="center", fontsize=7.6, linespacing=1.3,
-                fontweight="bold" if bold else "normal")
+    def box(cx, cy, w, h, t, fc=FC, bold=False):
+        ax.add_patch(FancyBboxPatch((cx - w / 2, cy - h / 2), w, h, boxstyle="round,pad=0.25,rounding_size=0.8",
+                                    fc=fc, ec=K, lw=0.8))
+        ax.text(cx, cy, t, ha="center", va="center", fontsize=7.2, linespacing=1.25,
+                fontweight="bold" if bold else "normal", color="#111")
 
-    def arr(x1, y1, x2, y2):
-        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>", mutation_scale=8, lw=0.8, color="#444"))
+    def diamond(cx, cy, w, h, t):
+        ax.add_patch(Polygon([(cx, cy + h / 2), (cx + w / 2, cy), (cx, cy - h / 2), (cx - w / 2, cy)],
+                             closed=True, fc="#ffffff", ec=K, lw=0.8))
+        ax.text(cx, cy, t, ha="center", va="center", fontsize=6.8, linespacing=1.15)
 
-    A, B = "#dbe9f6", "#fde3cf"
-    ax.text(14, 42.5, "(a) 자세 추정 기반 판정", fontsize=8.5, fontweight="bold", color="#08519c", va="center")
-    ax.text(14, 18.5, "(b) 객체 검출 기반 판정", fontsize=8.5, fontweight="bold", color="#c45a00", va="center")
-    box(0.5, 16, 10, 12, "CCTV\n사진", "#f2f2f2")
-    box(14, 27, 17, 12, "자세 추정\nYOLOv8m-pose\n(돼지별 관절 18종)", A)
-    box(34, 27, 19, 12, "특징 계산\n자세 · 기하 · 다리\n(사료통 원 기준)", A)
-    box(56, 27, 21, 12, "돼지별 판정\n기하 규칙 또는\n랜덤 포레스트(RF)", A)
-    box(14, 3, 25, 12, "객체 검출\nYOLOv8m\n(visiting / other 2클래스)", B)
-    box(42, 3, 16, 12, "겹친 상자 정리\n(NMS)", B)
-    box(61, 3, 16, 12, "신뢰도 ≥ 임계값인\nvisiting 상자 선택", B)
-    box(82, 16, 17, 12, "사진당\nvisiting 마릿수", "#eeeeee", bold=True)
-    arr(10.5, 24, 14, 32)
-    arr(10.5, 20, 14, 9)
-    arr(31, 33, 34, 33)
-    arr(53, 33, 56, 33)
-    arr(39, 9, 42, 9)
-    arr(58, 9, 61, 9)
-    arr(77, 33, 82, 25)
-    arr(77, 9, 82, 19)
+    def arr(x1, y1, x2, y2, label=None, lx=0, ly=0):
+        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>", mutation_scale=8, lw=0.8, color=K))
+        if label:
+            ax.text((x1 + x2) / 2 + lx, (y1 + y2) / 2 + ly, label, fontsize=6.5, color="#333", ha="center", va="center")
+
+    ya, yb = 35, 11
+    ax.text(13, 46.5, "(a) 자세 추정 기반 방법", fontsize=8.3, fontweight="bold", va="center")
+    ax.text(13, 22.5, "(b) 객체 검출 기반 방법", fontsize=8.3, fontweight="bold", va="center")
+    box(5.5, 23, 9.5, 10, "CCTV\n사진", FC2)
+    box(20, ya, 14, 11, "자세 추정\nYOLOv8m-pose\n(keypoint 18종)")
+    box(37, ya, 15, 11, "특징 계산\n자세 · 기하 · 다리\n(사료통 원 기준)")
+    box(54, ya, 14, 11, "돼지별 판정\n기하 규칙 또는\n랜덤 포레스트")
+    diamond(70, ya, 11, 11, "visiting?")
+    box(20, yb, 14, 11, "객체 검출\nYOLOv8m\n(visiting / other)")
+    box(37, yb, 15, 11, "겹친 상자 정리\n(NMS)")
+    diamond(54, yb, 13, 12, "visiting\n신뢰도 ≥\n임계값?")
+    box(91, 23, 15, 10, "사진당\nvisiting 수", FC2, bold=True)
+    arr(10.3, 25, 13, ya - 2)
+    arr(10.3, 21, 13, yb + 2)
+    arr(27, ya, 29.5, ya)
+    arr(44.5, ya, 47, ya)
+    arr(61, ya, 64.5, ya)
+    arr(27, yb, 29.5, yb)
+    arr(44.5, yb, 47.5, yb)
+    arr(75.5, ya, 83.5, 26, "예", 0, 2.2)
+    arr(60.5, yb, 83.5, 20, "예", 0, -2.2)
+    arr(70, ya - 5.5, 70, ya - 10, "아니오: 제외", 6.5, 0)
+    arr(54, yb - 6, 54, yb - 10, "아니오: 제외", 6.5, 0)
     fig.savefig(out / "fig_pipeline.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
@@ -216,7 +280,7 @@ def fig_pipeline(out):
 def fig_counts(out, cases):
     from matplotlib.ticker import MultipleLocator
     off = {"geo": -0.06, "rf_geo_leg": 0.0, "yolo": 0.06}
-    fig, ax = plt.subplots(figsize=(14, 4.4))
+    fig, ax = plt.subplots(figsize=(12, 3.0))
     gt = None
     for m in ["geo", "rf_geo_leg", "yolo"]:
         d = pd.read_csv(FS / "per_frame_000" / f"{m}.csv", encoding="utf-8-sig").sort_values("frame_idx")
@@ -228,8 +292,8 @@ def fig_counts(out, cases):
         mae = np.abs(pred - gt).mean()
         ax.step(x, pred.mean(0) + off[m], where="mid", color=COLOR[m], lw=1.8, zorder=3,
                 label=f"{NAME[m]} (MAE {mae:.3f})")
-    ax.set_ylim(-0.3, 3.2)
-    ax.set_yticks([0, 1, 2, 3])
+    ax.set_ylim(-0.25, 2.5)
+    ax.set_yticks([0, 1, 2])
     ax.set_xlim(0, len(gt) + 0.5)
     nums = sorted(set([0] + list(range(5, 86, 5)) + list(cases)))
     ax.set_xticks(nums, ["" if n in cases else str(n) for n in nums])
@@ -239,13 +303,13 @@ def fig_counts(out, cases):
         ax.annotate(str(n), xy=(n, 0), xycoords=("data", "axes fraction"), xytext=(0, -20), textcoords="offset points",
                     ha="center", va="top", color="#c0392b", fontweight="bold", fontsize=9, annotation_clip=False)
     ax.xaxis.labelpad = 20
-    ax.set_xlabel("Test 사진 번호 (시간순, 1~86; 빨간 숫자 = 그림의 정성 사례 사진)")
-    ax.set_ylabel("visiting 마릿수")
+    ax.set_xlabel("Test 사진 번호 (시간순, 1~86; 빨간 숫자 = 그림 5의 사례 사진)")
+    ax.set_ylabel("visiting 수")
     ax.grid(axis="y", color="#ececec", lw=0.8)
     ax.grid(axis="x", which="major", color="#eeeeee", lw=0.7)
     ax.set_axisbelow(True)
     ax.spines[["top", "right"]].set_visible(False)
-    ax.legend(frameon=True, framealpha=0.95, edgecolor="#dddddd", fontsize=9, loc="upper right", ncol=2)
+    ax.legend(frameon=False, fontsize=9, loc="lower left", bbox_to_anchor=(0, 1.0), ncol=4)
     fig.tight_layout()
     fig.savefig(out / "fig_counts_time.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
@@ -395,6 +459,64 @@ def fig_cases_rf(out, split, cases, case_titles, method="rf_geo_leg"):
     plt.close(fig)
 
 
+def fig_cases_split(out, split, method="rf_geo_leg"):
+    """그림 5를 두 장으로: (a) 잘 찾은 사례 72 · 81번 = RF best 판정만 1×2,
+    (b) 오차 사례 57(가림) · 65(과대 집계)번 = [57 정답, 57 RF, 65 정답, 65 RF] 1×4.
+    두 장의 칸 크기가 같으므로 원고에는 (a)를 (b)의 절반 폭으로 넣으면 사진 크기가 맞음 (분량 절약용 한 줄 배치)."""
+    import cv2
+    from matplotlib.lines import Line2D
+    cams, _, test = cams_rows()
+    cache = build_cache(split, out)
+    order, _ = test_order(test)
+    te_img = em.find_images(ROOT / "data" / "raw" / "000_img")
+    bi = by_image(test)
+    counts = pd.read_csv(FS / "per_frame_000" / f"{method}.csv", encoding="utf-8-sig").set_index("image")[split]
+
+    def panel(ax, no, which):
+        stem = order[no]
+        rows = bi[stem]
+        feeder = cams.cfg[rows[0]["camera"]].feeder
+        im = cv2.cvtColor(cv2.imread(str(te_img[stem])), cv2.COLOR_BGR2RGB)
+        crop = crop_box(feeder, im.shape)
+        ax.imshow(im[crop[1]:crop[3], crop[0]:crop[2]])
+        ax.add_patch(Circle((feeder.cx - crop[0], feeder.cy - crop[1]), feeder.r, fill=False, ec="white", ls="--", lw=0.9))
+        n_gt = sum(r["label"] for r in rows)
+        if which == "gt":
+            boxes, col = [r["det"].box for r in rows if r["label"] == 1], VIS_C
+            title, tc = f"{no}번 정답\nvisiting {n_gt}마리", "#000000"
+        else:
+            rec = cache[stem]
+            p = rec["pred"].get(method, [])
+            boxes, col = [b for b, v in zip(rec["boxes"], p) if v == 1], COLOR[method]
+            n = int(np.sum(p))
+            assert n == int(counts[stem]), (no, n, counts[stem])
+            title, tc = f"{no}번 {NAME[method]}\n{n}마리 (정답 {n_gt})", ("#000000" if n == n_gt else "#c0392b")
+        for x1, y1, x2, y2 in boxes:
+            ax.add_patch(Rectangle((x1 - crop[0], y1 - crop[1]), x2 - x1, y2 - y1, fill=False, ec=col, lw=1.8))
+        ax.set_title(title, fontsize=8.5, color=tc)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    leg = [Line2D([], [], color=VIS_C, lw=2, label="정답 visiting"),
+           Line2D([], [], color=COLOR[method], lw=2, label=f"{NAME[method]}가 센 visiting"),
+           Line2D([], [], color="#777", ls="--", lw=1, label="사료통 원")]
+    fig, axes = plt.subplots(1, 2, figsize=(6.6, 2.9))
+    for ax, no in zip(axes, [72, 81]):
+        panel(ax, no, "rf")
+    fig.legend(handles=leg[1:], loc="lower center", ncol=2, frameon=False, fontsize=8, bbox_to_anchor=(0.5, -0.03))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    fig.savefig(out / "fig5a_cases_good.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    fig, axes = plt.subplots(1, 4, figsize=(13.2, 2.9))
+    for c, no in enumerate([57, 65]):
+        panel(axes[2 * c], no, "gt")
+        panel(axes[2 * c + 1], no, "rf")
+    fig.legend(handles=leg, loc="lower center", ncol=3, frameon=False, fontsize=8, bbox_to_anchor=(0.5, -0.03))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    fig.savefig(out / "fig5b_cases_error.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------ 그림: 대시보드
 def fig_dashboard(out, day_dir):
     files = sorted(Path(day_dir).glob("*_methods_1s_all.csv"))
@@ -448,23 +570,37 @@ def fig_dashboard(out, day_dir):
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=r"C:/ETRI/share/hci2027_figs")
-    ap.add_argument("--split", default="k5_f3", help="정성 사례의 대표 fold")
-    ap.add_argument("--cases", nargs="+", type=int, default=[57, 65, 72, 81])
-    ap.add_argument("--day-dir", default=r"C:/ETRI/2026_Project_old/counting_outputs/ch010_20260716_day")
+    ap = argparse.ArgumentParser(description="HCI 2027 논문 그림 생성 (자세한 사용법은 파일 맨 위 설명 참고)")
+    ap.add_argument("--out", default=r"C:/ETRI/share/hci2027_figs", help="출력 폴더 (농장 사진이 들어가므로 레포 밖 권장)")
+    ap.add_argument("--split", default="k5_f3", help="정성 사례(그림 5)의 대표 fold")
+    ap.add_argument("--cases", nargs="+", type=int, default=[57, 65, 72, 81], help="그림 3에 빨간 번호로 표시할 사진 번호")
+    ap.add_argument("--day-dir", default=r"C:/ETRI/2026_Project_old/counting_outputs/ch010_20260716_day",
+                    help="대시보드용 1초 판정 CSV 폴더")
+    ap.add_argument("--font-dir", default=None, help="나눔고딕 ttf 폴더 (없으면 HCI_FONT_DIR · 기본 위치 · 시스템 글꼴)")
+    ap.add_argument("--only", nargs="+", default=None,
+                    choices=["examples", "pipeline", "counts", "importance", "cases", "dashboard"],
+                    help="일부 그림만 생성. pipeline · counts · importance 는 레포 CSV만으로 가능")
     a = ap.parse_args()
+    setup_fonts(a.font_dir)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    titles = {57: "오차: 가림", 65: "오차: 과대 집계"}
-    titles.update({n: "잘된 사례" for n in a.cases if n not in titles})
-    print("data examples:", fig_data_examples(out))
-    fig_pipeline(out)
-    fig_counts(out, a.cases)
-    fig_importance(out)
-    fig_cases(out, a.split, a.cases, titles)
-    fig_cases_rf(out, a.split, [72, 81, 57, 65], {72: "잘 찾은 사례", 81: "잘 찾은 사례", 57: "가림", 65: "과대 집계"})
-    print("dashboard:", fig_dashboard(out, a.day_dir))
+    todo = set(a.only or ["examples", "pipeline", "counts", "importance", "cases", "dashboard"])
+    if "examples" in todo:
+        print("data examples:", fig_data_examples(out))
+    if "pipeline" in todo:
+        fig_pipeline(out)
+    if "counts" in todo:
+        fig_counts(out, a.cases)
+    if "importance" in todo:
+        fig_importance(out)
+    if "cases" in todo:
+        titles = {57: "오차: 가림", 65: "오차: 과대 집계"}
+        titles.update({n: "잘된 사례" for n in a.cases if n not in titles})
+        fig_cases(out, a.split, a.cases, titles)
+        fig_cases_rf(out, a.split, [72, 81, 57, 65], {72: "잘 찾은 사례", 81: "잘 찾은 사례", 57: "가림", 65: "과대 집계"})
+        fig_cases_split(out, a.split)
+    if "dashboard" in todo:
+        print("dashboard:", fig_dashboard(out, a.day_dir))
     print("[saved]", out)
 
 

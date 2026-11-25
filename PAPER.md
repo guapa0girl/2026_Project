@@ -24,14 +24,27 @@
 
 ---
 
-## 0. 원고(HCI 2027) 그림 1\~6
+## 0. 원고(HCI 2027) 그림 1\~6 · 표 1\~9
 
-원고 docx(교수님 첨삭 반영본)에 들어간 그림을 300 dpi로 모은 것임.
+원고 docx(교수님 첨삭 + 검토 메모 반영본)에 들어간 그림과 표를 모두 300 dpi PNG로 모은 것임.
 - 위치: [counting/reports/fold_study/paper_figures/](counting/reports/fold_study/paper_figures/)
-- 그림 안의 글자는 원고 용어(자세 추정, 기하 규칙, RF(자세+기하+다리), 객체 검출, Train1 · Train2 · Test)와 나눔고딕 글꼴을 씀.
-- 다시 만들기: `counting/`에서 `python scripts\paper_figures.py` 실행
-  - 출력 위치: `C:/ETRI/share/hci2027_figs` (fold별 추론 캐시도 이곳에 만들어짐)
-  - 파일 이름 대응: `fig_data_examples.png` → `fig1_data_examples.png`, `fig_pipeline.png` → `fig2_pipeline.png`, `fig_counts_time.png` → `fig3_counts_time.png`, `fig_importance.png` → `fig4_importance.png`, `fig_cases_rf.png` → `fig5_cases_rf.png`, `fig_dashboard.png` → `fig6_dashboard.png`
+- 그림 · 표 안의 글자는 원고 용어(자세 추정, 기하 규칙, RF(자세+기하+다리), 객체 검출, Train1 · Train2 · Test, 검증)와 나눔고딕 글꼴을 씀.
+- 원고 docx는 레포에 올리지 않음(`*.docx`는 gitignore).
+
+### 다시 만들기 (다른 PC 포함)
+
+| 대상 | 명령 (`counting/`에서) | 필요한 것 |
+|---|---|---|
+| 그림 2 · 3 · 4 | `python scripts\paper_figures.py --only pipeline counts importance --out <폴더>` | 레포만 있으면 됨 (입력 CSV가 레포에 있음) |
+| 그림 1 · 5 | `python scripts\paper_figures.py --only examples cases` | 라벨 xml, 원본 사진, fold 목록, 자세 추정 가중치 (레포 밖 자료) |
+| 그림 6 | `python scripts\dense_case.py` | 위와 같음 |
+| 표 1\~9 | `python scripts\docx_tables_png.py "<원고 docx 경로>"` | 원고 docx만 있으면 됨 (matplotlib만 사용) |
+
+- 한글 글꼴: `--font-dir <나눔고딕 폴더>` 또는 환경 변수 `HCI_FONT_DIR`. 없으면 `C:/ETRI/share/hci2027_overleaf/fonts` → 맑은 고딕 / AppleGothic 순으로 찾음.
+- 그림 출력 기본 위치: `C:/ETRI/share/hci2027_figs` (농장 사진이 들어가서 레포 밖). 원고 · 이 문서용 사본은 아래 이름으로 복사함.
+  - `fig_data_examples.png` → `fig1_data_examples.png`, `fig_pipeline.png` → `fig2_pipeline.png`, `fig_counts_time.png` → `fig3_counts_time.png`, `fig_importance.png` → `fig4_importance.png`, `fig5a_cases_good.png` · `fig5b_cases_error.png` (이름 같음), `fig_dense_case.png` → `fig6_dense_case.png`
+- 표는 농장 사진이 없어서 레포 안(`paper_figures/tab*.png`)에 바로 저장함.
+- 준비물 · 파일 위치는 각 스크립트 맨 위 주석(한국어)에 자세히 적어 둠.
 
 원고 용어와 이 문서 용어의 대응:
 
@@ -42,37 +55,38 @@
 | 객체 검출 | YOLO |
 | 자세 추정 | 포즈 추정 (YOLOv8m-pose) |
 | Train1 / Train2 / Test | 001 (CH005) / 002 (CH010) / test(000) |
-| validation | valid |
+| 검증 | valid |
 
-### 그림 1. 세트별 예시 사진과 밀집 장면 예시
+### 그림 1. 세트별 예시 사진 (Train1, Train2, Test)
 
 ![그림 1](counting/reports/fold_study/paper_figures/fig1_data_examples.png)
 
-- 구성: Train1 · Train2 · Test에서 각 1장, 밀집 장면 1장
-  - 세 세트 예시: visiting 2마리인 사진 중 돼지 수가 중간인 사진
-  - 밀집 장면: 학습 사진 190장 중 visiting이 가장 많은 사진(7마리). 모든 학습 사진은 어느 한 fold의 validation에 들어가므로 "validation" 사진으로 표기함.
+- 구성: Train1 · Train2 · Test에서 각 1장 (1×3). visiting 2마리인 사진 중 돼지 수가 중간인 사진
 - 표시: 주황 = 정답 visiting, 회색 = 정답 other, 흰 점선 = 사료통 원(카메라별로 지정한 좌표)
+- 검토 메모 반영: 해상도 표시 삭제, 밀집 장면은 6장(논의 및 한계)의 그림 6으로 옮김
 
 ### 그림 2. 비교한 두 접근의 처리 흐름
 
 ![그림 2](counting/reports/fold_study/paper_figures/fig2_pipeline.png)
 
-- (a) 자세 추정 기반 판정: YOLOv8m-pose로 관절 18종을 찾고, 자세 · 기하 · 다리 특징을 계산한 뒤, 기하 규칙 또는 랜덤 포레스트로 판정함.
-- (b) 객체 검출 기반 판정: YOLOv8m이 visiting / other를 검출하고, NMS로 겹친 상자를 정리한 뒤, 신뢰도가 임계값 이상인 visiting 상자를 셈.
+- 무채색 순서도 (검토 메모: chartflow 형식 · 무채색)
+- (a) 자세 추정 기반 방법: YOLOv8m-pose로 keypoint 18종 → 자세 · 기하 · 다리 특징 → 기하 규칙 또는 랜덤 포레스트 → "visiting?" 예이면 셈, 아니오면 제외
+- (b) 객체 검출 기반 방법: YOLOv8m이 visiting / other 검출 → NMS → "visiting 신뢰도 ≥ 임계값?" 예이면 셈
 
-### 그림 3. Test 사진별 visiting 마릿수 (Time 5-fold)
+### 그림 3. Test 사진별 visiting 수 (Time 5-fold)
 
 ![그림 3](counting/reports/fold_study/paper_figures/fig3_counts_time.png)
 
 - 표시: 회색 = 정답, 선 = fold 모델 5개 평균. 겹침을 피하려고 기하 규칙은 −0.06, 객체 검출은 +0.06만큼 띄움.
-- 빨간 번호(72 · 81 · 57 · 65)는 그림 5의 사례 사진임.
+- 세로축 0\~2.5, 범례는 그래프 위 (검토 메모: 크기 축소, 세로축 2.5까지)
+- 빨간 번호(57 · 65 · 72 · 81)는 그림 5의 사례 사진임.
 - 범례의 MAE는 표 5의 Time 5-fold Test 값과 같음(0.293 / 0.109 / 0.223).
 
-### 그림 4. RF(자세+기하+다리)의 특징 중요도
+### 그림 4. RF(자세+기하+다리)의 Gini 중요도
 
 ![그림 4](counting/reports/fold_study/paper_figures/fig4_importance.png)
 
-- 막대: Gini 중요도, fold 10개 평균 ± SD. 색 = 특징 그룹(자세 · 기하 · 다리).
+- 막대: Gini 중요도(트리에서 그 특징으로 나눌 때 줄어든 지니 불순도의 평균), fold 10개 평균 ± SD. 색 = 특징 그룹(자세 · 기하 · 다리).
 - ◇: 같은 특징의 RF(자세+기하)에서의 중요도
 - 읽는 법:
   - 코-사료통 거리비 · 코-구역 거리 · 코의 구역 포함 여부가 가장 중요함.
@@ -82,10 +96,16 @@
 
 ### 그림 5. RF(자세+기하+다리)의 판정 사례 (Time 5-fold 대표 fold f3)
 
-![그림 5](counting/reports/fold_study/paper_figures/fig5_cases_rf.png)
+(a) 잘 찾은 사례
 
-- 순서: 72 · 81번 = 잘 찾은 사례, 57번 = 가림, 65번 = 과대 집계
-- 표시: 위 = 정답, 아래 = RF(자세+기하+다리)가 센 visiting. 빨간 제목 = 마릿수 오차.
+![그림 5(a)](counting/reports/fold_study/paper_figures/fig5a_cases_good.png)
+
+(b) 오차 사례 (사례마다 왼쪽 = 정답, 오른쪽 = RF(자세+기하+다리))
+
+![그림 5(b)](counting/reports/fold_study/paper_figures/fig5b_cases_error.png)
+
+- 검토 메모 반영: 이미지 두 장으로 나눔. (a)는 정답 없이 RF 판정만, (b)는 정답과 RF 판정을 나란히. 원고에서는 (a)를 (b)의 절반 폭으로 넣어 사진 크기를 맞추고 쪽수가 늘지 않게 함.
+- 빨간 제목 = 마릿수 오차
 
 | 사진 | 정답 | 기하 규칙 | RF(자세+기하+다리) | 객체 검출 | 설명 |
 |---|---|---|---|---|---|
@@ -97,18 +117,62 @@
 - 세 방법을 모두 보여 주는 비교판은 `C:/ETRI/share/hci2027_figs/fig_cases.png`에 있음(레포 밖).
 - 객체 검출 상자는 YOLO 가중치가 이 PC에 없어서 그리지 못하고 마릿수만 씀.
 
-### 그림 6. 대시보드 활용 예시
+### 그림 6. 밀집 장면 예시 (6장 논의 및 한계)
 
-![그림 6](counting/reports/fold_study/paper_figures/fig6_dashboard.png)
+![그림 6](counting/reports/fold_study/paper_figures/fig6_dense_case.png)
 
-- 데이터: 2026-07-16 Train2(CH010) 카메라 영상 약 3.1시간(10:26\~13:32), 1초마다 RF(자세+기하+다리)로 판정한 결과
-  - 이전 실행분임: 포즈 모델은 001+002 전체로 학습한 모델, RF는 사람 관절 전체로 학습한 모델
-  - 원자료 위치: `C:/ETRI/2026_Project_old/counting_outputs/ch010_20260716_day/*_methods_1s_all.csv` (레포 밖)
-- 내용:
-  - 요약 타일: 관측 시간 3.1시간, 평균 점유 0.74마리, 누적 점유량 273 돼지·분
-  - 1분 · 10분 평균 점유 마릿수
-  - 누적 점유량
-  - 이상 알림 예시: 10분 평균이 관측 구간 중앙값(0.50마리)의 50% 미만인 구간. 예시로 정한 규칙임.
+- 사진: 학습 사진 190장 중 visiting이 가장 많은 사진 (Train1 0069번, 돼지 10마리 중 visiting 7마리)
+- 판정 모델: 이 사진이 검증에 들어간 fold(k5_f3)의 자세 추정 모델 + RF(자세+기하+다리). 즉 이 사진을 학습에 쓰지 않은 모델
+- 결과 (`scripts/dense_case.py` 출력):
+  - 자세 추정 검출 11마리, RF(자세+기하+다리) visiting 7마리 = 정답 7마리
+  - 개체 단위(상자 IoU ≥ 0.5 짝짓기)로는 미검출 1 + 라벨 없는 검출 → visiting 1
+  - 두 오류는 같은 돼지임. 급이 파이프 아래로 머리를 넣은 돼지의 검출 상자가 정답 상자와 IoU 0.49로 기준(0.5)에 조금 못 미침. 다른 돼지를 잘못 센 것은 아님.
+- 원고 문장: "마릿수는 맞았지만 밀집 장면에서는 개체 위치가 어긋날 수 있다"로 씀 (오탐이 났다고 쓰지 않음)
+- 대시보드 그림(이전 그림 6)은 원고에서 삭제함 (검토 메모: 분량 압축). 문단은 "…이상 알림의 근거로 활용할 수 있다."까지만 남김.
+
+### 표 1\~9
+
+| 표 | 내용 | 그림 |
+|---|---|---|
+| 표 1 | 데이터 구성 | ![표 1](counting/reports/fold_study/paper_figures/tab1_data.png) |
+| 표 2 | 비교한 다섯 방법 | ![표 2](counting/reports/fold_study/paper_figures/tab2_methods.png) |
+| 표 3 | 랜덤 포레스트 입력 특징 · 정의 · visiting / other 중앙값 | ![표 3](counting/reports/fold_study/paper_figures/tab3_features.png) |
+| 표 4 | Test 관절별 자세 추정 정확도 (PCK) | ![표 4](counting/reports/fold_study/paper_figures/tab4_pck.png) |
+| 표 5 | 사진당 점유 수 MAE (검증 · Test) + Wilcoxon 유의성 | ![표 5](counting/reports/fold_study/paper_figures/tab5_mae.png) |
+| 표 6 | Test 점유 수 추정 성능 (MAE · RMSE · Acc · TCE · F1) | ![표 6](counting/reports/fold_study/paper_figures/tab6_count_metrics.png) |
+| 표 7 | Test 오류 분해 (Time 5-fold, 상자 IoU ≥ 0.5) | ![표 7](counting/reports/fold_study/paper_figures/tab7_error_decomp.png) |
+| 표 8 | 사료통 가장자리 돼지에 대한 다리 특징의 효과 | ![표 8](counting/reports/fold_study/paper_figures/tab8_leg_effect.png) |
+| 표 9 | Test 사진당 추론 시간 | ![표 9](counting/reports/fold_study/paper_figures/tab9_inference_time.png) |
+
+- 표 3의 수식 칸은 Word 수식이라 글자로 읽을 수 없어서, `docx_tables_png.py`의 `MATH_CELLS`에 같은 식을 적어 그림.
+
+### 검토 메모 반영 내용 (원고 본문)
+
+원고 docx의 각 검토 메모에 "[반영] / [일부 반영] / [유지] / [보류] / [미반영] + 내용" 답글을 달아 둠 (메모는 삭제하지 않음).
+
+| 메모 내용 | 반영 |
+|---|---|
+| 요약문 RF 계열 | "RF 계열 세 방법"으로 명시 |
+| 서론 top-view · visiting 정의 · "즉, 본 연구는…" | "상부 시점(top-view)" 첫 등장 시 풀어 씀, other를 visiting과 함께 정의, 목표 문장을 다음 문단 첫 문장으로 옮김 |
+| 방법 용어 통일 · 기여 | "자세 추정 기반 방법 / 객체 검출 기반 방법"으로 통일, 기여 (1)을 "자세 추정 기반 방법 4가지와 객체 검출 기반 방법 1가지의 판정을 비교" 문장으로 바꿈 |
+| keypoint 선택 문단 | 관련 연구 (a) 문단에 합침 |
+| 3.1절 정의 반복 · 그림 1 언급 | 정의 반복 삭제, "keypoint 18종은 표 4에 명시되어 있다.", "(표 1, 그림 1)" |
+| 3.2절 첫 문장 · Random 문장 | 첫 문장 삭제, Random 5-fold 문장 정리 |
+| 표 2 원문 명칭 | 괄호 삭제, 머리글 "방법" |
+| 4.1절 사전학습 · mAP50-95 | "사전학습된 가중치를 사용하며", pose mAP50-95 · box mAP50-95 설명 추가 |
+| 4.3절 (0.25\~0.70) | 삭제 |
+| 마릿수 추정 → 점유 수 추정 | 표 5 · 6 캡션, 결론 |
+| 표 5 설명 | "검증(validation) 세트와 평가(Test) 세트의 사진당 MAE" |
+| validation → 검증 | 본문 · 표 모두 "검증", 처음 한 번만 "검증(validation)" |
+| Gini 중요도 | 5.4절에 정의 추가, 그림 4 캡션 "Gini 중요도" |
+| 정성 사례 문단 · 그림 5 | 그림 5(a) · 5(b)로 나눠 설명, 괄호 문장을 풀어 씀 |
+| 추론 시간 문단 | fold별 p95 최댓값 · 디스크 읽기 · Random 모델 세부 수치 삭제 (압축) |
+| 대시보드 | 그림 · "설정 측면" 문장 삭제, 문단은 "…이상 알림의 근거로 활용할 수 있다."까지 |
+| 한계 "예:" | 문장으로 풀어 씀 |
+| 밀집 장면 예시 | 한계 문단에 그림 6과 결과 문장 추가 |
+| 오타 | "keypoin와", "0.001).RF", 그림 3 캡션 띄어쓰기 |
+
+- 반영하지 않은 메모: keypoint 선택 근거 논문(저자 · 서지를 확인하지 못해 "@ 등[n]" 유지), 참고문헌 확인, epoch 한국어 표기(교수님 결정), Test → 평가 / Test0 이름 변경(결정 대기, 지금은 세트 이름 "Test" 유지), 수식 글자 크기 · 표 분할 배치 · 제목 · 저자 표 줄 수(Word 서식), 분량
 
 ### 원고에서 바뀐 수치: 헝가리안 짝짓기 기준 통일
 
@@ -801,7 +865,7 @@ Time 5-fold의 CH010(못 본 시간대)에서 RF 단독이 크게 나빠짐(0.96
 | F | `counting/reports/fold_study/per_image/graph_F_per_image_error_heatmap.png` | Per-image counting error of all 50 models on test(000) |
 | G | `counting/reports/fold_study/error_cases/all_models_57.png`, `all_models_76.png` | Occlusion / crowding error cases, all 10 pose models side by side |
 | J | `counting/reports/fold_study/graph_J_random_5fold_frames.png`, `graph_J_time_5fold_frames.png` | Visiting pigs per test(000) image (image no. 1–86; error cases #57, #76 marked in red), human GT vs Geo, RF+Geo+Leg, YOLO, one figure per split (mean of 5 fold models; lines offset by −0.06 / 0 / +0.06 for visibility) |
-| 원고 1\~6 | `counting/reports/fold_study/paper_figures/fig1_data_examples.png` \~ `fig6_dashboard.png` | 원고(HCI 2027) 그림, 한국어 라벨, 300 dpi (0장) |
+| 원고 그림 1\~6 · 표 1\~9 | `counting/reports/fold_study/paper_figures/fig1_data_examples.png` \~ `fig6_dense_case.png`, `tab1_data.png` \~ `tab9_inference_time.png` | 원고(HCI 2027) 그림 · 표, 한국어, 300 dpi (0장) |
 | – | `training/reports/data/time_distribution.png` | Capture-time distribution of tasks 001 / 002 |
 | – | `counting/reports/fold_study/per_image/by_model/<method>.png` | Per-method counts on test(000): GT row + 10 fold models |
 
@@ -821,8 +885,12 @@ python scripts\paper_tables.py; python scripts\per_image_000.py; python scripts\
 # 5) 추론 시간 (같은 장비에서 5가지 방법, YOLO 가중치 경로를 함께 줌)
 python scripts\benchmark_speed.py --yolo-weights "../yolo_det/models/ep200_{split}/m/weights/best.pt"
 # 6) 원고 그림 1~6 (C:/ETRI/share/hci2027_figs → paper_figures/로 복사), 짝짓기 기준 통일 · 다리 특징 분석
-python scripts\paper_figures.py; python scripts\analyze_iou_matching.py; python scripts\analyze_leg_effect.py
+python scripts\paper_figures.py; python scripts\dense_case.py; python scripts\analyze_iou_matching.py; python scripts\analyze_leg_effect.py
+# 7) 원고 표 1~9를 PNG로 (원고 docx에서 직접 읽음 → paper_figures/tab*.png)
+python scripts\docx_tables_png.py "<원고 docx 경로>"
 ```
+
+- 다른 PC에서 그림 · 표만 다시 출력하는 방법은 0장 "다시 만들기"와 각 스크립트(`paper_figures.py`, `dense_case.py`, `docx_tables_png.py`) 맨 위 주석에 있음.
 
 - YOLO 학습 · 평가 명령은 [yolo_det/README.md](yolo_det/README.md)에 있음(`SPLIT=kfold|rkfold bash yolo_det/scripts/run_kfold.sh`).
 - 사진 · 라벨 · 가중치는 농장 데이터라 레포에 없음.
@@ -833,7 +901,7 @@ python scripts\paper_figures.py; python scripts\analyze_iou_matching.py; python 
 | fold별 전체 표 · fold 구성 · 포즈 관절별 | `counting/reports/fold_study/fold_study.md`, `fold_metrics.csv`, `fold_summary.csv`, `fold_composition.csv`, `pose_folds.csv`, `pose_keypoints.csv` |
 | 사진별 카운트 | `counting/reports/fold_study/per_image/`, `per_frame_000/`, `frames/ep200_<split>/<방법>_<val\|test>.csv` |
 | 오차 사례 | `counting/reports/fold_study/error_cases/` |
-| 원고 그림 1\~6 (300 dpi) | `counting/reports/fold_study/paper_figures/` |
+| 원고 그림 1\~6 · 표 1\~9 (300 dpi) | `counting/reports/fold_study/paper_figures/` (`fig*.png`, `tab*.png`) |
 | 짝짓기 기준 통일 · 다리 특징 분석 | `counting/reports/fold_study/paper/iou_matching.md`, `leg_effect.md` |
 | 추론 시간 | `counting/reports/speed/NVIDIA_RTX_6000_Ada_Generation/` (`speed.md`, `speed_summary.csv`, `speed_folds.csv`, `speed_raw.csv`) |
 | YOLO 원자료 | `yolo_det/reports/ep200_<fold>/m/summary.json`, `test_frames.csv` |

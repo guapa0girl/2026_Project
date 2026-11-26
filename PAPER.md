@@ -117,6 +117,15 @@
 - 세 방법을 모두 보여 주는 비교판은 `C:/ETRI/share/hci2027_figs/fig_cases.png`에 있음(레포 밖).
 - 객체 검출 상자는 YOLO 가중치가 이 PC에 없어서 그리지 못하고 마릿수만 씀.
 
+### 수정본 그림 4. RF-GL의 판정 사례 (한 단 폭, 3×2)
+
+![수정본 그림 4](counting/reports/fold_study/paper_figures/fig_cases_grid.png)
+
+- 수정본(그림 번호가 1\~4로 줄어든 원고)의 5.4절 그림. 위 그림 5(a) · 5(b)를 한 장으로 합친 판
+- 배치: 1줄 = 잘 찾은 사례 72 · 81번(RF-GL 판정만), 2줄 = 57번(가림) 정답 | RF-GL, 3줄 = 65번(과대 집계) 정답 | RF-GL
+- 표시: 주황 = 정답, 파랑 = RF-GL visiting 판정. 마릿수 · 사료통 원 표시는 뺌
+- 다시 만들기: `python scripts\paper_figures.py --only cases` → `fig_cases_grid.png`
+
 ### 그림 6. 밀집 장면 예시 (6장 논의 및 한계)
 
 ![그림 6](counting/reports/fold_study/paper_figures/fig6_dense_case.png)

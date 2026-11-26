@@ -7,6 +7,7 @@
   fig_importance.png      그림 4: RF(자세+기하+다리) 특징 중요도 (RF(자세+기하) 비교)
   fig5a_cases_good.png    그림 5(a): RF(자세+기하+다리)가 잘 찾은 사례 (72 · 81번)
   fig5b_cases_error.png   그림 5(b): 오차 사례 (57번 가림 · 65번 과대 집계), 1×4 = 57 정답 · 57 RF · 65 정답 · 65 RF
+  fig_cases_grid.png      수정본 그림 4 (한 단 폭 3×2): 72 · 81 RF-GL / 57 정답 · RF-GL / 65 정답 · RF-GL, 마릿수 글자 없음
   fig_cases.png / fig_cases_rf.png   이전 판 사례 그림 (방법 4개 비교 / RF 한 장)
   fig_dashboard.png       (원고에서 삭제됨) 대시보드 활용 예시
   ※ 그림 6(밀집 장면)은 scripts/dense_case.py 가 따로 만듦
@@ -517,6 +518,52 @@ def fig_cases_split(out, split, method="rf_geo_leg"):
     plt.close(fig)
 
 
+def fig_cases_grid(out, split, method="rf_geo_leg", label="RF-GL"):
+    """원고(수정본) 그림 4: 한 단 폭(약 8 cm)용 3×2 사례 그림. 마릿수 등 글자는 빼고 사진 번호만 씀.
+      1줄: 잘 찾은 사례 72 · 81번 = RF-GL 판정만
+      2줄: 57번(가림)  정답 | RF-GL
+      3줄: 65번(과대 집계) 정답 | RF-GL
+    색: 주황 = 정답 visiting, 파랑 = RF-GL visiting 판정.  출력: fig_cases_grid.png"""
+    import cv2
+    from matplotlib.lines import Line2D
+    cams, _, test = cams_rows()
+    cache = build_cache(split, out)
+    order, _ = test_order(test)
+    te_img = em.find_images(ROOT / "data" / "raw" / "000_img")
+    bi = by_image(test)
+    counts = pd.read_csv(FS / "per_frame_000" / f"{method}.csv", encoding="utf-8-sig").set_index("image")[split]
+    layout = [[(72, "rf"), (81, "rf")], [(57, "gt"), (57, "rf")], [(65, "gt"), (65, "rf")]]
+    fig, axes = plt.subplots(3, 2, figsize=(3.4, 4.25))
+    for r, row in enumerate(layout):
+        for c, (no, which) in enumerate(row):
+            ax = axes[r, c]
+            stem = order[no]
+            rows = bi[stem]
+            feeder = cams.cfg[rows[0]["camera"]].feeder
+            im = cv2.cvtColor(cv2.imread(str(te_img[stem])), cv2.COLOR_BGR2RGB)
+            crop = crop_box(feeder, im.shape, scale=1.75, aspect=1.5)
+            ax.imshow(im[crop[1]:crop[3], crop[0]:crop[2]])
+            if which == "gt":
+                boxes, col = [x["det"].box for x in rows if x["label"] == 1], VIS_C
+            else:
+                rec = cache[stem]
+                p = rec["pred"].get(method, [])
+                assert int(np.sum(p)) == int(counts[stem]), (no, int(np.sum(p)), counts[stem])   # per_frame_000과 같은지
+                boxes, col = [b for b, v in zip(rec["boxes"], p) if v == 1], COLOR[method]
+            for x1, y1, x2, y2 in boxes:
+                ax.add_patch(Rectangle((x1 - crop[0], y1 - crop[1]), x2 - x1, y2 - y1, fill=False, ec=col, lw=1.5))
+            ax.set_title(f"{no}번 " + ("정답" if which == "gt" else label), fontsize=8, pad=2)
+            ax.set_xticks([])
+            ax.set_yticks([])
+    fig.legend(handles=[Line2D([], [], color=VIS_C, lw=2, label="정답"),
+                        Line2D([], [], color=COLOR[method], lw=2, label=f"{label} visiting 판정")],
+               loc="lower center", ncol=2, frameon=False, fontsize=8, bbox_to_anchor=(0.5, -0.01),
+               handlelength=1.6, columnspacing=1.2)
+    fig.tight_layout(rect=(0, 0.045, 1, 1), h_pad=0.5, w_pad=0.3)
+    fig.savefig(out / "fig_cases_grid.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
 # ------------------------------------------------------------------ 그림: 대시보드
 def fig_dashboard(out, day_dir):
     files = sorted(Path(day_dir).glob("*_methods_1s_all.csv"))
@@ -599,6 +646,7 @@ def main():
         fig_cases(out, a.split, a.cases, titles)
         fig_cases_rf(out, a.split, [72, 81, 57, 65], {72: "잘 찾은 사례", 81: "잘 찾은 사례", 57: "가림", 65: "과대 집계"})
         fig_cases_split(out, a.split)
+        fig_cases_grid(out, a.split)
     if "dashboard" in todo:
         print("dashboard:", fig_dashboard(out, a.day_dir))
     print("[saved]", out)

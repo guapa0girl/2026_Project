@@ -7,6 +7,7 @@
   fig_importance.png      그림 4: RF(자세+기하+다리) 특징 중요도 (RF(자세+기하) 비교)
   fig5a_cases_good.png    그림 5(a): RF(자세+기하+다리)가 잘 찾은 사례 (72 · 81번)
   fig5b_cases_error.png   그림 5(b): 오차 사례 (57번 가림 · 65번 과대 집계), 1×4 = 57 정답 · 57 RF · 65 정답 · 65 RF
+  fig_counts_column.png   수정본 그림 3 (한 단 폭, Rule-based / RF-GL / OD 이름)
   fig_cases_grid.png      수정본 그림 4 (한 단 폭 3×2): 72 · 81 RF-GL / 57 정답 · RF-GL / 65 정답 · RF-GL, 마릿수 글자 없음
   fig_cases.png / fig_cases_rf.png   이전 판 사례 그림 (방법 4개 비교 / RF 한 장)
   fig_dashboard.png       (원고에서 삭제됨) 대시보드 활용 예시
@@ -313,6 +314,47 @@ def fig_counts(out, cases):
     ax.legend(frameon=False, fontsize=9, loc="lower left", bbox_to_anchor=(0, 1.0), ncol=4)
     fig.tight_layout()
     fig.savefig(out / "fig_counts_time.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
+def fig_counts_column(out, cases, fig_no=4):
+    """수정본 그림 3: 한 단 폭(약 8 cm)용 사진별 visiting 수. 방법 이름 = 수정본 용어(Rule-based / RF-GL / OD).
+    원고에 실제 크기로 넣어도 글자가 본문 크기에 가깝도록 작은 figsize로 그림.  출력: fig_counts_column.png"""
+    from matplotlib.ticker import MultipleLocator
+    name = {"geo": "Rule-based", "rf_geo_leg": "RF-GL", "yolo": "OD"}
+    off = {"geo": -0.06, "rf_geo_leg": 0.0, "yolo": 0.06}
+    fig, ax = plt.subplots(figsize=(3.4, 1.9))
+    gt = None
+    for m in ["geo", "rf_geo_leg", "yolo"]:
+        d = pd.read_csv(FS / "per_frame_000" / f"{m}.csv", encoding="utf-8-sig").sort_values("frame_idx")
+        gt = d["gt"].to_numpy(float)
+        pred = d[[f"k5_f{i}" for i in range(5)]].to_numpy(float).T
+        x = np.arange(1, len(gt) + 1)
+        if m == "geo":
+            ax.step(x, gt, where="mid", color="#c8c8c8", lw=4, solid_capstyle="butt", label="정답", zorder=1)
+        mae = np.abs(pred - gt).mean()
+        ax.step(x, pred.mean(0) + off[m], where="mid", color=COLOR[m], lw=1.0, zorder=3,
+                label=f"{name[m]} (MAE {mae:.3f})")
+    ax.set_ylim(-0.25, 2.5)
+    ax.set_yticks([0, 1, 2])
+    ax.set_xlim(0, len(gt) + 0.5)
+    nums = list(range(0, 86, 10))
+    ax.set_xticks(nums, [str(n) for n in nums])
+    ax.xaxis.set_minor_locator(MultipleLocator(5))
+    for n in cases:
+        ax.axvline(n, color="#c0392b", lw=0.6, ls=":", alpha=0.9, zorder=0.6)
+        ax.annotate(str(n), xy=(n, 1.0), xycoords=("data", "axes fraction"), xytext=(0, 1), textcoords="offset points",
+                    ha="center", va="bottom", color="#c0392b", fontweight="bold", fontsize=6, annotation_clip=False)
+    ax.tick_params(labelsize=6.5, length=2)
+    ax.set_xlabel("Test 사진 번호 (시간순)", fontsize=7, labelpad=1)
+    ax.set_ylabel("visiting 수", fontsize=7, labelpad=1)
+    ax.grid(axis="y", color="#ececec", lw=0.6)
+    ax.set_axisbelow(True)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.legend(frameon=False, fontsize=6.3, loc="lower center", bbox_to_anchor=(0.5, 1.07), ncol=2,
+              handlelength=1.5, columnspacing=1.0, labelspacing=0.25)
+    fig.tight_layout(pad=0.2)
+    fig.savefig(out / "fig_counts_column.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -638,6 +680,7 @@ def main():
         fig_pipeline(out)
     if "counts" in todo:
         fig_counts(out, a.cases)
+        fig_counts_column(out, a.cases)
     if "importance" in todo:
         fig_importance(out)
     if "cases" in todo:

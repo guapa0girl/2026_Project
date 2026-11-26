@@ -117,6 +117,14 @@
 - 세 방법을 모두 보여 주는 비교판은 `C:/ETRI/share/hci2027_figs/fig_cases.png`에 있음(레포 밖).
 - 객체 검출 상자는 YOLO 가중치가 이 PC에 없어서 그리지 못하고 마릿수만 씀.
 
+### 수정본 그림 3. Test 사진별 visiting 수 (한 단 폭)
+
+![수정본 그림 3](counting/reports/fold_study/paper_figures/fig_counts_column.png)
+
+- 위 그림 3과 같은 값을 한 단 폭(약 8 cm)용으로 다시 그린 판. 방법 이름은 수정본 용어(Rule-based / RF-GL / OD)
+- 빨간 번호(57 · 65 · 72 · 81) = 수정본 그림 4의 사례 사진
+- 다시 만들기: `paper_figures.fig_counts_column()` (레포 CSV만 있으면 됨)
+
 ### 수정본 그림 4. RF-GL의 판정 사례 (한 단 폭, 3×2)
 
 ![수정본 그림 4](counting/reports/fold_study/paper_figures/fig_cases_grid.png)
